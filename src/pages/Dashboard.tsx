@@ -20,13 +20,16 @@ const Dashboard = () => {
         .from("events")
         .select(`
           *,
-          room:rooms(id, name, color),
-          creator:profiles(full_name)
+          rooms(id, name, color)
         `)
         .order("starts_at", { ascending: true });
 
       if (error) throw error;
-      return data;
+      return data?.map(event => ({
+        ...event,
+        room: event.rooms,
+        creator: { full_name: "User" }
+      })) || [];
     },
   });
 

@@ -100,7 +100,9 @@ const EventDialog = ({ open, onOpenChange, eventId, onSuccess }: EventDialogProp
       const validated = eventSchema.parse(formData);
 
       const eventData = {
-        ...validated,
+        title: validated.title,
+        description: validated.description,
+        room_id: validated.room_id,
         starts_at: new Date(validated.starts_at).toISOString(),
         ends_at: new Date(validated.ends_at).toISOString(),
       };
