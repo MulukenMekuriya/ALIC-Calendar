@@ -83,61 +83,33 @@ Alic Adimin,Abera Debela,alicmd.admin@gmail.com,2406405123`;
   const handleImportCSV = async () => {
     setIsImporting(true);
     setImportResults(null);
-    const results = { success: 0, failed: 0, errors: [] as string[] };
 
     try {
       const lines = csvData.split('\n').slice(1); // Skip header
-      const defaultPassword = "AlicMD2025!";
-
-      for (const line of lines) {
-        if (!line.trim()) continue;
-
-        const [ministry, name, email, phone] = line.split(',').map(s => s.trim());
-        
-        // Skip if email is invalid or missing
-        if (!email || !email.includes('@') || email === 'alicmd.@gmail.com') {
-          results.failed++;
-          results.errors.push(`Invalid email for ${name}`);
-          continue;
-        }
-
-        try {
-          const { data: authData, error: authError } = await supabase.auth.signUp({
+      const users = lines
+        .filter(line => line.trim())
+        .map(line => {
+          const [ministry, name, email, phone] = line.split(',').map(s => s.trim());
+          return {
+            ministry,
+            full_name: name,
             email,
-            password: defaultPassword,
-            options: {
-              data: {
-                full_name: name,
-              },
-              emailRedirectTo: window.location.origin,
-            },
-          });
+            phone_number: phone,
+          };
+        });
 
-          if (authError) {
-            if (authError.message.includes('already registered')) {
-              results.failed++;
-              results.errors.push(`${email} already exists`);
-            } else {
-              throw authError;
-            }
-          } else {
-            results.success++;
-          }
+      const { data, error } = await supabase.functions.invoke('import-users', {
+        body: { users },
+      });
 
-          // Small delay to avoid rate limiting
-          await new Promise(resolve => setTimeout(resolve, 500));
-        } catch (error) {
-          results.failed++;
-          results.errors.push(`${email}: ${error instanceof Error ? error.message : 'Failed'}`);
-        }
-      }
+      if (error) throw error;
 
-      setImportResults(results);
+      setImportResults(data);
       refetchUsers();
       
       toast({
         title: "Import Complete",
-        description: `Created ${results.success} users. ${results.failed} failed.`,
+        description: `Created ${data.success} users. ${data.failed} failed.`,
       });
     } catch (error) {
       toast({
