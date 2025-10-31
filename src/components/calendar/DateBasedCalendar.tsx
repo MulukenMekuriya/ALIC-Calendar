@@ -145,7 +145,7 @@ const DateBasedCalendar = ({
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
                           <Clock className="h-3 w-3" />
                           <span>
-                            {format(parseISO(event.starts_at), "h:mm a")}
+                            {format(parseISO(event.starts_at), "h:mm a")} - {format(parseISO(event.ends_at), "h:mm a")}
                           </span>
                         </div>
                         <div className="flex flex-wrap items-center gap-1.5">
