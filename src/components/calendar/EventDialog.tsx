@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, Info } from "lucide-react";
 import { z } from "zod";
 
 interface EventDialogProps {
@@ -41,6 +43,8 @@ const EventDialog = ({ open, onOpenChange, eventId, onSuccess }: EventDialogProp
     starts_at: "",
     ends_at: "",
   });
+
+  const [validationError, setValidationError] = useState<string>("");
 
   const { data: event } = useQuery({
     queryKey: ["event", eventId],
@@ -82,15 +86,54 @@ const EventDialog = ({ open, onOpenChange, eventId, onSuccess }: EventDialogProp
         ends_at: event.ends_at.slice(0, 16),
       });
     } else {
+      // Set default start time to now, end time to 1 hour later
+      const now = new Date();
+      const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+
       setFormData({
         title: "",
         description: "",
         room_id: "",
-        starts_at: "",
-        ends_at: "",
+        starts_at: now.toISOString().slice(0, 16),
+        ends_at: oneHourLater.toISOString().slice(0, 16),
       });
     }
+    setValidationError("");
   }, [event]);
+
+  // Validate dates when they change
+  useEffect(() => {
+    if (formData.starts_at && formData.ends_at) {
+      const start = new Date(formData.starts_at);
+      const end = new Date(formData.ends_at);
+
+      if (end <= start) {
+        setValidationError("End time must be after start time");
+      } else {
+        setValidationError("");
+      }
+    }
+  }, [formData.starts_at, formData.ends_at]);
+
+  const handleStartTimeChange = (value: string) => {
+    setFormData({ ...formData, starts_at: value });
+
+    // Auto-adjust end time if it's before or equal to new start time
+    if (value && formData.ends_at) {
+      const start = new Date(value);
+      const end = new Date(formData.ends_at);
+
+      if (end <= start) {
+        // Set end time to 1 hour after new start time
+        const newEnd = new Date(start.getTime() + 60 * 60 * 1000);
+        setFormData({
+          ...formData,
+          starts_at: value,
+          ends_at: newEnd.toISOString().slice(0, 16)
+        });
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -188,6 +231,24 @@ const EventDialog = ({ open, onOpenChange, eventId, onSuccess }: EventDialogProp
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {validationError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {validationError}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {!eventId && !validationError && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                The end time will automatically adjust to be 1 hour after the start time if needed.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="title">Title *</Label>
             <Input
@@ -238,28 +299,34 @@ const EventDialog = ({ open, onOpenChange, eventId, onSuccess }: EventDialogProp
                 id="starts_at"
                 type="datetime-local"
                 value={formData.starts_at}
-                onChange={(e) => setFormData({ ...formData, starts_at: e.target.value })}
+                onChange={(e) => handleStartTimeChange(e.target.value)}
                 disabled={!canEdit || loading}
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="ends_at">End Time *</Label>
+              <Label htmlFor="ends_at" className={validationError ? "text-destructive" : ""}>
+                End Time *
+              </Label>
               <Input
                 id="ends_at"
                 type="datetime-local"
                 value={formData.ends_at}
                 onChange={(e) => setFormData({ ...formData, ends_at: e.target.value })}
                 disabled={!canEdit || loading}
+                className={validationError ? "border-destructive" : ""}
                 required
               />
+              {validationError && (
+                <p className="text-sm text-destructive">{validationError}</p>
+              )}
             </div>
           </div>
 
           {canEdit && (
             <div className="flex gap-2">
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading || !!validationError}>
                 {eventId ? "Update" : "Create"}
               </Button>
               {event && event.status === "draft" && (
@@ -267,7 +334,7 @@ const EventDialog = ({ open, onOpenChange, eventId, onSuccess }: EventDialogProp
                   type="button"
                   variant="secondary"
                   onClick={() => handleStatusChange("pending_review")}
-                  disabled={loading}
+                  disabled={loading || !!validationError}
                 >
                   Submit for Review
                 </Button>
