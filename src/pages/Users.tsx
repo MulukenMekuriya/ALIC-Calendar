@@ -89,9 +89,9 @@ Alic Adimin,Abera Debela,alicmd.admin@gmail.com,2406405123`;
       const users = lines
         .filter(line => line.trim())
         .map(line => {
-          const [ministry, name, email, phone] = line.split(',').map(s => s.trim());
+          const [ministry_name, name, email, phone] = line.split(',').map(s => s.trim());
           return {
-            ministry,
+            ministry_name,
             full_name: name,
             email,
             phone_number: phone,

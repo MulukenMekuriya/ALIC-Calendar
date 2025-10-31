@@ -21,7 +21,7 @@ interface Event {
   ends_at: string;
   status: string;
   room: { id: string; name: string; color: string };
-  creator: { full_name: string } | null;
+  creator: { full_name: string; ministry_name?: string } | null;
 }
 
 interface DateBasedCalendarProps {
@@ -174,7 +174,10 @@ const DateBasedCalendar = ({
                         </div>
                         {event.creator && (
                           <div className="text-[10px] text-muted-foreground mt-1.5">
-                            By: {event.creator.full_name}
+                            <div>By: {event.creator.full_name}</div>
+                            {event.creator.ministry_name && (
+                              <div className="text-[9px] mt-0.5">{event.creator.ministry_name}</div>
+                            )}
                           </div>
                         )}
                       </div>

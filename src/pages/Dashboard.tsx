@@ -37,7 +37,7 @@ const Dashboard = () => {
         (data || []).map(async (event) => {
           const { data: profile } = await supabase
             .from("profiles")
-            .select("full_name, email")
+            .select("full_name, email, ministry_name")
             .eq("id", event.created_by)
             .single();
 

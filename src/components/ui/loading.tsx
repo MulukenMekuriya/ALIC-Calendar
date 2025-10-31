@@ -201,7 +201,7 @@ const PageLoader = ({
       </div>
       <LoadingSpinner size="lg" />
     </div>
-    <p className="text-lg font-medium mb-2">Calendar Manager</p>
+    <p className="text-lg font-medium mb-2">ALIC Calendar Manager</p>
     <p className="text-sm text-muted-foreground">{message}</p>
   </div>
 );

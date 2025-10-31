@@ -115,7 +115,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 <Calendar className="h-6 w-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="font-bold text-lg">Calendar Manager</h1>
+                <h1 className="font-bold text-lg">ALIC Calendar Manager</h1>
                 <p className="text-xs text-muted-foreground">
                   Event Management
                 </p>
