@@ -78,14 +78,28 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess }: Ev
     },
   });
 
+  // Helper function to format date for datetime-local input (preserves local timezone)
+  const formatDateTimeLocal = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
   useEffect(() => {
     if (event) {
+      // Parse ISO string to local time for editing
+      const startsAt = new Date(event.starts_at);
+      const endsAt = new Date(event.ends_at);
+
       setFormData({
         title: event.title,
         description: event.description || "",
         room_id: event.room_id,
-        starts_at: event.starts_at.slice(0, 16),
-        ends_at: event.ends_at.slice(0, 16),
+        starts_at: formatDateTimeLocal(startsAt),
+        ends_at: formatDateTimeLocal(endsAt),
       });
     } else {
       // Set default start time based on initialDate or now
@@ -100,8 +114,8 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess }: Ev
         title: "",
         description: "",
         room_id: "",
-        starts_at: startDate.toISOString().slice(0, 16),
-        ends_at: oneHourLater.toISOString().slice(0, 16),
+        starts_at: formatDateTimeLocal(startDate),
+        ends_at: formatDateTimeLocal(oneHourLater),
       });
     }
     setValidationError("");
@@ -180,10 +194,19 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess }: Ev
         setFormData({
           ...formData,
           starts_at: value,
-          ends_at: newEnd.toISOString().slice(0, 16)
+          ends_at: formatDateTimeLocal(newEnd)
         });
       }
     }
+  };
+
+  // Helper function to convert datetime-local string to ISO string
+  const dateTimeLocalToISO = (dateTimeLocal: string): string => {
+    // datetime-local gives us "2025-10-31T08:06" (no timezone info)
+    // Parse it as local time and convert to ISO (UTC)
+    // This preserves the user's intended time when displayed back in their timezone
+    const date = new Date(dateTimeLocal);
+    return date.toISOString();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -197,8 +220,8 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess }: Ev
         title: validated.title,
         description: validated.description,
         room_id: validated.room_id,
-        starts_at: new Date(validated.starts_at).toISOString(),
-        ends_at: new Date(validated.ends_at).toISOString(),
+        starts_at: dateTimeLocalToISO(validated.starts_at),
+        ends_at: dateTimeLocalToISO(validated.ends_at),
       };
 
       if (eventId) {
