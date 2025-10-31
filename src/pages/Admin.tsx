@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Check, X, Eye, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import EventDialog from "@/components/calendar/EventDialog";
-import { formatDistance } from "date-fns";
+import { formatDistance, format } from "date-fns";
 
 const Admin = () => {
   const { toast } = useToast();
@@ -35,7 +35,7 @@ const Admin = () => {
         (data || []).map(async (event) => {
           const { data: profile } = await supabase
             .from("profiles")
-            .select("full_name, email")
+            .select("full_name, email, ministry_name")
             .eq("id", event.created_by)
             .single();
 
@@ -70,7 +70,7 @@ const Admin = () => {
         (data || []).map(async (event) => {
           const { data: profile } = await supabase
             .from("profiles")
-            .select("full_name, email")
+            .select("full_name, email, ministry_name")
             .eq("id", event.created_by)
             .single();
 
@@ -158,7 +158,7 @@ const Admin = () => {
                               {event.status.replace("_", " ")}
                             </Badge>
                             <span className="text-sm">
-                              {event.room?.name} • {new Date(event.starts_at).toLocaleString()}
+                              {event.room?.name} • {format(new Date(event.starts_at), "MMM d, yyyy h:mm a")} - {format(new Date(event.ends_at), "h:mm a")}
                             </span>
                           </div>
                           {event.description && (
@@ -166,9 +166,14 @@ const Admin = () => {
                           )}
                           <div className="flex items-center gap-4 mt-2 text-xs">
                             {event.creator && (
-                              <div className="flex items-center gap-1 text-muted-foreground">
-                                <User className="h-3 w-3" />
-                                <span>Requested by: <span className="font-medium text-foreground">{event.creator.full_name}</span></span>
+                              <div className="flex flex-col gap-0.5 text-muted-foreground">
+                                <div className="flex items-center gap-1">
+                                  <User className="h-3 w-3" />
+                                  <span>Requested by: <span className="font-medium text-foreground">{event.creator.full_name}</span></span>
+                                </div>
+                                {event.creator.ministry_name && (
+                                  <span className="text-xs ml-4">{event.creator.ministry_name}</span>
+                                )}
                               </div>
                             )}
                             <span className="text-muted-foreground">
@@ -228,16 +233,21 @@ const Admin = () => {
                               {event.status.replace("_", " ")}
                             </Badge>
                             <span className="text-sm">
-                              {event.room?.name} • {new Date(event.starts_at).toLocaleString()}
+                              {event.room?.name} • {format(new Date(event.starts_at), "MMM d, yyyy h:mm a")} - {format(new Date(event.ends_at), "h:mm a")}
                             </span>
                           </div>
                           {event.description && (
                             <p className="mt-2 text-sm">{event.description}</p>
                           )}
                           {event.creator && (
-                            <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
-                              <User className="h-3 w-3" />
-                              <span>Requested by: <span className="font-medium text-foreground">{event.creator.full_name}</span></span>
+                            <div className="flex flex-col gap-0.5 mt-2 text-xs text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                <span>Requested by: <span className="font-medium text-foreground">{event.creator.full_name}</span></span>
+                              </div>
+                              {event.creator.ministry_name && (
+                                <span className="text-xs ml-4">{event.creator.ministry_name}</span>
+                              )}
                             </div>
                           )}
                         </CardDescription>
