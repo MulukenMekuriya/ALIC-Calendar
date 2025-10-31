@@ -29,6 +29,7 @@ interface DateBasedCalendarProps {
   currentWeek: Date;
   onEventClick: (eventId: string) => void;
   onDateClick?: (date: Date) => void;
+  hideStatus?: boolean;
 }
 
 const DateBasedCalendar = ({
@@ -36,6 +37,7 @@ const DateBasedCalendar = ({
   currentWeek,
   onEventClick,
   onDateClick,
+  hideStatus = false,
 }: DateBasedCalendarProps) => {
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 0 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -162,21 +164,23 @@ const DateBasedCalendar = ({
                               {event.room.name}
                             </Badge>
                           )}
-                          <Badge
-                            variant="secondary"
-                            className={cn(
-                              "text-[10px] h-auto py-0.5 px-1.5 font-normal text-white",
-                              getStatusColor(event.status)
-                            )}
-                          >
-                            {getStatusLabel(event.status)}
-                          </Badge>
+                          {!hideStatus && (
+                            <Badge
+                              variant="secondary"
+                              className={cn(
+                                "text-[10px] h-auto py-0.5 px-1.5 font-normal text-white",
+                                getStatusColor(event.status)
+                              )}
+                            >
+                              {getStatusLabel(event.status)}
+                            </Badge>
+                          )}
                         </div>
                         {event.creator && (
                           <div className="text-[10px] text-muted-foreground mt-1.5">
-                            <div>By: {event.creator.full_name}</div>
+                            {!hideStatus && <div>By: {event.creator.full_name}</div>}
                             {event.creator.ministry_name && (
-                              <div className="text-[9px] mt-0.5">{event.creator.ministry_name}</div>
+                              <div className={cn("text-[9px]", !hideStatus && "mt-0.5")}>{event.creator.ministry_name}</div>
                             )}
                           </div>
                         )}

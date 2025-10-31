@@ -52,7 +52,7 @@ const Admin = () => {
   });
 
   const { data: approvedEvents, refetch: refetchApproved } = useQuery({
-    queryKey: ["approved-events"],
+    queryKey: ["approved-published-events"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
@@ -60,7 +60,7 @@ const Admin = () => {
           *,
           rooms(name, color)
         `)
-        .eq("status", "approved")
+        .in("status", ["approved", "published"])
         .order("starts_at", { ascending: true });
 
       if (error) throw error;
@@ -86,16 +86,30 @@ const Admin = () => {
     },
   });
 
-  const handleStatusChange = async (eventId: string, status: "approved" | "rejected" | "published") => {
+  const handleStatusChange = async (eventId: string, status: "approved" | "rejected" | "published" | "pending_review", isUnpublishing?: boolean) => {
     try {
+      // When approving from pending, automatically publish the event
+      // When unpublishing, keep it as approved
+      const finalStatus = (status === "approved" && !isUnpublishing) ? "published" : status;
+
       const { error } = await supabase
         .from("events")
-        .update({ status, reviewer_id: (await supabase.auth.getUser()).data.user?.id })
+        .update({ status: finalStatus, reviewer_id: (await supabase.auth.getUser()).data.user?.id })
         .eq("id", eventId);
 
       if (error) throw error;
 
-      toast({ title: `Event ${status}` });
+      let statusMessage = "";
+      if (isUnpublishing) {
+        statusMessage = "Event unpublished";
+      } else if (status === "approved") {
+        statusMessage = "Event approved and published";
+      } else {
+        statusMessage = `Event ${finalStatus.replace("_", " ")}`;
+      }
+
+      toast({ title: statusMessage });
+
       refetchPending();
       refetchApproved();
     } catch (error) {
@@ -256,11 +270,20 @@ const Admin = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="flex gap-2">
-                      <Button
-                        onClick={() => handleStatusChange(event.id, "published")}
-                      >
-                        Publish Event
-                      </Button>
+                      {event.status === "published" ? (
+                        <Button
+                          variant="outline"
+                          onClick={() => handleStatusChange(event.id, "approved", true)}
+                        >
+                          Unpublish Event
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => handleStatusChange(event.id, "published")}
+                        >
+                          Publish Event
+                        </Button>
+                      )}
                       <Button variant="outline" size="sm" onClick={() => handleViewEvent(event.id)}>
                         <Eye className="h-4 w-4 mr-1" />
                         View Details

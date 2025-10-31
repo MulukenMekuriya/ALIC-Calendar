@@ -275,6 +275,7 @@ const PublicCalendar = () => {
                 events={events || []}
                 currentWeek={currentWeek}
                 onEventClick={handleEventClick}
+                hideStatus={true}
               />
             )}
           </CardContent>

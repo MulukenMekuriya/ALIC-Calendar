@@ -17,7 +17,7 @@ const Users = () => {
   const { toast } = useToast();
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
-  const [newUser, setNewUser] = useState({ email: "", password: "", full_name: "", role: "contributor" });
+  const [newUser, setNewUser] = useState({ email: "", password: "", full_name: "", ministry_name: "", role: "contributor" });
   const [editingUser, setEditingUser] = useState<{ id: string; email: string; full_name: string; phone_number?: string; ministry_name?: string; role: string } | null>(null);
 
   const { data: users, refetch: refetchUsers, error: usersError } = useQuery({
@@ -74,6 +74,16 @@ const Users = () => {
 
       if (authError) throw authError;
 
+      // Update profile with ministry_name if provided
+      if (authData.user && newUser.ministry_name) {
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({ ministry_name: newUser.ministry_name })
+          .eq("id", authData.user.id);
+
+        if (profileError) throw profileError;
+      }
+
       // Add role if needed
       if (newUser.role === "admin" && authData.user) {
         const { error: roleError } = await supabase
@@ -85,7 +95,7 @@ const Users = () => {
 
       toast({ title: "User created successfully" });
       setIsAddUserOpen(false);
-      setNewUser({ email: "", password: "", full_name: "", role: "contributor" });
+      setNewUser({ email: "", password: "", full_name: "", ministry_name: "", role: "contributor" });
       refetchUsers();
     } catch (error) {
       toast({
@@ -193,7 +203,7 @@ const Users = () => {
       full_name: user.full_name,
       phone_number: user.phone_number || "",
       ministry_name: user.ministry_name || "",
-      role: user.user_roles && user.user_roles.length > 0 ? "admin" : "contributor",
+      role: user.user_roles && user.user_roles.some(r => r.role === 'admin') ? "admin" : "contributor",
     });
     setIsEditUserOpen(true);
   };
@@ -253,6 +263,14 @@ const Users = () => {
                         onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                         required
                         minLength={6}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="ministry_name">Ministry Name</Label>
+                      <Input
+                        id="ministry_name"
+                        value={newUser.ministry_name}
+                        onChange={(e) => setNewUser({ ...newUser, ministry_name: e.target.value })}
                       />
                     </div>
                     <div className="space-y-2">
@@ -366,7 +384,7 @@ const Users = () => {
                         <TableCell>{user.phone_number || "-"}</TableCell>
                         <TableCell>{user.ministry_name || "-"}</TableCell>
                         <TableCell>
-                          {user.user_roles && user.user_roles.length > 0 ? (
+                          {user.user_roles && user.user_roles.some(r => r.role === 'admin') ? (
                             <Badge variant="default">
                               <Shield className="h-3 w-3 mr-1" />
                               Admin
