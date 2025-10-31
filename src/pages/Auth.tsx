@@ -84,7 +84,7 @@ const Auth = () => {
           variant: "destructive",
         });
       } else {
-        navigate("/");
+        navigate("/dashboard");
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -111,7 +111,7 @@ const Auth = () => {
           email: validated.email,
           password: validated.password,
           options: {
-            emailRedirectTo: `${window.location.origin}/`,
+            emailRedirectTo: `${window.location.origin}/dashboard`,
             data: {
               full_name: validated.fullName,
             },
@@ -179,10 +179,9 @@ const Auth = () => {
               <Calendar className="h-16 w-16" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold mb-4">Calendar Management</h1>
+          <h1 className="text-4xl font-bold mb-4">ALIC Calendar Management</h1>
           <p className="text-xl opacity-90 mb-8">
-            Streamline your event planning and room management with our powerful
-            platform
+            Organizing ministry events with faith and purpose, bringing our community together in worship and service
           </p>
           <div className="flex justify-center space-x-8 text-sm">
             <div className="flex items-center space-x-2">
@@ -468,13 +467,6 @@ const Auth = () => {
                 </form>
               </TabsContent>
             </Tabs>
-
-            <div className="text-center pt-4 border-t">
-              <p className="text-sm text-muted-foreground">
-                By continuing, you agree to our Terms of Service and Privacy
-                Policy
-              </p>
-            </div>
           </CardContent>
         </Card>
       </div>

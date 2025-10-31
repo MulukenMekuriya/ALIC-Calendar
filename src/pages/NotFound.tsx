@@ -12,7 +12,7 @@ const NotFound = () => {
           The page you're looking for doesn't exist.
         </p>
         <Button asChild>
-          <Link to="/">
+          <Link to="/public">
             <Home className="mr-2 h-4 w-4" />
             Go Home
           </Link>
