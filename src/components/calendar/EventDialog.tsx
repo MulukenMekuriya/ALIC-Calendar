@@ -137,13 +137,17 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess }: Ev
         return;
       }
 
-      // Check for conflicting events in the same room (all statuses except rejected)
+      // Check for conflicting events in the same room (all statuses)
+      // This matches the database exclusion constraint which applies to all statuses
+      // Convert datetime-local to ISO format for proper comparison
+      const startISO = dateTimeLocalToISO(formData.starts_at);
+      const endISO = dateTimeLocalToISO(formData.ends_at);
+
       const { data: conflictingEvents, error } = await supabase
         .from("events")
         .select("id, title, starts_at, ends_at, status")
         .eq("room_id", formData.room_id)
-        .neq("status", "rejected")
-        .or(`and(starts_at.lt.${formData.ends_at},ends_at.gt.${formData.starts_at})`);
+        .or(`and(starts_at.lt.${endISO},ends_at.gt.${startISO})`);
 
       if (error) throw error;
 
