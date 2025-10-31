@@ -23,7 +23,6 @@ import {
   Search,
   ChevronRight,
   Home,
-  BarChart3,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -64,12 +63,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             href: "/rooms",
             icon: DoorOpen,
             description: "Manage rooms",
-          },
-          {
-            name: "Analytics",
-            href: "/analytics",
-            icon: BarChart3,
-            description: "Usage statistics",
           },
         ]
       : []),
