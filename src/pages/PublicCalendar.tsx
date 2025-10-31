@@ -139,10 +139,10 @@ const PublicCalendar = () => {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                Addis Lidet Ethiopian Medhanie Alem Church
+                11961 Tech Rd
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                Maryland, United States
+                Silver Spring, MD 20904
               </p>
             </CardContent>
           </Card>
