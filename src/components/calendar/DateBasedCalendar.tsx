@@ -17,7 +17,7 @@ import {
   endOfDay,
   isBefore,
 } from "date-fns";
-import { Clock } from "lucide-react";
+import { Clock, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Event {
@@ -34,12 +34,14 @@ interface DateBasedCalendarProps {
   events: Event[];
   currentWeek: Date;
   onEventClick: (eventId: string) => void;
+  onDateClick?: (date: Date) => void;
 }
 
 const DateBasedCalendar = ({
   events,
   currentWeek,
   onEventClick,
+  onDateClick,
 }: DateBasedCalendarProps) => {
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 0 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -74,7 +76,7 @@ const DateBasedCalendar = ({
             >
               <CardContent className="p-3">
                 {/* Date Header */}
-                <div className="text-center mb-3 pb-2 border-b">
+                <div className="text-center mb-3 pb-2 border-b relative group/header">
                   <div
                     className={cn(
                       "font-bold text-sm uppercase tracking-wide",
@@ -104,6 +106,18 @@ const DateBasedCalendar = ({
                         Today
                       </Badge>
                     </div>
+                  )}
+                  {/* Add Event Button */}
+                  {onDateClick && !isPastDay && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute top-0 right-0 h-6 w-6 p-0 opacity-0 group-hover/header:opacity-100 transition-opacity"
+                      onClick={() => onDateClick(day)}
+                      title="Add event"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </Button>
                   )}
                 </div>
 
@@ -164,8 +178,16 @@ const DateBasedCalendar = ({
                       </Tooltip>
                     ))
                   ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <p className="text-xs">No events</p>
+                    <div
+                      className={cn(
+                        "text-center py-8 text-muted-foreground",
+                        onDateClick && !isPastDay && "cursor-pointer hover:bg-accent/30 rounded-lg transition-colors"
+                      )}
+                      onClick={() => onDateClick && !isPastDay && onDateClick(day)}
+                    >
+                      <p className="text-xs">
+                        {onDateClick && !isPastDay ? "Click to add event" : "No events"}
+                      </p>
                     </div>
                   )}
                 </div>

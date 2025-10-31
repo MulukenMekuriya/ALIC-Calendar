@@ -17,6 +17,7 @@ interface EventDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   eventId: string | null;
+  initialDate?: Date | null;
   onSuccess: () => void;
 }
 
@@ -31,7 +32,7 @@ const eventSchema = z.object({
   path: ["ends_at"],
 });
 
-const EventDialog = ({ open, onOpenChange, eventId, onSuccess }: EventDialogProps) => {
+const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess }: EventDialogProps) => {
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -86,20 +87,24 @@ const EventDialog = ({ open, onOpenChange, eventId, onSuccess }: EventDialogProp
         ends_at: event.ends_at.slice(0, 16),
       });
     } else {
-      // Set default start time to now, end time to 1 hour later
-      const now = new Date();
-      const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+      // Set default start time based on initialDate or now
+      const baseDate = initialDate || new Date();
+      // Set time to 9 AM if using initialDate, otherwise use current time
+      const startDate = initialDate
+        ? new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), 9, 0)
+        : baseDate;
+      const oneHourLater = new Date(startDate.getTime() + 60 * 60 * 1000);
 
       setFormData({
         title: "",
         description: "",
         room_id: "",
-        starts_at: now.toISOString().slice(0, 16),
+        starts_at: startDate.toISOString().slice(0, 16),
         ends_at: oneHourLater.toISOString().slice(0, 16),
       });
     }
     setValidationError("");
-  }, [event]);
+  }, [event, initialDate]);
 
   // Validate dates when they change
   useEffect(() => {

@@ -15,6 +15,7 @@ const Dashboard = () => {
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   const { data: events, refetch } = useQuery({
     queryKey: ["events"],
@@ -43,11 +44,19 @@ const Dashboard = () => {
 
   const handleEventClick = (eventId: string) => {
     setSelectedEventId(eventId);
+    setSelectedDate(null);
     setIsEventDialogOpen(true);
   };
 
   const handleCreateEvent = () => {
     setSelectedEventId(null);
+    setSelectedDate(null);
+    setIsEventDialogOpen(true);
+  };
+
+  const handleDateClick = (date: Date) => {
+    setSelectedEventId(null);
+    setSelectedDate(date);
     setIsEventDialogOpen(true);
   };
 
@@ -95,12 +104,14 @@ const Dashboard = () => {
           events={events || []}
           currentWeek={currentWeek}
           onEventClick={handleEventClick}
+          onDateClick={handleDateClick}
         />
 
         <EventDialog
           open={isEventDialogOpen}
           onOpenChange={setIsEventDialogOpen}
           eventId={selectedEventId}
+          initialDate={selectedDate}
           onSuccess={() => {
             refetch();
             setIsEventDialogOpen(false);
