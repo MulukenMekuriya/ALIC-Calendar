@@ -240,14 +240,6 @@ const EventDialog = ({ open, onOpenChange, eventId, onSuccess }: EventDialogProp
             </Alert>
           )}
 
-          {!eventId && !validationError && (
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                The end time will automatically adjust to be 1 hour after the start time if needed.
-              </AlertDescription>
-            </Alert>
-          )}
 
           <div className="space-y-2">
             <Label htmlFor="title">Title *</Label>
