@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import EventCalendar from "@/components/calendar/EventCalendar";
+import DateBasedCalendar from "@/components/calendar/DateBasedCalendar";
 import {
   Calendar,
   Church,
@@ -70,20 +70,6 @@ const PublicCalendar = () => {
           creator: { full_name: "User" },
         })) || []
       );
-    },
-  });
-
-  const { data: rooms } = useQuery({
-    queryKey: ["public-rooms"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("rooms")
-        .select("*")
-        .eq("is_active", true)
-        .order("name");
-
-      if (error) throw error;
-      return data;
     },
   });
 
@@ -285,9 +271,9 @@ const PublicCalendar = () => {
                 </p>
               </div>
             ) : (
-              <EventCalendar
+              <DateBasedCalendar
                 events={events || []}
-                rooms={rooms || []}
+                currentWeek={currentWeek}
                 onEventClick={handleEventClick}
               />
             )}

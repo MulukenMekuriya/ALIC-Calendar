@@ -1,12 +1,6 @@
-import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import {
   format,
   startOfWeek,
@@ -125,67 +119,44 @@ const DateBasedCalendar = ({
                 <div className="space-y-2 min-h-[200px] max-h-[400px] overflow-y-auto">
                   {dayEvents.length > 0 ? (
                     dayEvents.map((event) => (
-                      <Tooltip key={event.id}>
-                        <TooltipTrigger asChild>
-                          <div
-                            onClick={() => onEventClick(event.id)}
-                            className={cn(
-                              "p-2 rounded-lg border-l-4 cursor-pointer hover:shadow-md transition-all bg-card hover:bg-accent/50",
-                              "border-l-4"
-                            )}
-                            style={{ borderLeftColor: event.room?.color }}
+                      <div
+                        key={event.id}
+                        onClick={() => onEventClick(event.id)}
+                        className="p-2.5 rounded-md bg-background border cursor-pointer hover:bg-accent/50 transition-colors group"
+                      >
+                        <div className="font-medium text-sm mb-1.5 line-clamp-2 text-foreground">
+                          {event.title}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
+                          <Clock className="h-3 w-3" />
+                          <span>
+                            {format(parseISO(event.starts_at), "h:mm a")}
+                          </span>
+                        </div>
+                        {event.room && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] h-auto py-0.5 px-1.5 font-normal"
+                            style={{
+                              borderColor: event.room.color,
+                              backgroundColor: `${event.room.color}15`,
+                              color: event.room.color,
+                            }}
                           >
-                            <div className="font-medium text-xs mb-1 line-clamp-2">
-                              {event.title}
-                            </div>
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Clock className="h-3 w-3" />
-                              <span>
-                                {format(parseISO(event.starts_at), "h:mm a")}
-                              </span>
-                            </div>
-                            {event.room && (
-                              <div className="mt-1">
-                                <Badge
-                                  variant="outline"
-                                  className="text-xs h-auto py-0.5 px-1.5"
-                                  style={{
-                                    borderColor: event.room.color,
-                                    color: event.room.color,
-                                  }}
-                                >
-                                  {event.room.name}
-                                </Badge>
-                              </div>
-                            )}
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-xs">
-                          <div className="space-y-2">
-                            <div className="font-medium">{event.title}</div>
-                            <div className="flex items-center gap-2 text-xs">
-                              <Clock className="h-3 w-3" />
-                              {format(parseISO(event.starts_at), "h:mm a")} -{" "}
-                              {format(parseISO(event.ends_at), "h:mm a")}
-                            </div>
-                            {event.room && (
-                              <div className="text-xs">
-                                Room: {event.room.name}
-                              </div>
-                            )}
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
+                            {event.room.name}
+                          </Badge>
+                        )}
+                      </div>
                     ))
                   ) : (
                     <div
                       className={cn(
-                        "text-center py-8 text-muted-foreground",
+                        "text-center py-8 text-sm text-muted-foreground",
                         onDateClick && !isPastDay && "cursor-pointer hover:bg-accent/30 rounded-lg transition-colors"
                       )}
                       onClick={() => onDateClick && !isPastDay && onDateClick(day)}
                     >
-                      <p className="text-xs">
+                      <p>
                         {onDateClick && !isPastDay ? "Click to add event" : "No events"}
                       </p>
                     </div>
