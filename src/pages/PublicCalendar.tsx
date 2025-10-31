@@ -2,12 +2,41 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import EventCalendar from "@/components/calendar/EventCalendar";
-import { Calendar, Church, MapPin, Phone, Mail, Globe, Download, ChevronLeft, ChevronRight, LogIn } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Calendar,
+  Church,
+  MapPin,
+  Phone,
+  Mail,
+  Globe,
+  Download,
+  ChevronLeft,
+  ChevronRight,
+  LogIn,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { format, parseISO, addWeeks, subWeeks, startOfWeek, endOfWeek } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  format,
+  parseISO,
+  addWeeks,
+  subWeeks,
+  startOfWeek,
+  endOfWeek,
+} from "date-fns";
 
 const PublicCalendar = () => {
   const [currentWeek, setCurrentWeek] = useState(new Date());
@@ -20,21 +49,25 @@ const PublicCalendar = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
-        .select(`
+        .select(
+          `
           *,
           rooms(id, name, color)
-        `)
+        `
+        )
         .eq("status", "published")
         .gte("starts_at", weekStart.toISOString())
         .lte("starts_at", weekEnd.toISOString())
         .order("starts_at", { ascending: true });
 
       if (error) throw error;
-      return data?.map(event => ({
-        ...event,
-        room: event.rooms,
-        creator: { full_name: "User" }
-      })) || [];
+      return (
+        data?.map((event) => ({
+          ...event,
+          room: event.rooms,
+          creator: { full_name: "User" },
+        })) || []
+      );
     },
   });
 
@@ -53,7 +86,7 @@ const PublicCalendar = () => {
   });
 
   const handleEventClick = (eventId: string) => {
-    const event = events?.find(e => e.id === eventId);
+    const event = events?.find((e) => e.id === eventId);
     if (event) setSelectedEvent(event);
   };
 
@@ -61,13 +94,13 @@ const PublicCalendar = () => {
     if (!events || events.length === 0) return;
 
     let icsContent = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//ALIC MD//Events Calendar//EN',
-      'CALSCALE:GREGORIAN',
-      'METHOD:PUBLISH',
-      'X-WR-CALNAME:ALIC MD Events',
-      'X-WR-TIMEZONE:America/New_York',
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//ALIC MD//Events Calendar//EN",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+      "X-WR-CALNAME:ALIC MD Events",
+      "X-WR-TIMEZONE:America/New_York",
     ];
 
     events.forEach((event: any) => {
@@ -75,25 +108,25 @@ const PublicCalendar = () => {
       const end = parseISO(event.ends_at);
 
       icsContent.push(
-        'BEGIN:VEVENT',
+        "BEGIN:VEVENT",
         `UID:${event.id}@addislidetchurch.org`,
         `DTSTAMP:${format(new Date(), "yyyyMMdd'T'HHmmss'Z'")}`,
         `DTSTART:${format(start, "yyyyMMdd'T'HHmmss")}`,
         `DTEND:${format(end, "yyyyMMdd'T'HHmmss")}`,
         `SUMMARY:${event.title}`,
-        `DESCRIPTION:${event.description || ''}`,
-        `LOCATION:${event.room?.name || ''}`,
-        'END:VEVENT'
+        `DESCRIPTION:${event.description || ""}`,
+        `LOCATION:${event.room?.name || ""}`,
+        "END:VEVENT"
       );
     });
 
-    icsContent.push('END:VCALENDAR');
+    icsContent.push("END:VCALENDAR");
 
-    const blob = new Blob([icsContent.join('\r\n')], { type: 'text/calendar' });
+    const blob = new Blob([icsContent.join("\r\n")], { type: "text/calendar" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.download = `alic-md-events-${format(currentWeek, 'yyyy-MM-dd')}.ics`;
+    link.download = `alic-md-events-${format(currentWeek, "yyyy-MM-dd")}.ics`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -113,7 +146,9 @@ const PublicCalendar = () => {
                 />
               </div>
               <div>
-                <h1 className="text-3xl md:text-4xl font-bold">Addis Lidet International Church</h1>
+                <h1 className="text-3xl md:text-4xl font-bold">
+                  Addis Lidet International Church
+                </h1>
                 <p className="text-blue-100 mt-1">Silver Spring, Maryland</p>
               </div>
             </div>
@@ -128,7 +163,7 @@ const PublicCalendar = () => {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => window.location.href = '/'}
+                onClick={() => (window.location.href = "/")}
                 className="gap-2 bg-white/10 hover:bg-white/20 text-white border-white/30"
               >
                 <LogIn className="h-4 w-4" />
@@ -150,9 +185,7 @@ const PublicCalendar = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">
-                11961 Tech Rd
-              </p>
+              <p className="text-sm text-muted-foreground">11961 Tech Rd</p>
               <p className="text-sm text-muted-foreground mt-1">
                 Silver Spring, MD 20904
               </p>
@@ -221,7 +254,8 @@ const PublicCalendar = () => {
                 </Button>
                 <div className="px-4 py-2 bg-blue-50 dark:bg-blue-950 rounded-lg">
                   <span className="font-medium text-sm">
-                    {format(weekStart, "MMM d")} - {format(weekEnd, "MMM d, yyyy")}
+                    {format(weekStart, "MMM d")} -{" "}
+                    {format(weekEnd, "MMM d, yyyy")}
                   </span>
                 </div>
                 <Button
@@ -244,7 +278,9 @@ const PublicCalendar = () => {
             {events && events.length === 0 ? (
               <div className="text-center py-12">
                 <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No events scheduled for this week</p>
+                <p className="text-muted-foreground">
+                  No events scheduled for this week
+                </p>
               </div>
             ) : (
               <EventCalendar
@@ -279,7 +315,10 @@ const PublicCalendar = () => {
                       <div>
                         <p className="font-medium">{event.title}</p>
                         <p className="text-sm text-muted-foreground">
-                          {format(parseISO(event.starts_at), "EEEE, MMMM d 'at' h:mm a")}
+                          {format(
+                            parseISO(event.starts_at),
+                            "EEEE, MMMM d 'at' h:mm a"
+                          )}
                         </p>
                       </div>
                     </div>
@@ -297,25 +336,39 @@ const PublicCalendar = () => {
       </main>
 
       {/* Event Details Dialog */}
-      <Dialog open={!!selectedEvent} onOpenChange={() => setSelectedEvent(null)}>
+      <Dialog
+        open={!!selectedEvent}
+        onOpenChange={() => setSelectedEvent(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{selectedEvent?.title}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Date & Time</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Date & Time
+              </p>
               <p className="text-base">
-                {selectedEvent && format(parseISO(selectedEvent.starts_at), "EEEE, MMMM d, yyyy")}
+                {selectedEvent &&
+                  format(
+                    parseISO(selectedEvent.starts_at),
+                    "EEEE, MMMM d, yyyy"
+                  )}
               </p>
               <p className="text-sm text-muted-foreground">
-                {selectedEvent && format(parseISO(selectedEvent.starts_at), "h:mm a")} -{" "}
-                {selectedEvent && format(parseISO(selectedEvent.ends_at), "h:mm a")}
+                {selectedEvent &&
+                  format(parseISO(selectedEvent.starts_at), "h:mm a")}{" "}
+                -{" "}
+                {selectedEvent &&
+                  format(parseISO(selectedEvent.ends_at), "h:mm a")}
               </p>
             </div>
             {selectedEvent?.description && (
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Description</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Description
+                </p>
                 <p className="text-base">{selectedEvent.description}</p>
               </div>
             )}
@@ -339,11 +392,12 @@ const PublicCalendar = () => {
               />
             </div>
             <p className="text-sm text-slate-400">
-              © 2025 Addis Lidet International Church (ALIC). All rights reserved.
+              © 2025 Addis Lidet International Church (ALIC). All rights
+              reserved.
             </p>
             <div className="mt-4 flex items-center justify-center gap-4">
               <a
-                href="https://alicethiopia.org"
+                href="https://addislidetchurch.org"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-slate-400 hover:text-white transition-colors"
@@ -352,7 +406,7 @@ const PublicCalendar = () => {
               </a>
               <span className="text-slate-600">•</span>
               <a
-                href="mailto:info@alicethiopia.org"
+                href="mailto: info@addislidetchurch.org"
                 className="text-sm text-slate-400 hover:text-white transition-colors"
               >
                 Contact
