@@ -18,18 +18,22 @@ const Dashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
-        .select(`
+        .select(
+          `
           *,
           rooms(id, name, color)
-        `)
+        `
+        )
         .order("starts_at", { ascending: true });
 
       if (error) throw error;
-      return data?.map(event => ({
-        ...event,
-        room: event.rooms,
-        creator: { full_name: "User" }
-      })) || [];
+      return (
+        data?.map((event) => ({
+          ...event,
+          room: event.rooms,
+          creator: { full_name: "User" },
+        })) || []
+      );
     },
   });
 
@@ -77,6 +81,7 @@ const Dashboard = () => {
           events={events || []}
           rooms={rooms || []}
           onEventClick={handleEventClick}
+          onCreateEvent={handleCreateEvent}
         />
 
         <EventDialog
