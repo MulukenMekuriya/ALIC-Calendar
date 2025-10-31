@@ -233,7 +233,7 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess }: Ev
         const shouldAutoSubmit = !isAdmin && event && (event.status === 'draft' || event.status === 'pending_review');
 
         const updatePayload = shouldAutoSubmit
-          ? { ...eventData, status: 'pending_review' }
+          ? { ...eventData, status: 'pending_review' as const }
           : eventData;
 
         const { error } = await supabase
