@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -77,6 +77,10 @@ const EventCalendar = ({
   onCreateEvent,
 }: EventCalendarProps) => {
   const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [columnWidths, setColumnWidths] = useState<number[]>(Array(7).fill(150));
+  const [resizingColumn, setResizingColumn] = useState<number | null>(null);
+  const [startX, setStartX] = useState(0);
+  const [startWidth, setStartWidth] = useState(0);
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 0 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const today = new Date();
@@ -97,6 +101,42 @@ const EventCalendar = ({
   const goToToday = () => {
     setCurrentWeek(new Date());
   };
+
+  const handleMouseDown = (e: React.MouseEvent, columnIndex: number) => {
+    e.preventDefault();
+    setResizingColumn(columnIndex);
+    setStartX(e.clientX);
+    setStartWidth(columnWidths[columnIndex]);
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (resizingColumn === null) return;
+
+    const diff = e.clientX - startX;
+    const newWidth = Math.max(80, startWidth + diff); // Minimum width of 80px
+
+    setColumnWidths((prev) => {
+      const newWidths = [...prev];
+      newWidths[resizingColumn] = newWidth;
+      return newWidths;
+    });
+  };
+
+  const handleMouseUp = () => {
+    setResizingColumn(null);
+  };
+
+  // Add and remove event listeners for mouse move and up
+  useEffect(() => {
+    if (resizingColumn !== null) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      return () => {
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
+    }
+  }, [resizingColumn, startX, startWidth]);
 
   const isToday = (date: Date) => isSameDay(date, today);
   const isPast = (date: Date) => isBefore(endOfDay(date), startOfDay(today));
@@ -144,53 +184,70 @@ const EventCalendar = ({
       </Card>
 
       {/* Calendar Grid */}
-      <Card className="border-0 shadow-sm overflow-hidden">
+      <Card className="border-0 shadow-sm overflow-x-auto">
         <CardContent className="p-0">
           {/* Days Header */}
-          <div className="grid grid-cols-8 border-b bg-muted/30">
+          <div className="grid border-b bg-muted/30" style={{
+            gridTemplateColumns: `200px ${columnWidths.map(w => `${w}px`).join(' ')}`
+          }}>
             <div className="p-4 font-medium text-sm text-muted-foreground border-r">
               Rooms
             </div>
-            {weekDays.map((day) => (
+            {weekDays.map((day, dayIndex) => (
               <div
                 key={day.toString()}
                 className={cn(
-                  "p-4 text-center border-r last:border-r-0 transition-colors",
+                  "p-4 border-r last:border-r-0 relative",
                   isToday(day) && "bg-primary/5"
                 )}
               >
-                <div
-                  className={cn(
-                    "font-semibold text-sm",
-                    isToday(day) ? "text-primary" : "text-foreground"
+                <div className="text-center">
+                  <div
+                    className={cn(
+                      "font-semibold text-sm",
+                      isToday(day) ? "text-primary" : "text-foreground"
+                    )}
+                  >
+                    {format(day, "EEE")}
+                  </div>
+                  <div
+                    className={cn(
+                      "text-xs mt-1",
+                      isToday(day)
+                        ? "text-primary font-medium"
+                        : isPast(day)
+                        ? "text-muted-foreground"
+                        : "text-muted-foreground"
+                    )}
+                  >
+                    {format(day, "MMM d")}
+                  </div>
+                  {isToday(day) && (
+                    <div className="w-2 h-2 bg-primary rounded-full mx-auto mt-1" />
                   )}
-                >
-                  {format(day, "EEE")}
                 </div>
-                <div
-                  className={cn(
-                    "text-xs mt-1",
-                    isToday(day)
-                      ? "text-primary font-medium"
-                      : isPast(day)
-                      ? "text-muted-foreground"
-                      : "text-muted-foreground"
-                  )}
-                >
-                  {format(day, "MMM d")}
-                </div>
-                {isToday(day) && (
-                  <div className="w-2 h-2 bg-primary rounded-full mx-auto mt-1" />
+                {/* Resize Handle */}
+                {dayIndex < weekDays.length - 1 && (
+                  <div
+                    className={cn(
+                      "absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/50 transition-colors",
+                      resizingColumn === dayIndex && "bg-primary"
+                    )}
+                    onMouseDown={(e) => handleMouseDown(e, dayIndex)}
+                  />
                 )}
               </div>
             ))}
           </div>
 
           {/* Rooms and Events */}
-          {rooms.map((room, roomIndex) => (
+          {rooms.map((room) => (
             <div
               key={room.id}
-              className="grid grid-cols-8 border-b last:border-b-0 hover:bg-muted/20 transition-colors"
+              className="grid border-b last:border-b-0 hover:bg-muted/20 transition-colors"
+              style={{
+                gridTemplateColumns: `200px ${columnWidths.map(w => `${w}px`).join(' ')}`
+              }}
             >
               {/* Room Header */}
               <div className="p-4 border-r flex items-center gap-3 bg-card">
@@ -222,13 +279,15 @@ const EventCalendar = ({
               </div>
 
               {/* Event Cells */}
-              {weekDays.map((day) => {
+              {weekDays.map((day, dayIndex) => {
                 const dayEvents = getEventsForDayAndRoom(day, room.id);
+                const columnWidth = columnWidths[dayIndex];
+                const isWide = columnWidth > 200;
                 return (
                   <div
                     key={day.toString()}
                     className={cn(
-                      "p-2 border-r last:border-r-0 min-h-[120px] relative group transition-colors",
+                      "p-2 border-r last:border-r-0 min-h-[120px] relative group",
                       isPast(day) && "bg-muted/10",
                       isToday(day) && "bg-primary/5"
                     )}
@@ -260,15 +319,27 @@ const EventCalendar = ({
                                 isPast(day) && "opacity-60"
                               )}
                             >
-                              <div className="font-medium truncate mb-1">
+                              <div className={cn(
+                                "font-medium mb-1",
+                                isWide ? "" : "truncate"
+                              )}>
                                 {event.title}
                               </div>
                               <div className="flex items-center gap-1 text-xs opacity-80">
-                                <Clock className="h-3 w-3" />
+                                <Clock className="h-3 w-3 flex-shrink-0" />
                                 <span>
                                   {format(parseISO(event.starts_at), "HH:mm")}
+                                  {isWide && (
+                                    <> - {format(parseISO(event.ends_at), "HH:mm")}</>
+                                  )}
                                 </span>
                               </div>
+                              {isWide && event.creator && (
+                                <div className="flex items-center gap-1 text-xs opacity-80 mt-1">
+                                  <User className="h-3 w-3 flex-shrink-0" />
+                                  <span className="truncate">{event.creator.full_name}</span>
+                                </div>
+                              )}
                               <Badge
                                 variant="outline"
                                 className={cn(
