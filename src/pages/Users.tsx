@@ -61,36 +61,28 @@ const Users = () => {
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: newUser.email,
-        password: newUser.password,
-        options: {
-          data: {
-            full_name: newUser.full_name,
-          },
+      // Get current session token
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        throw new Error("No active session");
+      }
+
+      // Call the edge function to create user with admin API
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: newUser.email,
+          password: newUser.password,
+          full_name: newUser.full_name,
+          ministry_name: newUser.ministry_name,
+          role: newUser.role,
         },
       });
 
-      if (authError) throw authError;
+      if (error) throw error;
 
-      // Update profile with ministry_name if provided
-      if (authData.user && newUser.ministry_name) {
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .update({ ministry_name: newUser.ministry_name })
-          .eq("id", authData.user.id);
-
-        if (profileError) throw profileError;
-      }
-
-      // Add role if needed
-      if (newUser.role === "admin" && authData.user) {
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .insert([{ user_id: authData.user.id, role: "admin" }]);
-
-        if (roleError) throw roleError;
+      if (data?.error) {
+        throw new Error(data.error);
       }
 
       toast({ title: "User created successfully" });
