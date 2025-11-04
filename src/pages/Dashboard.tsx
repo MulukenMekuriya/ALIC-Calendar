@@ -9,7 +9,7 @@ import CalendarViewSwitcher, { CalendarView } from "@/components/calendar/Calend
 import EventSidebar from "@/components/calendar/EventSidebar";
 import EventDialog from "@/components/calendar/EventDialog";
 import { useAuth } from "@/contexts/AuthContext";
-import { addWeeks, subWeeks, addDays, format } from "date-fns";
+import { addWeeks, subWeeks, addDays, addMonths, subMonths, format } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const Dashboard = () => {
@@ -109,6 +109,8 @@ const Dashboard = () => {
               onClick={() => {
                 if (calendarView === "day") {
                   setDayViewDate(addDays(dayViewDate, -1));
+                } else if (calendarView === "month") {
+                  setCurrentWeek(subMonths(currentWeek, 1));
                 } else {
                   setCurrentWeek(subWeeks(currentWeek, 1));
                 }
@@ -120,6 +122,8 @@ const Dashboard = () => {
               <span className="font-medium text-sm">
                 {calendarView === "day"
                   ? format(dayViewDate, "EEEE, MMM d, yyyy")
+                  : calendarView === "month"
+                  ? format(currentWeek, "MMMM yyyy")
                   : format(currentWeek, "MMM d, yyyy")}
               </span>
             </div>
@@ -129,6 +133,8 @@ const Dashboard = () => {
               onClick={() => {
                 if (calendarView === "day") {
                   setDayViewDate(addDays(dayViewDate, 1));
+                } else if (calendarView === "month") {
+                  setCurrentWeek(addMonths(currentWeek, 1));
                 } else {
                   setCurrentWeek(addWeeks(currentWeek, 1));
                 }

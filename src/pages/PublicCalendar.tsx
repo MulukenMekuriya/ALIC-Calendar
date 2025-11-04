@@ -39,6 +39,8 @@ import {
   startOfWeek,
   endOfWeek,
   addDays,
+  addMonths,
+  subMonths,
 } from "date-fns";
 
 const PublicCalendar = () => {
@@ -253,6 +255,8 @@ const PublicCalendar = () => {
                     onClick={() => {
                       if (calendarView === "day") {
                         setSelectedDate(addDays(selectedDate, -1));
+                      } else if (calendarView === "month") {
+                        setCurrentWeek(subMonths(currentWeek, 1));
                       } else {
                         setCurrentWeek(subWeeks(currentWeek, 1));
                       }
@@ -264,6 +268,8 @@ const PublicCalendar = () => {
                     <span className="font-medium text-sm">
                       {calendarView === "day"
                         ? format(selectedDate, "EEEE, MMM d, yyyy")
+                        : calendarView === "month"
+                        ? format(currentWeek, "MMMM yyyy")
                         : `${format(weekStart, "MMM d")} - ${format(
                             weekEnd,
                             "MMM d, yyyy"
@@ -276,6 +282,8 @@ const PublicCalendar = () => {
                     onClick={() => {
                       if (calendarView === "day") {
                         setSelectedDate(addDays(selectedDate, 1));
+                      } else if (calendarView === "month") {
+                        setCurrentWeek(addMonths(currentWeek, 1));
                       } else {
                         setCurrentWeek(addWeeks(currentWeek, 1));
                       }

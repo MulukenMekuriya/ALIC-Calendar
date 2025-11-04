@@ -17,6 +17,10 @@ import {
   addMinutes,
   getHours,
   getMinutes,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  isSameMonth,
 } from "date-fns";
 import { Clock, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -376,12 +380,181 @@ const GoogleCalendarView = ({
     );
   }
 
-  // Month view (simple implementation - can be enhanced)
-  return (
-    <div className="text-center py-12 text-muted-foreground">
-      Month view coming soon...
-    </div>
-  );
+  // Month view
+  if (view === "month") {
+    const monthStart = startOfMonth(currentWeek);
+    const monthEnd = endOfMonth(currentWeek);
+    const calendarStart = startOfWeek(monthStart, { weekStartsOn: 0 });
+    const calendarEnd = startOfWeek(addDays(monthEnd, 6), { weekStartsOn: 0 });
+
+    const allDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+    const weeks = [];
+    for (let i = 0; i < allDays.length; i += 7) {
+      weeks.push(allDays.slice(i, i + 7));
+    }
+
+    const getEventsForDay = (day: Date) => {
+      return events
+        .filter((event) => isSameDay(parseISO(event.starts_at), day))
+        .sort((a, b) => parseISO(a.starts_at).getTime() - parseISO(b.starts_at).getTime());
+    };
+
+    return (
+      <div className="space-y-2">
+        <div className="border rounded-lg bg-background overflow-hidden">
+          {/* Month Grid */}
+          <div className="grid grid-cols-7">
+            {/* Day headers */}
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+              <div
+                key={day}
+                className="border-b bg-muted/30 py-3 text-center text-sm font-semibold"
+              >
+                {day}
+              </div>
+            ))}
+
+            {/* Calendar days */}
+            {weeks.map((week, weekIndex) =>
+              week.map((day, dayIndex) => {
+                const dayEvents = getEventsForDay(day);
+                const isCurrentDay = isToday(day);
+                const isPastDay = isPast(day);
+                const isCurrentMonth = isSameMonth(day, currentWeek);
+
+                return (
+                  <div
+                    key={`${weekIndex}-${dayIndex}`}
+                    className={cn(
+                      "min-h-[120px] border-b border-r p-2 relative group/day cursor-pointer hover:bg-accent/20 transition-colors",
+                      !isCurrentMonth && "bg-muted/20",
+                      isCurrentDay && "bg-blue-50/50 dark:bg-blue-950/30"
+                    )}
+                    onClick={() => onDateClick && !isPastDay && onDateClick(day)}
+                  >
+                    {/* Date number */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div
+                        className={cn(
+                          "flex items-center justify-center w-7 h-7 rounded-full text-sm font-semibold",
+                          isCurrentDay &&
+                            "bg-blue-600 text-white",
+                          !isCurrentDay && isCurrentMonth && "text-foreground",
+                          !isCurrentDay && !isCurrentMonth && "text-muted-foreground"
+                        )}
+                      >
+                        {format(day, "d")}
+                      </div>
+
+                      {/* Add event button on hover */}
+                      {onDateClick && !isPastDay && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 opacity-0 group-hover/day:opacity-100 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDateClick(day);
+                          }}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Events list */}
+                    <div className="space-y-1">
+                      {dayEvents.slice(0, 3).map((event) => {
+                        const isOwnEvent =
+                          currentUserId && event.created_by === currentUserId;
+                        const isPendingFromOther =
+                          event.status === "pending_review" && !isOwnEvent;
+
+                        return (
+                          <div
+                            key={event.id}
+                            className={cn(
+                              "text-xs px-1.5 py-0.5 rounded truncate border-l-2 cursor-pointer hover:shadow-sm transition-shadow",
+                              isPendingFromOther && "border-dashed opacity-80"
+                            )}
+                            style={{
+                              borderLeftColor: event.room?.color || "#888",
+                              backgroundColor: `${event.room?.color}20`,
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onEventClick(event.id);
+                            }}
+                          >
+                            <div className="flex items-center gap-1">
+                              <span className="font-medium truncate">
+                                {format(parseISO(event.starts_at), "h:mm a")}
+                              </span>
+                              <span className="truncate">{event.title}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* More events indicator */}
+                      {dayEvents.length > 3 && (
+                        <div className="text-xs text-muted-foreground font-medium px-1.5">
+                          +{dayEvents.length - 3} more
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Event count dots for days with few events */}
+                    {dayEvents.length > 0 && dayEvents.length <= 3 && (
+                      <div className="absolute bottom-1 right-1 flex gap-0.5">
+                        {dayEvents.slice(0, 3).map((event, idx) => (
+                          <div
+                            key={idx}
+                            className="w-1.5 h-1.5 rounded-full"
+                            style={{ backgroundColor: event.room?.color || "#888" }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Legend */}
+        {!hideStatus && (
+          <Card className="p-3">
+            <div className="flex flex-wrap items-center gap-4 text-xs">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-gray-500" />
+                <span>Draft</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-amber-500" />
+                <span>Pending Review</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-green-500" />
+                <span>Approved</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-500" />
+                <span>Rejected</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-blue-500" />
+                <span>Published</span>
+              </div>
+            </div>
+          </Card>
+        )}
+      </div>
+    );
+  }
+
+  return null;
 };
 
 export default GoogleCalendarView;
