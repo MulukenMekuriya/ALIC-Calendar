@@ -109,33 +109,32 @@ const EventCalendar = ({
     setStartWidth(columnWidths[columnIndex]);
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
-    if (resizingColumn === null) return;
-
-    const diff = e.clientX - startX;
-    const newWidth = Math.max(80, startWidth + diff); // Minimum width of 80px
-
-    setColumnWidths((prev) => {
-      const newWidths = [...prev];
-      newWidths[resizingColumn] = newWidth;
-      return newWidths;
-    });
-  };
-
-  const handleMouseUp = () => {
-    setResizingColumn(null);
-  };
-
   // Add and remove event listeners for mouse move and up
   useEffect(() => {
-    if (resizingColumn !== null) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-      return () => {
-        document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
-      };
-    }
+    if (resizingColumn === null) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const diff = e.clientX - startX;
+      const newWidth = Math.max(80, startWidth + diff); // Minimum width of 80px
+
+      setColumnWidths((prev) => {
+        const newWidths = [...prev];
+        newWidths[resizingColumn] = newWidth;
+        return newWidths;
+      });
+    };
+
+    const handleMouseUp = () => {
+      setResizingColumn(null);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
   }, [resizingColumn, startX, startWidth]);
 
   const isToday = (date: Date) => isSameDay(date, today);
@@ -227,15 +226,19 @@ const EventCalendar = ({
                   )}
                 </div>
                 {/* Resize Handle */}
-                {dayIndex < weekDays.length - 1 && (
-                  <div
-                    className={cn(
-                      "absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/50 transition-colors",
-                      resizingColumn === dayIndex && "bg-primary"
-                    )}
-                    onMouseDown={(e) => handleMouseDown(e, dayIndex)}
-                  />
-                )}
+                <div
+                  className={cn(
+                    "absolute top-0 right-0 h-full cursor-col-resize transition-colors z-10 group/resize",
+                    resizingColumn === dayIndex && "bg-primary/50"
+                  )}
+                  onMouseDown={(e) => handleMouseDown(e, dayIndex)}
+                  style={{
+                    right: '-4px',
+                    width: '8px'
+                  }}
+                >
+                  <div className="absolute inset-y-0 left-1/2 w-0.5 bg-transparent group-hover/resize:bg-primary/40 transition-colors" />
+                </div>
               </div>
             ))}
           </div>
