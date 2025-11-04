@@ -43,26 +43,28 @@ const ResetPassword = () => {
   useEffect(() => {
     // Check if user has a valid session with recovery token
     const hash = window.location.hash;
-    console.log('Reset password page loaded, hash:', hash);
-    console.log('Full URL:', window.location.href);
-    
+    console.log("Reset password page loaded, hash:", hash);
+    console.log("Full URL:", window.location.href);
+
     if (!hash) {
-      console.warn('No hash found in URL');
+      console.warn("No hash found in URL");
       toast({
         title: "Invalid reset link",
-        description: "Please request a new password reset link. No token found in URL.",
+        description:
+          "Please request a new password reset link. No token found in URL.",
         variant: "destructive",
       });
       navigate("/forgot-password");
       return;
     }
-    
+
     // Check for recovery token type
     if (!hash.includes("type=recovery")) {
-      console.warn('Hash does not contain recovery type:', hash);
+      console.warn("Hash does not contain recovery type:", hash);
       toast({
         title: "Invalid reset link",
-        description: "Please request a new password reset link. Invalid token type.",
+        description:
+          "Please request a new password reset link. Invalid token type.",
         variant: "destructive",
       });
       navigate("/forgot-password");
@@ -124,18 +126,18 @@ const ResetPassword = () => {
         return;
       }
 
-      console.log('Attempting to update password...');
+      console.log("Attempting to update password...");
       const { error } = await updatePassword(password);
 
       if (error) {
-        console.error('Password update error:', error);
+        console.error("Password update error:", error);
         toast({
           title: "Error",
           description: error.message || "Failed to update password",
           variant: "destructive",
         });
       } else {
-        console.log('Password updated successfully');
+        console.log("Password updated successfully");
         toast({
           title: "Password updated",
           description: "Your password has been successfully reset",
@@ -146,7 +148,7 @@ const ResetPassword = () => {
         }, 1000);
       }
     } catch (error) {
-      console.error('Unexpected error during password reset:', error);
+      console.error("Unexpected error during password reset:", error);
       toast({
         title: "Error",
         description: "Something went wrong. Please try again.",

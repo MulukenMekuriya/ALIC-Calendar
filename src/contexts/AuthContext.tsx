@@ -24,20 +24,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
 
-        if (currentSession?.user) {
-          setTimeout(() => {
-            checkAdminStatus(currentSession.user.id);
-          }, 0);
-        } else {
-          setIsAdmin(false);
-        }
+      if (currentSession?.user) {
+        setTimeout(() => {
+          checkAdminStatus(currentSession.user.id);
+        }, 0);
+      } else {
+        setIsAdmin(false);
       }
-    );
+    });
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
@@ -85,15 +85,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Construct the redirect URL based on the current environment
       // This will work for localhost (with any port), production domain, or preview deployments
       const redirectUrl = `${window.location.origin}/reset-password`;
-      
-      console.log('Password reset redirect URL:', redirectUrl);
+
+      console.log("Password reset redirect URL:", redirectUrl);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
       });
       return { error };
     } catch (error) {
-      console.error('Password reset error:', error);
+      console.error("Password reset error:", error);
       return { error: error as Error };
     }
   };
@@ -110,7 +110,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, isAdmin, loading, signOut, requestPasswordReset, updatePassword }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        isAdmin,
+        loading,
+        signOut,
+        requestPasswordReset,
+        updatePassword,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
