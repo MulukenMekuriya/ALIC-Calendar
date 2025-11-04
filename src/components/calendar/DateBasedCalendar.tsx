@@ -11,6 +11,9 @@ import {
   endOfDay,
   isBefore,
   areIntervalsOverlapping,
+  differenceInMinutes,
+  getHours,
+  getMinutes,
 } from "date-fns";
 import { Clock, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,6 +26,13 @@ interface Event {
   status: string;
   room: { id: string; name: string; color: string };
   creator: { full_name: string; ministry_name?: string } | null;
+}
+
+interface PositionedEvent extends Event {
+  top: number;
+  height: number;
+  column: number;
+  totalColumns: number;
 }
 
 interface DateBasedCalendarProps {
@@ -50,45 +60,122 @@ const DateBasedCalendar = ({
     ).sort((a, b) => parseISO(a.starts_at).getTime() - parseISO(b.starts_at).getTime());
   };
 
-  // Group overlapping events into rows with columns
-  const groupOverlappingEvents = (dayEvents: Event[]) => {
-    if (dayEvents.length === 0) return [];
+  // Calculate time range and positioned events with columns
+  const calculatePositionedEvents = (dayEvents: Event[]): { positionedEvents: PositionedEvent[], startHour: number, endHour: number, gridHeight: number } => {
+    if (dayEvents.length === 0) {
+      return { positionedEvents: [], startHour: 8, endHour: 18, gridHeight: 600 };
+    }
 
-    const rows: Event[][] = [];
+    // Find time range
+    const eventTimes = dayEvents.map(event => {
+      const start = parseISO(event.starts_at);
+      const end = parseISO(event.ends_at);
+      return {
+        startHour: getHours(start),
+        startMinute: getMinutes(start),
+        endHour: getHours(end),
+        endMinute: getMinutes(end),
+      };
+    });
 
-    dayEvents.forEach((event) => {
-      const eventStart = parseISO(event.starts_at);
-      const eventEnd = parseISO(event.ends_at);
+    const earliestHour = Math.min(...eventTimes.map(t => t.startHour));
+    const latestHour = Math.max(...eventTimes.map(t => t.endHour + (t.endMinute > 0 ? 1 : 0)));
 
-      // Find all rows where this event overlaps with at least one event
-      let addedToRow = false;
+    const startHour = Math.max(0, earliestHour - 1);
+    const endHour = Math.min(24, latestHour + 1);
+    const totalHours = endHour - startHour;
+    const PIXELS_PER_HOUR = 60;
+    const gridHeight = totalHours * PIXELS_PER_HOUR;
 
-      for (const row of rows) {
-        const overlaps = row.some((rowEvent) => {
-          const rowStart = parseISO(rowEvent.starts_at);
-          const rowEnd = parseISO(rowEvent.ends_at);
+    // Calculate positions with start time offset
+    const eventsWithPosition = dayEvents.map((event) => {
+      const start = parseISO(event.starts_at);
+      const end = parseISO(event.ends_at);
 
-          return areIntervalsOverlapping(
-            { start: eventStart, end: eventEnd },
-            { start: rowStart, end: rowEnd },
+      const startMinutes = (getHours(start) - startHour) * 60 + getMinutes(start);
+      const duration = differenceInMinutes(end, start);
+
+      return {
+        ...event,
+        top: startMinutes,
+        height: Math.max(duration, 40),
+        start,
+        end,
+      };
+    });
+
+    // Group overlapping events and assign columns
+    const groups: typeof eventsWithPosition[] = [];
+
+    eventsWithPosition.forEach((event) => {
+      let overlappingGroup: typeof eventsWithPosition | null = null;
+
+      for (const group of groups) {
+        const overlaps = group.some((groupEvent) =>
+          areIntervalsOverlapping(
+            { start: event.start, end: event.end },
+            { start: groupEvent.start, end: groupEvent.end },
             { inclusive: true }
-          );
-        });
+          )
+        );
 
         if (overlaps) {
-          row.push(event);
-          addedToRow = true;
+          overlappingGroup = group;
           break;
         }
       }
 
-      // If event doesn't overlap with any row, create a new row
-      if (!addedToRow) {
-        rows.push([event]);
+      if (overlappingGroup) {
+        overlappingGroup.push(event);
+      } else {
+        groups.push([event]);
       }
     });
 
-    return rows;
+    // Assign columns within each group
+    const positionedEvents: PositionedEvent[] = [];
+
+    groups.forEach((group) => {
+      // Sort by start time, then by duration
+      group.sort((a, b) => {
+        const timeDiff = a.start.getTime() - b.start.getTime();
+        if (timeDiff !== 0) return timeDiff;
+        return (b.end.getTime() - b.start.getTime()) - (a.end.getTime() - a.start.getTime());
+      });
+
+      // Assign columns
+      const columns: { start: Date; end: Date }[] = [];
+
+      group.forEach((event) => {
+        let column = 0;
+
+        for (let i = 0; i < columns.length; i++) {
+          const overlaps = areIntervalsOverlapping(
+            { start: event.start, end: event.end },
+            { start: columns[i].start, end: columns[i].end },
+            { inclusive: true }
+          );
+
+          if (!overlaps) {
+            column = i;
+            columns[i] = { start: event.start, end: event.end };
+            break;
+          }
+        }
+
+        if (column === columns.length) {
+          columns.push({ start: event.start, end: event.end });
+        }
+
+        positionedEvents.push({
+          ...event,
+          column,
+          totalColumns: Math.max(group.length, columns.length),
+        });
+      });
+    });
+
+    return { positionedEvents, startHour, endHour, gridHeight };
   };
 
   const isToday = (date: Date) => isSameDay(date, today);
@@ -174,74 +261,86 @@ const DateBasedCalendar = ({
                   )}
                 </div>
 
-                {/* Events List - Column-based layout for overlapping events */}
-                <div className="space-y-2 min-h-[200px] max-h-[400px] overflow-y-auto">
+                {/* Events List - Time-positioned with columns */}
+                <div className="relative min-h-[200px] max-h-[500px] overflow-y-auto">
                   {dayEvents.length > 0 ? (
-                    groupOverlappingEvents(dayEvents).map((row, rowIndex) => (
-                      <div
-                        key={`row-${rowIndex}`}
-                        className={cn(
-                          "grid gap-2",
-                          row.length === 1 ? "grid-cols-1" :
-                          row.length === 2 ? "grid-cols-2" :
-                          row.length === 3 ? "grid-cols-3" :
-                          row.length === 4 ? "grid-cols-4" :
-                          "grid-cols-2"
-                        )}
-                      >
-                        {row.map((event) => (
-                          <div
-                            key={event.id}
-                            onClick={() => onEventClick(event.id)}
-                            className="p-2.5 rounded-md bg-background border cursor-pointer hover:bg-accent/50 transition-colors group"
-                          >
-                            <div className="font-medium text-sm mb-1.5 line-clamp-2 text-foreground">
-                              {event.title}
-                            </div>
-                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mb-1.5">
-                              <Clock className="h-3 w-3" />
-                              <span>
-                                {format(parseISO(event.starts_at), "h:mm a")} - {format(parseISO(event.ends_at), "h:mm a")}
+                    (() => {
+                      const { positionedEvents, startHour, endHour, gridHeight } = calculatePositionedEvents(dayEvents);
+                      const hours = Array.from({ length: endHour - startHour }, (_, i) => startHour + i);
+
+                      return (
+                        <div className="relative" style={{ height: `${gridHeight}px`, minHeight: '200px' }}>
+                          {/* Hour markers */}
+                          {hours.map((hour, index) => (
+                            <div
+                              key={hour}
+                              className="absolute left-0 right-0 border-t border-border/20 pointer-events-none"
+                              style={{ top: `${index * 60}px` }}
+                            >
+                              <span className="text-[9px] text-muted-foreground/50 pl-1 bg-background">
+                                {format(new Date().setHours(hour, 0), "ha")}
                               </span>
                             </div>
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              {event.room && (
-                                <Badge
-                                  variant="outline"
-                                  className="text-[10px] h-auto py-0.5 px-1.5 font-normal"
-                                  style={{
-                                    borderColor: event.room.color,
-                                    backgroundColor: `${event.room.color}15`,
-                                    color: event.room.color,
-                                  }}
-                                >
-                                  {event.room.name}
-                                </Badge>
-                              )}
-                              {!hideStatus && (
-                                <Badge
-                                  variant="secondary"
-                                  className={cn(
-                                    "text-[10px] h-auto py-0.5 px-1.5 font-normal text-white",
-                                    getStatusColor(event.status)
-                                  )}
-                                >
-                                  {getStatusLabel(event.status)}
-                                </Badge>
-                              )}
-                            </div>
-                            {event.creator && (
-                              <div className="text-[10px] text-muted-foreground mt-1.5">
-                                {!hideStatus && <div>By: {event.creator.full_name}</div>}
-                                {event.creator.ministry_name && (
-                                  <div className={cn("text-[9px]", !hideStatus && "mt-0.5")}>{event.creator.ministry_name}</div>
+                          ))}
+
+                          {/* Positioned events */}
+                          {positionedEvents.map((event) => {
+                            const widthPercentage = 100 / event.totalColumns;
+                            const leftPercentage = widthPercentage * event.column;
+
+                            return (
+                              <div
+                                key={event.id}
+                                onClick={() => onEventClick(event.id)}
+                                className="absolute p-2 rounded-md bg-background border-l-2 cursor-pointer hover:bg-accent/50 transition-colors shadow-sm overflow-hidden"
+                                style={{
+                                  top: `${event.top}px`,
+                                  height: `${event.height}px`,
+                                  left: `${leftPercentage}%`,
+                                  width: `calc(${widthPercentage}% - 4px)`,
+                                  borderLeftColor: event.room?.color || "#888",
+                                  minHeight: "40px",
+                                }}
+                              >
+                                <div className="font-medium text-xs mb-0.5 line-clamp-1 text-foreground">
+                                  {event.title}
+                                </div>
+                                <div className="flex items-center gap-1 text-[9px] text-muted-foreground mb-0.5">
+                                  <Clock className="h-2.5 w-2.5" />
+                                  <span>
+                                    {format(parseISO(event.starts_at), "h:mm a")}
+                                  </span>
+                                </div>
+                                {event.room && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[8px] h-auto py-0 px-1 font-normal"
+                                    style={{
+                                      borderColor: event.room.color,
+                                      backgroundColor: `${event.room.color}15`,
+                                      color: event.room.color,
+                                    }}
+                                  >
+                                    {event.room.name}
+                                  </Badge>
+                                )}
+                                {!hideStatus && event.height > 60 && (
+                                  <Badge
+                                    variant="secondary"
+                                    className={cn(
+                                      "text-[8px] h-auto py-0 px-1 font-normal text-white mt-0.5",
+                                      getStatusColor(event.status)
+                                    )}
+                                  >
+                                    {getStatusLabel(event.status)}
+                                  </Badge>
                                 )}
                               </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ))
+                            );
+                          })}
+                        </div>
+                      );
+                    })()
                   ) : (
                     <div
                       className={cn(

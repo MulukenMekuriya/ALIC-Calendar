@@ -67,7 +67,8 @@ const ResetPassword = () => {
 
   const getPasswordStrength = (password: string) => {
     if (password.length === 0) return { text: "", color: "" };
-    if (password.length < 6) return { text: "Too short", color: "text-red-500" };
+    if (password.length < 6)
+      return { text: "Too short", color: "text-red-500" };
 
     let strength = 0;
     if (password.length >= 8) strength++;
@@ -140,7 +141,7 @@ const ResetPassword = () => {
         <div>
           <div className="flex items-center gap-2 text-white">
             <Calendar className="h-8 w-8" />
-            <span className="text-2xl font-bold">Church Approval Agenda</span>
+            <span className="text-2xl font-bold">ALIC Event Management</span>
           </div>
         </div>
         <div className="text-white">
@@ -150,7 +151,7 @@ const ResetPassword = () => {
           </p>
         </div>
         <div className="text-blue-200 text-sm">
-          © 2024 Church Approval Agenda. All rights reserved.
+          © 2025 ALIC Event Management. All rights reserved.
         </div>
       </div>
 
@@ -161,9 +162,7 @@ const ResetPassword = () => {
             <CardTitle className="text-2xl font-bold">
               Reset Your Password
             </CardTitle>
-            <CardDescription>
-              Enter your new password below
-            </CardDescription>
+            <CardDescription>Enter your new password below</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -243,7 +242,9 @@ const ResetPassword = () => {
                       </>
                     ) : (
                       <>
-                        <span className="text-red-500">Passwords don't match</span>
+                        <span className="text-red-500">
+                          Passwords don't match
+                        </span>
                       </>
                     )}
                   </div>

@@ -179,7 +179,8 @@ const Auth = () => {
               <Calendar className="h-16 w-16" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold mb-4">ALIC Calendar Management</h1>
+          <h1 className="text-4xl font-bold mb-4">Addis Lidet International Church</h1>
+          <h2 className="text-2xl font-semibold mb-4">Event Management</h2>
           <p className="text-xl opacity-90 mb-8">
             Organizing ministry events with faith and purpose, bringing our community together in worship and service
           </p>
