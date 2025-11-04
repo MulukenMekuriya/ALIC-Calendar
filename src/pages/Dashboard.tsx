@@ -117,6 +117,7 @@ const Dashboard = () => {
           currentWeek={currentWeek}
           onEventClick={handleEventClick}
           onDateClick={handleDateClick}
+          currentUserId={user?.id}
         />
 
         <EventDialog

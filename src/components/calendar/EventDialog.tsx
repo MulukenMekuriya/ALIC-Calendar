@@ -46,7 +46,7 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess }: Ev
   });
 
   const [validationError, setValidationError] = useState<string>("");
-  const [roomConflict, setRoomConflict] = useState<{hasConflict: boolean, conflictingEvent?: any}>({hasConflict: false});
+  const [roomConflict, setRoomConflict] = useState<{hasConflict: boolean, conflictingEvent?: any, creatorName?: string}>({hasConflict: false});
 
   const { data: event } = useQuery({
     queryKey: ["event", eventId],
@@ -137,16 +137,25 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess }: Ev
         return;
       }
 
-      // Check for conflicting events in the same room (all statuses)
-      // This matches the database exclusion constraint which applies to all statuses
+      // Check for conflicting events in the same room
+      // Include pending_review, approved, and published events
       // Convert datetime-local to ISO format for proper comparison
       const startISO = dateTimeLocalToISO(formData.starts_at);
       const endISO = dateTimeLocalToISO(formData.ends_at);
 
       const { data: conflictingEvents, error } = await supabase
         .from("events")
-        .select("id, title, starts_at, ends_at, status")
+        .select(`
+          id,
+          title,
+          starts_at,
+          ends_at,
+          status,
+          created_by,
+          profiles:created_by (full_name)
+        `)
         .eq("room_id", formData.room_id)
+        .in("status", ["pending_review", "approved", "published"])
         .or(`and(starts_at.lt.${endISO},ends_at.gt.${startISO})`);
 
       if (error) throw error;
@@ -155,7 +164,13 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess }: Ev
       const conflicts = conflictingEvents?.filter(e => e.id !== eventId) || [];
 
       if (conflicts.length > 0) {
-        setRoomConflict({hasConflict: true, conflictingEvent: conflicts[0]});
+        const conflict = conflicts[0];
+        const creatorName = (conflict.profiles as any)?.full_name || 'Another user';
+        setRoomConflict({
+          hasConflict: true,
+          conflictingEvent: conflict,
+          creatorName
+        });
       } else {
         setRoomConflict({hasConflict: false});
       }
@@ -368,7 +383,11 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess }: Ev
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                This room is already booked for "{roomConflict.conflictingEvent?.title}" during this time. Please choose a different time or room.
+                This room is already booked for "{roomConflict.conflictingEvent?.title}"
+                {roomConflict.creatorName && ` by ${roomConflict.creatorName}`}
+                {roomConflict.conflictingEvent?.status === 'pending_review' && ' (pending review)'}
+                {roomConflict.conflictingEvent?.status === 'approved' && ' (approved)'}
+                {roomConflict.conflictingEvent?.status === 'published' && ' (published)'} during this time. Please choose a different time or room.
               </AlertDescription>
             </Alert>
           )}

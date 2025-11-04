@@ -21,6 +21,7 @@ interface Event {
   starts_at: string;
   ends_at: string;
   status: string;
+  created_by: string;
   room: { id: string; name: string; color: string };
   creator: { full_name: string; ministry_name?: string } | null;
 }
@@ -31,6 +32,7 @@ interface DateBasedCalendarProps {
   onEventClick: (eventId: string) => void;
   onDateClick?: (date: Date) => void;
   hideStatus?: boolean;
+  currentUserId?: string;
 }
 
 const DateBasedCalendar = ({
@@ -39,6 +41,7 @@ const DateBasedCalendar = ({
   onEventClick,
   onDateClick,
   hideStatus = false,
+  currentUserId,
 }: DateBasedCalendarProps) => {
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 0 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -187,11 +190,18 @@ const DateBasedCalendar = ({
                           "grid-cols-2"
                         )}
                       >
-                        {row.map((event) => (
+                        {row.map((event) => {
+                          const isOwnEvent = currentUserId && event.created_by === currentUserId;
+                          const isPendingFromOther = event.status === 'pending_review' && !isOwnEvent;
+
+                          return (
                           <div
                             key={event.id}
                             onClick={() => onEventClick(event.id)}
-                            className="p-2 rounded-md bg-background border-l-4 cursor-pointer hover:bg-accent/50 transition-colors shadow-sm"
+                            className={cn(
+                              "p-2 rounded-md bg-background border-l-4 cursor-pointer hover:bg-accent/50 transition-colors shadow-sm",
+                              isPendingFromOther && "border-dashed opacity-80"
+                            )}
                             style={{
                               borderLeftColor: event.room?.color || "#888",
                             }}
@@ -237,7 +247,8 @@ const DateBasedCalendar = ({
                               </div>
                             )}
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     ))
                   ) : (
