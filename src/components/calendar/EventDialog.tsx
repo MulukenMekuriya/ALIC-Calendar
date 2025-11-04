@@ -370,11 +370,27 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess, allE
 
   const canEdit = !event || event.created_by === user?.id || isAdmin;
 
-  // Filter events by status
-  const pendingEvents = allEvents.filter((e) => e.status === "pending_review");
-  const publishedEvents = allEvents.filter((e) => e.status === "published");
-  const approvedEvents = allEvents.filter((e) => e.status === "approved");
-  const draftEvents = allEvents.filter((e) => e.status === "draft");
+  // Determine the date to filter events by
+  const filterDate = initialDate || (event ? new Date(event.starts_at) : new Date());
+
+  // Helper function to check if event is on the same day
+  const isSameDay = (date1: Date, date2: Date) => {
+    return (
+      date1.getFullYear() === date2.getFullYear() &&
+      date1.getMonth() === date2.getMonth() &&
+      date1.getDate() === date2.getDate()
+    );
+  };
+
+  // Filter events by selected date and then by status
+  const eventsForDate = allEvents.filter((e) =>
+    isSameDay(parseISO(e.starts_at), filterDate)
+  );
+
+  const pendingEvents = eventsForDate.filter((e) => e.status === "pending_review");
+  const publishedEvents = eventsForDate.filter((e) => e.status === "published");
+  const approvedEvents = eventsForDate.filter((e) => e.status === "approved");
+  const draftEvents = eventsForDate.filter((e) => e.status === "draft");
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -665,7 +681,12 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess, allE
           {/* Right side - Event Sidebar */}
           <div className="hidden lg:block border-l pl-6">
             <div className="space-y-3">
-              <h3 className="text-lg font-semibold">Events</h3>
+              <div>
+                <h3 className="text-lg font-semibold">Events</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {format(filterDate, "EEEE, MMMM d, yyyy")}
+                </p>
+              </div>
               <Tabs defaultValue="pending" className="w-full">
                 <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="pending" className="text-xs relative">
