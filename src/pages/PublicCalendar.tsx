@@ -84,6 +84,15 @@ const PublicCalendar = () => {
     if (event) setSelectedEvent(event);
   };
 
+  const handleDateClick = (date: Date) => {
+    // If in month view, switch to day view for the clicked date
+    if (calendarView === "month") {
+      setSelectedDate(date);
+      setCurrentWeek(date);
+      setCalendarView("day");
+    }
+  };
+
   const exportToICS = () => {
     if (!events || events.length === 0) return;
 
@@ -318,6 +327,7 @@ const PublicCalendar = () => {
                 events={events || []}
                 currentWeek={currentWeek}
                 onEventClick={handleEventClick}
+                onDateClick={handleDateClick}
                 hideStatus={true}
                 view={calendarView}
                 selectedDate={selectedDate}

@@ -70,9 +70,17 @@ const Dashboard = () => {
   };
 
   const handleDateClick = (date: Date) => {
-    setSelectedEventId(null);
-    setSelectedDate(date);
-    setIsEventDialogOpen(true);
+    // If in month view, switch to day view for the clicked date
+    if (calendarView === "month") {
+      setDayViewDate(date);
+      setCurrentWeek(date);
+      setCalendarView("day");
+    } else {
+      // For week and day views, open event dialog
+      setSelectedEventId(null);
+      setSelectedDate(date);
+      setIsEventDialogOpen(true);
+    }
   };
 
   return (
