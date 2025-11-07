@@ -636,7 +636,7 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess, allE
                   : (!isAdmin ? "Create & Submit for Review" : "Create")
                 }
               </Button>
-              {eventId && event && event.created_by === user?.id && (
+              {eventId && event && (isAdmin || event.created_by === user?.id) && (
                 <Button
                   type="button"
                   variant="destructive"
