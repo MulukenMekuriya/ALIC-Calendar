@@ -52,7 +52,7 @@ const Admin = () => {
   });
 
   const { data: approvedEvents, refetch: refetchApproved } = useQuery({
-    queryKey: ["approved-published-events"],
+    queryKey: ["approved-events"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
@@ -60,8 +60,78 @@ const Admin = () => {
           *,
           rooms(name, color)
         `)
-        .in("status", ["approved", "published"])
+        .eq("status", "approved")
         .order("starts_at", { ascending: true });
+
+      if (error) throw error;
+
+      // Fetch creator profiles separately
+      const eventsWithCreators = await Promise.all(
+        (data || []).map(async (event) => {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("full_name, email, ministry_name")
+            .eq("id", event.created_by)
+            .single();
+
+          return {
+            ...event,
+            room: event.rooms,
+            creator: profile || null,
+          };
+        })
+      );
+
+      return eventsWithCreators;
+    },
+  });
+
+  const { data: publishedEvents, refetch: refetchPublished } = useQuery({
+    queryKey: ["published-events"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select(`
+          *,
+          rooms(name, color)
+        `)
+        .eq("status", "published")
+        .order("starts_at", { ascending: true });
+
+      if (error) throw error;
+
+      // Fetch creator profiles separately
+      const eventsWithCreators = await Promise.all(
+        (data || []).map(async (event) => {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("full_name, email, ministry_name")
+            .eq("id", event.created_by)
+            .single();
+
+          return {
+            ...event,
+            room: event.rooms,
+            creator: profile || null,
+          };
+        })
+      );
+
+      return eventsWithCreators;
+    },
+  });
+
+  const { data: rejectedEvents, refetch: refetchRejected } = useQuery({
+    queryKey: ["rejected-events"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select(`
+          *,
+          rooms(name, color)
+        `)
+        .eq("status", "rejected")
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
 
@@ -112,6 +182,8 @@ const Admin = () => {
 
       refetchPending();
       refetchApproved();
+      refetchPublished();
+      refetchRejected();
     } catch (error) {
       toast({
         title: "Error",
@@ -149,6 +221,12 @@ const Admin = () => {
             </TabsTrigger>
             <TabsTrigger value="approved">
               Approved ({approvedEvents?.length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="published">
+              Published ({publishedEvents?.length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="rejected">
+              Rejected ({rejectedEvents?.length || 0})
             </TabsTrigger>
           </TabsList>
 
@@ -270,20 +348,137 @@ const Admin = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="flex gap-2">
-                      {event.status === "published" ? (
-                        <Button
-                          variant="outline"
-                          onClick={() => handleStatusChange(event.id, "approved", true)}
-                        >
-                          Unpublish Event
-                        </Button>
-                      ) : (
-                        <Button
-                          onClick={() => handleStatusChange(event.id, "published")}
-                        >
-                          Publish Event
-                        </Button>
-                      )}
+                      <Button
+                        onClick={() => handleStatusChange(event.id, "published")}
+                      >
+                        Publish Event
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleViewEvent(event.id)}>
+                        <Eye className="h-4 w-4 mr-1" />
+                        View Details
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </TabsContent>
+
+          <TabsContent value="published" className="space-y-4">
+            {publishedEvents && publishedEvents.length === 0 ? (
+              <Card>
+                <CardContent className="py-8">
+                  <p className="text-center text-muted-foreground">No published events</p>
+                </CardContent>
+              </Card>
+            ) : (
+              publishedEvents?.map((event) => (
+                <Card key={event.id}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="text-xl">{event.title}</CardTitle>
+                        <CardDescription className="mt-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="secondary" className={statusColors[event.status]}>
+                              {event.status.replace("_", " ")}
+                            </Badge>
+                            <span className="text-sm">
+                              {event.room?.name} • {format(new Date(event.starts_at), "MMM d, yyyy h:mm a")} - {format(new Date(event.ends_at), "h:mm a")}
+                            </span>
+                          </div>
+                          {event.description && (
+                            <p className="mt-2 text-sm">{event.description}</p>
+                          )}
+                          {event.creator && (
+                            <div className="flex flex-col gap-0.5 mt-2 text-xs text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                <span>Requested by: <span className="font-medium text-foreground">{event.creator.full_name}</span></span>
+                              </div>
+                              {event.creator.ministry_name && (
+                                <span className="text-xs ml-4">{event.creator.ministry_name}</span>
+                              )}
+                            </div>
+                          )}
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => handleStatusChange(event.id, "approved", true)}
+                      >
+                        Unpublish Event
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleViewEvent(event.id)}>
+                        <Eye className="h-4 w-4 mr-1" />
+                        View Details
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </TabsContent>
+
+          <TabsContent value="rejected" className="space-y-4">
+            {rejectedEvents && rejectedEvents.length === 0 ? (
+              <Card>
+                <CardContent className="py-8">
+                  <p className="text-center text-muted-foreground">No rejected events</p>
+                </CardContent>
+              </Card>
+            ) : (
+              rejectedEvents?.map((event) => (
+                <Card key={event.id}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="text-xl">{event.title}</CardTitle>
+                        <CardDescription className="mt-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="secondary" className={statusColors[event.status]}>
+                              {event.status.replace("_", " ")}
+                            </Badge>
+                            <span className="text-sm">
+                              {event.room?.name} • {format(new Date(event.starts_at), "MMM d, yyyy h:mm a")} - {format(new Date(event.ends_at), "h:mm a")}
+                            </span>
+                          </div>
+                          {event.description && (
+                            <p className="mt-2 text-sm">{event.description}</p>
+                          )}
+                          <div className="flex items-center gap-4 mt-2 text-xs">
+                            {event.creator && (
+                              <div className="flex flex-col gap-0.5 text-muted-foreground">
+                                <div className="flex items-center gap-1">
+                                  <User className="h-3 w-3" />
+                                  <span>Requested by: <span className="font-medium text-foreground">{event.creator.full_name}</span></span>
+                                </div>
+                                {event.creator.ministry_name && (
+                                  <span className="text-xs ml-4">{event.creator.ministry_name}</span>
+                                )}
+                              </div>
+                            )}
+                            <span className="text-muted-foreground">
+                              Submitted {formatDistance(new Date(event.created_at), new Date(), { addSuffix: true })}
+                            </span>
+                          </div>
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => handleStatusChange(event.id, "pending_review")}
+                      >
+                        Move to Pending
+                      </Button>
                       <Button variant="outline" size="sm" onClick={() => handleViewEvent(event.id)}>
                         <Eye className="h-4 w-4 mr-1" />
                         View Details
@@ -303,6 +498,8 @@ const Admin = () => {
           onSuccess={() => {
             refetchPending();
             refetchApproved();
+            refetchPublished();
+            refetchRejected();
             setIsEventDialogOpen(false);
           }}
         />
