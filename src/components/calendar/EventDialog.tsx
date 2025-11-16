@@ -774,6 +774,7 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess, allE
               disabled={!canEdit || loading}
               maxLength={200}
               required
+              className="border-2 border-gray-300"
             />
           </div>
 
@@ -785,6 +786,7 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess, allE
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               disabled={!canEdit || loading}
               maxLength={1000}
+              className="border-2 border-gray-300"
             />
           </div>
 
