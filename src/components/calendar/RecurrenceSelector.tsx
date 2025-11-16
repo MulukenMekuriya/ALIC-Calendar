@@ -3,7 +3,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Repeat, Calendar, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 export interface RecurrenceConfig {
   frequency: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
@@ -23,13 +25,13 @@ interface RecurrenceSelectorProps {
 }
 
 const DAYS_OF_WEEK = [
-  { label: 'Sun', value: 0 },
-  { label: 'Mon', value: 1 },
-  { label: 'Tue', value: 2 },
-  { label: 'Wed', value: 3 },
-  { label: 'Thu', value: 4 },
-  { label: 'Fri', value: 5 },
-  { label: 'Sat', value: 6 },
+  { label: 'S', fullLabel: 'Sunday', value: 0 },
+  { label: 'M', fullLabel: 'Monday', value: 1 },
+  { label: 'T', fullLabel: 'Tuesday', value: 2 },
+  { label: 'W', fullLabel: 'Wednesday', value: 3 },
+  { label: 'T', fullLabel: 'Thursday', value: 4 },
+  { label: 'F', fullLabel: 'Friday', value: 5 },
+  { label: 'S', fullLabel: 'Saturday', value: 6 },
 ];
 
 const MONTHS = [
@@ -42,6 +44,8 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
   onChange,
   startDate,
 }) => {
+  const [isExpanded, setIsExpanded] = useState(value.frequency !== 'none');
+
   const updateConfig = (updates: Partial<RecurrenceConfig>) => {
     onChange({ ...value, ...updates });
   };
@@ -62,55 +66,47 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
     }
   }, [value.frequency, startDate]);
 
+  // Update expanded state when frequency changes
+  useEffect(() => {
+    setIsExpanded(value.frequency !== 'none');
+  }, [value.frequency]);
+
+  const handleFrequencyChange = (freq: string) => {
+    const newFreq = freq as RecurrenceConfig['frequency'];
+
+    if (newFreq === 'none') {
+      updateConfig({
+        frequency: 'none',
+        interval: 1,
+        endType: 'never',
+        daysOfWeek: undefined,
+        dayOfMonth: undefined,
+        monthOfYear: undefined,
+        endDate: undefined,
+        occurrences: undefined,
+      });
+    } else {
+      updateConfig({
+        frequency: newFreq,
+        interval: 1,
+        endType: 'never',
+        daysOfWeek: newFreq === 'weekly' && startDate ? [new Date(startDate).getDay()] : undefined,
+        dayOfMonth: (newFreq === 'monthly' || newFreq === 'yearly') && startDate ? new Date(startDate).getDate() : undefined,
+        monthOfYear: newFreq === 'yearly' && startDate ? new Date(startDate).getMonth() + 1 : undefined,
+      });
+    }
+  };
+
+  // Simple view when not recurring
   if (value.frequency === 'none') {
     return (
-      <div className="space-y-4">
-        <div>
-          <Label htmlFor="recurrence">Recurrence</Label>
-          <Select
-            value={value.frequency}
-            onValueChange={(freq) => updateConfig({
-              frequency: freq as RecurrenceConfig['frequency'],
-              interval: 1,
-              endType: 'never'
-            })}
-          >
-            <SelectTrigger id="recurrence">
-              <SelectValue placeholder="Does not repeat" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Does not repeat</SelectItem>
-              <SelectItem value="daily">Daily</SelectItem>
-              <SelectItem value="weekly">Weekly</SelectItem>
-              <SelectItem value="monthly">Monthly</SelectItem>
-              <SelectItem value="yearly">Yearly</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-      {/* Frequency Selector */}
-      <div>
-        <Label htmlFor="recurrence">Recurrence</Label>
-        <Select
-          value={value.frequency}
-          onValueChange={(freq) => {
-            const newFreq = freq as RecurrenceConfig['frequency'];
-            updateConfig({
-              frequency: newFreq,
-              interval: 1,
-              daysOfWeek: newFreq === 'weekly' && startDate ? [new Date(startDate).getDay()] : undefined,
-              dayOfMonth: newFreq === 'monthly' && startDate ? new Date(startDate).getDate() : undefined,
-              monthOfYear: newFreq === 'yearly' && startDate ? new Date(startDate).getMonth() + 1 : undefined,
-            });
-          }}
-        >
-          <SelectTrigger id="recurrence">
-            <SelectValue />
+      <div className="space-y-2">
+        <Label htmlFor="recurrence" className="text-sm font-medium">
+          Recurrence
+        </Label>
+        <Select value={value.frequency} onValueChange={handleFrequencyChange}>
+          <SelectTrigger id="recurrence" className="h-10">
+            <SelectValue placeholder="Does not repeat" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="none">Does not repeat</SelectItem>
@@ -121,160 +117,267 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
           </SelectContent>
         </Select>
       </div>
+    );
+  }
 
-      {/* Interval */}
-      <div className="flex items-center gap-2">
-        <Label htmlFor="interval" className="whitespace-nowrap">Repeat every</Label>
-        <Input
-          id="interval"
-          type="number"
-          min="1"
-          max="99"
-          value={value.interval}
-          onChange={(e) => updateConfig({ interval: Math.max(1, parseInt(e.target.value) || 1) })}
-          className="w-20"
-        />
-        <span className="text-sm text-muted-foreground">
-          {value.frequency === 'daily' && (value.interval === 1 ? 'day' : 'days')}
-          {value.frequency === 'weekly' && (value.interval === 1 ? 'week' : 'weeks')}
-          {value.frequency === 'monthly' && (value.interval === 1 ? 'month' : 'months')}
-          {value.frequency === 'yearly' && (value.interval === 1 ? 'year' : 'years')}
-        </span>
+  // Enhanced view for recurring events
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Repeat className="h-4 w-4 text-primary" />
+          <Label className="text-sm font-semibold">Recurring Event</Label>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => handleFrequencyChange('none')}
+          className="h-8 px-2 text-xs hover:bg-destructive/10 hover:text-destructive"
+        >
+          <X className="h-3 w-3 mr-1" />
+          Remove
+        </Button>
       </div>
 
-      {/* Weekly: Days of Week Selector */}
-      {value.frequency === 'weekly' && (
-        <div>
-          <Label className="mb-2 block">Repeat on</Label>
-          <div className="flex gap-2">
-            {DAYS_OF_WEEK.map((day) => (
-              <button
-                key={day.value}
-                type="button"
-                onClick={() => toggleDayOfWeek(day.value)}
-                className={`
-                  w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium
-                  transition-colors
-                  ${(value.daysOfWeek || []).includes(day.value)
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted hover:bg-muted/80'
-                  }
-                `}
-              >
-                {day.label}
-              </button>
-            ))}
-          </div>
-          {(!value.daysOfWeek || value.daysOfWeek.length === 0) && (
-            <p className="text-sm text-destructive mt-1">Please select at least one day</p>
-          )}
-        </div>
-      )}
-
-      {/* Monthly: Day of Month */}
-      {value.frequency === 'monthly' && (
-        <div>
-          <Label htmlFor="dayOfMonth">Repeat on day</Label>
-          <Input
-            id="dayOfMonth"
-            type="number"
-            min="1"
-            max="31"
-            value={value.dayOfMonth || 1}
-            onChange={(e) => updateConfig({ dayOfMonth: Math.min(31, Math.max(1, parseInt(e.target.value) || 1)) })}
-            className="w-24"
-          />
-          <p className="text-xs text-muted-foreground mt-1">
-            Day of the month (1-31)
-          </p>
-        </div>
-      )}
-
-      {/* Yearly: Month Selection */}
-      {value.frequency === 'yearly' && (
-        <div className="space-y-2">
-          <div>
-            <Label htmlFor="monthOfYear">Repeat in</Label>
-            <Select
-              value={String(value.monthOfYear || 1)}
-              onValueChange={(month) => updateConfig({ monthOfYear: parseInt(month) })}
-            >
-              <SelectTrigger id="monthOfYear">
+      <div className="space-y-4 p-4 border rounded-lg bg-gradient-to-br from-primary/5 to-primary/10 shadow-sm">
+        {/* Frequency & Interval */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label htmlFor="freq-select" className="text-xs font-medium text-muted-foreground">
+              Repeats
+            </Label>
+            <Select value={value.frequency} onValueChange={handleFrequencyChange}>
+              <SelectTrigger id="freq-select" className="h-9 bg-background">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {MONTHS.map((month, idx) => (
-                  <SelectItem key={idx} value={String(idx + 1)}>
-                    {month}
-                  </SelectItem>
-                ))}
+                <SelectItem value="daily">Daily</SelectItem>
+                <SelectItem value="weekly">Weekly</SelectItem>
+                <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value="yearly">Yearly</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <Label htmlFor="yearDayOfMonth">On day</Label>
-            <Input
-              id="yearDayOfMonth"
-              type="number"
-              min="1"
-              max="31"
-              value={value.dayOfMonth || 1}
-              onChange={(e) => updateConfig({ dayOfMonth: Math.min(31, Math.max(1, parseInt(e.target.value) || 1)) })}
-              className="w-24"
-            />
+
+          <div className="space-y-2">
+            <Label htmlFor="interval" className="text-xs font-medium text-muted-foreground">
+              Every
+            </Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="interval"
+                type="number"
+                min="1"
+                max="99"
+                value={value.interval}
+                onChange={(e) => updateConfig({ interval: Math.max(1, parseInt(e.target.value) || 1) })}
+                className="h-9 bg-background"
+              />
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                {value.frequency === 'daily' && (value.interval === 1 ? 'day' : 'days')}
+                {value.frequency === 'weekly' && (value.interval === 1 ? 'week' : 'weeks')}
+                {value.frequency === 'monthly' && (value.interval === 1 ? 'month' : 'months')}
+                {value.frequency === 'yearly' && (value.interval === 1 ? 'year' : 'years')}
+              </span>
+            </div>
           </div>
         </div>
-      )}
 
-      {/* End Type */}
-      <div className="space-y-3">
-        <Label>Ends</Label>
-        <RadioGroup
-          value={value.endType}
-          onValueChange={(endType) => updateConfig({ endType: endType as RecurrenceConfig['endType'] })}
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="never" id="never" />
-            <Label htmlFor="never" className="font-normal cursor-pointer">Never</Label>
+        {/* Weekly: Days of Week Selector */}
+        {value.frequency === 'weekly' && (
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground">
+              Repeat on
+            </Label>
+            <div className="grid grid-cols-7 gap-2">
+              {DAYS_OF_WEEK.map((day) => {
+                const isSelected = (value.daysOfWeek || []).includes(day.value);
+                return (
+                  <button
+                    key={day.value}
+                    type="button"
+                    onClick={() => toggleDayOfWeek(day.value)}
+                    title={day.fullLabel}
+                    className={cn(
+                      "h-9 rounded-md flex items-center justify-center text-xs font-semibold transition-all duration-200",
+                      "border-2 hover:scale-105 active:scale-95",
+                      isSelected
+                        ? "bg-primary text-primary-foreground border-primary shadow-md"
+                        : "bg-background border-border hover:border-primary/50 hover:bg-primary/5"
+                    )}
+                  >
+                    {day.label}
+                  </button>
+                );
+              })}
+            </div>
+            {(!value.daysOfWeek || value.daysOfWeek.length === 0) && (
+              <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+                <span className="w-1 h-1 rounded-full bg-destructive"></span>
+                Please select at least one day
+              </p>
+            )}
           </div>
+        )}
 
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="on" id="on" />
-            <Label htmlFor="on" className="font-normal cursor-pointer">On</Label>
-            <Input
-              type="date"
-              value={value.endDate || ''}
-              onChange={(e) => updateConfig({ endDate: e.target.value, endType: 'on' })}
-              onClick={() => updateConfig({ endType: 'on' })}
-              min={startDate}
-              className="ml-2 w-auto"
-              disabled={value.endType !== 'on'}
-            />
+        {/* Monthly: Day of Month */}
+        {value.frequency === 'monthly' && (
+          <div className="space-y-2">
+            <Label htmlFor="dayOfMonth" className="text-xs font-medium text-muted-foreground">
+              Day of month
+            </Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="dayOfMonth"
+                type="number"
+                min="1"
+                max="31"
+                value={value.dayOfMonth || 1}
+                onChange={(e) => updateConfig({ dayOfMonth: Math.min(31, Math.max(1, parseInt(e.target.value) || 1)) })}
+                className="w-20 h-9 bg-background"
+              />
+              <span className="text-xs text-muted-foreground">
+                (1-31)
+              </span>
+            </div>
           </div>
+        )}
 
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="after" id="after" />
-            <Label htmlFor="after" className="font-normal cursor-pointer">After</Label>
-            <Input
-              type="number"
-              min="1"
-              max="999"
-              value={value.occurrences || 1}
-              onChange={(e) => updateConfig({ occurrences: Math.max(1, parseInt(e.target.value) || 1), endType: 'after' })}
-              onClick={() => updateConfig({ endType: 'after' })}
-              className="ml-2 w-20"
-              disabled={value.endType !== 'after'}
-            />
-            <span className="text-sm text-muted-foreground">occurrences</span>
+        {/* Yearly: Month & Day Selection */}
+        {value.frequency === 'yearly' && (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="monthOfYear" className="text-xs font-medium text-muted-foreground">
+                Month
+              </Label>
+              <Select
+                value={String(value.monthOfYear || 1)}
+                onValueChange={(month) => updateConfig({ monthOfYear: parseInt(month) })}
+              >
+                <SelectTrigger id="monthOfYear" className="h-9 bg-background">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-h-[200px]">
+                  {MONTHS.map((month, idx) => (
+                    <SelectItem key={idx} value={String(idx + 1)}>
+                      {month}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="yearDayOfMonth" className="text-xs font-medium text-muted-foreground">
+                Day
+              </Label>
+              <Input
+                id="yearDayOfMonth"
+                type="number"
+                min="1"
+                max="31"
+                value={value.dayOfMonth || 1}
+                onChange={(e) => updateConfig({ dayOfMonth: Math.min(31, Math.max(1, parseInt(e.target.value) || 1)) })}
+                className="h-9 bg-background"
+              />
+            </div>
           </div>
-        </RadioGroup>
-      </div>
+        )}
 
-      {/* Summary */}
-      <div className="pt-2 border-t">
-        <p className="text-sm text-muted-foreground">
-          <strong>Summary:</strong> {getRecurrenceSummary(value)}
-        </p>
+        {/* Divider */}
+        <div className="border-t border-border/50"></div>
+
+        {/* End Conditions */}
+        <div className="space-y-3">
+          <Label className="text-xs font-medium text-muted-foreground">
+            Ends
+          </Label>
+          <RadioGroup
+            value={value.endType}
+            onValueChange={(endType) => updateConfig({ endType: endType as RecurrenceConfig['endType'] })}
+            className="space-y-2"
+          >
+            {/* Never */}
+            <div className={cn(
+              "flex items-center space-x-3 p-2.5 rounded-md transition-all",
+              value.endType === 'never' ? 'bg-background shadow-sm' : 'hover:bg-background/50'
+            )}>
+              <RadioGroupItem value="never" id="never" className="mt-0" />
+              <Label htmlFor="never" className="flex-1 font-normal cursor-pointer text-sm">
+                Never
+              </Label>
+            </div>
+
+            {/* On specific date */}
+            <div className={cn(
+              "flex items-center space-x-3 p-2.5 rounded-md transition-all",
+              value.endType === 'on' ? 'bg-background shadow-sm' : 'hover:bg-background/50'
+            )}>
+              <RadioGroupItem value="on" id="on" className="mt-0" />
+              <div className="flex-1 flex items-center gap-2">
+                <Label htmlFor="on" className="font-normal cursor-pointer text-sm">
+                  On
+                </Label>
+                <div className="relative flex-1">
+                  <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                  <Input
+                    type="date"
+                    value={value.endDate || ''}
+                    onChange={(e) => updateConfig({ endDate: e.target.value, endType: 'on' })}
+                    onClick={() => updateConfig({ endType: 'on' })}
+                    min={startDate}
+                    className={cn(
+                      "h-8 pl-8 text-xs bg-background",
+                      value.endType !== 'on' && "opacity-50"
+                    )}
+                    disabled={value.endType !== 'on'}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* After N occurrences */}
+            <div className={cn(
+              "flex items-center space-x-3 p-2.5 rounded-md transition-all",
+              value.endType === 'after' ? 'bg-background shadow-sm' : 'hover:bg-background/50'
+            )}>
+              <RadioGroupItem value="after" id="after" className="mt-0" />
+              <div className="flex-1 flex items-center gap-2">
+                <Label htmlFor="after" className="font-normal cursor-pointer text-sm">
+                  After
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="999"
+                  value={value.occurrences || 1}
+                  onChange={(e) => updateConfig({ occurrences: Math.max(1, parseInt(e.target.value) || 1), endType: 'after' })}
+                  onClick={() => updateConfig({ endType: 'after' })}
+                  className={cn(
+                    "h-8 w-16 text-xs bg-background",
+                    value.endType !== 'after' && "opacity-50"
+                  )}
+                  disabled={value.endType !== 'after'}
+                />
+                <span className="text-xs text-muted-foreground">times</span>
+              </div>
+            </div>
+          </RadioGroup>
+        </div>
+
+        {/* Summary */}
+        <div className="mt-4 pt-3 border-t border-border/50">
+          <div className="flex items-start gap-2 p-3 rounded-md bg-background/80 backdrop-blur-sm">
+            <Repeat className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-muted-foreground mb-1">Summary</p>
+              <p className="text-sm text-foreground leading-relaxed">
+                {getRecurrenceSummary(value)}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -293,31 +396,45 @@ function getRecurrenceSummary(config: RecurrenceConfig): string {
     case 'weekly':
       summary += config.interval === 1 ? 'week' : 'weeks';
       if (config.daysOfWeek && config.daysOfWeek.length > 0) {
-        const dayNames = config.daysOfWeek.map(d => DAYS_OF_WEEK[d].label).join(', ');
+        const dayNames = config.daysOfWeek.map(d => DAYS_OF_WEEK[d].fullLabel).join(', ');
         summary += ` on ${dayNames}`;
       }
       break;
     case 'monthly':
       summary += config.interval === 1 ? 'month' : 'months';
       if (config.dayOfMonth) {
-        summary += ` on day ${config.dayOfMonth}`;
+        const suffix = getDaySuffix(config.dayOfMonth);
+        summary += ` on the ${config.dayOfMonth}${suffix}`;
       }
       break;
     case 'yearly':
       summary += config.interval === 1 ? 'year' : 'years';
       if (config.monthOfYear && config.dayOfMonth) {
-        summary += ` on ${MONTHS[config.monthOfYear - 1]} ${config.dayOfMonth}`;
+        const suffix = getDaySuffix(config.dayOfMonth);
+        summary += ` on ${MONTHS[config.monthOfYear - 1]} ${config.dayOfMonth}${suffix}`;
       }
       break;
   }
 
   if (config.endType === 'on' && config.endDate) {
-    summary += `, until ${new Date(config.endDate).toLocaleDateString()}`;
+    const date = new Date(config.endDate);
+    summary += `, until ${date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
   } else if (config.endType === 'after' && config.occurrences) {
-    summary += `, ${config.occurrences} times`;
+    summary += `, for ${config.occurrences} occurrence${config.occurrences > 1 ? 's' : ''}`;
   }
 
   return summary;
+}
+
+// Helper to get day suffix (st, nd, rd, th)
+function getDaySuffix(day: number): string {
+  if (day >= 11 && day <= 13) return 'th';
+  switch (day % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
 }
 
 // Helper function to convert RecurrenceConfig to RRULE string

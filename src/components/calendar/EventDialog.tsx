@@ -715,7 +715,7 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess, allE
       <DialogContent className="max-w-6xl max-h-[90vh]" aria-describedby="event-dialog-description">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-6">
           {/* Left side - Event Form */}
-          <div className="space-y-4">
+          <div className="flex flex-col h-full max-h-[calc(90vh-2rem)]">
             <DialogHeader>
               <DialogTitle>{eventId ? "Edit Event" : "Create Event"}</DialogTitle>
             </DialogHeader>
@@ -723,7 +723,8 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess, allE
               {eventId ? "Edit event details including title, description, room, and timing" : "Create a new event by filling in the details below"}
             </p>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <ScrollArea className="flex-1 pr-4 -mr-4">
+            <form onSubmit={handleSubmit} className="space-y-4 pb-4">
           {validationError && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -905,6 +906,7 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess, allE
             </div>
           )}
         </form>
+            </ScrollArea>
           </div>
 
           {/* Right side - Event Sidebar */}
