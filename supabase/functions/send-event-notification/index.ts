@@ -25,6 +25,9 @@ serve(async (req) => {
   }
 
   try {
+    const requestBody = await req.json();
+    console.log("Email notification request received:", JSON.stringify(requestBody, null, 2));
+
     const {
       to,
       eventTitle,
@@ -34,9 +37,10 @@ serve(async (req) => {
       status,
       requesterName,
       reviewerNotes,
-    }: EventNotificationRequest = await req.json();
+    }: EventNotificationRequest = requestBody;
 
     if (!to || !eventTitle || !status) {
+      console.error("Missing required fields:", { to: !!to, eventTitle: !!eventTitle, status: !!status });
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
         {
@@ -45,6 +49,8 @@ serve(async (req) => {
         }
       );
     }
+
+    console.log(`Preparing to send ${status} notification to ${to} for event: ${eventTitle}`);
 
     // Generate email content based on status
     let subject = "";
@@ -249,29 +255,52 @@ serve(async (req) => {
 </html>
     `;
 
+    // Check if RESEND_API_KEY is configured
+    if (!RESEND_API_KEY) {
+      console.error("RESEND_API_KEY is not configured");
+      return new Response(
+        JSON.stringify({ error: "Email service not configured" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    console.log("Sending email via Resend API...");
+
     // Send email using Resend
+    const emailPayload = {
+      from: "Event Calendar <onboarding@resend.dev>",
+      to: [to],
+      subject: subject,
+      html: htmlBody,
+    };
+
+    console.log("Email payload:", JSON.stringify({ ...emailPayload, html: "[HTML CONTENT]" }));
+
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
-      body: JSON.stringify({
-        from: "Event Calendar <onboarding@resend.dev>",
-        to: [to],
-        subject: subject,
-        html: htmlBody,
-      }),
+      body: JSON.stringify(emailPayload),
     });
 
     const data = await res.json();
 
+    console.log("Resend API response status:", res.status);
+    console.log("Resend API response:", JSON.stringify(data));
+
     if (res.ok) {
+      console.log("Email sent successfully to:", to);
       return new Response(JSON.stringify({ success: true, data }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     } else {
+      console.error("Failed to send email:", data);
       return new Response(
         JSON.stringify({ error: "Failed to send email", details: data }),
         {
@@ -281,6 +310,7 @@ serve(async (req) => {
       );
     }
   } catch (error) {
+    console.error("Error in send-event-notification function:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

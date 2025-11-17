@@ -204,7 +204,9 @@ const Admin = () => {
         const emailStatus = finalStatus === "published" ? "published" : status === "rejected" ? "rejected" : "approved";
 
         try {
-          await supabase.functions.invoke("send-event-notification", {
+          console.log("Invoking send-event-notification function for:", creator.email);
+
+          const response = await supabase.functions.invoke("send-event-notification", {
             body: {
               to: creator.email,
               eventTitle: event.title,
@@ -221,10 +223,29 @@ const Admin = () => {
               reviewerNotes: event.reviewer_notes || undefined,
             },
           });
+
+          console.log("Email notification response:", response);
+
+          if (response.error) {
+            console.error("Email notification error:", response.error);
+            toast({
+              title: "Warning",
+              description: "Event status updated but email notification failed",
+              variant: "default",
+            });
+          } else {
+            console.log("Email notification sent successfully");
+          }
         } catch (emailError) {
           console.error("Failed to send email notification:", emailError);
-          // Don't fail the status update if email fails
+          toast({
+            title: "Warning",
+            description: "Event status updated but email notification failed",
+            variant: "default",
+          });
         }
+      } else {
+        console.warn("No email found for creator, skipping notification");
       }
 
       refetchPending();
@@ -273,7 +294,9 @@ const Admin = () => {
       // Send email notification to event creator
       if (creator?.email) {
         try {
-          await supabase.functions.invoke("send-event-notification", {
+          console.log("Invoking send-event-notification (unapprove) for:", creator.email);
+
+          const response = await supabase.functions.invoke("send-event-notification", {
             body: {
               to: creator.email,
               eventTitle: event.title,
@@ -290,10 +313,29 @@ const Admin = () => {
               reviewerNotes: event.reviewer_notes || undefined,
             },
           });
+
+          console.log("Email notification response (unapprove):", response);
+
+          if (response.error) {
+            console.error("Email notification error:", response.error);
+            toast({
+              title: "Warning",
+              description: "Event status updated but email notification failed",
+              variant: "default",
+            });
+          } else {
+            console.log("Email notification sent successfully");
+          }
         } catch (emailError) {
           console.error("Failed to send email notification:", emailError);
-          // Don't fail the status update if email fails
+          toast({
+            title: "Warning",
+            description: "Event status updated but email notification failed",
+            variant: "default",
+          });
         }
+      } else {
+        console.warn("No email found for creator, skipping notification");
       }
 
       refetchPending();
