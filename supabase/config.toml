@@ -71,4 +71,4 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.send-event-notification]
-verify_jwt = true
+verify_jwt = false
