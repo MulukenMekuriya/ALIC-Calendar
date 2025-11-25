@@ -5,6 +5,7 @@ import { PageLoader } from "@/components/ui/loading";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { OrganizationProvider, useOrganization } from "./contexts/OrganizationContext";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
 import Users from "./pages/Users";
@@ -25,13 +26,18 @@ const ProtectedRoute = ({
   adminOnly?: boolean;
 }) => {
   const { user, loading, isAdmin } = useAuth();
+  const { loading: orgLoading, currentOrganization } = useOrganization();
 
-  if (loading) {
+  if (loading || orgLoading) {
     return <PageLoader message="Authenticating..." />;
   }
 
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  if (!currentOrganization) {
+    return <PageLoader message="Loading organization..." />;
   }
 
   if (adminOnly && !isAdmin) {
@@ -48,12 +54,14 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
+          <OrganizationProvider>
+            <Routes>
             <Route path="/" element={<Navigate to="/public" replace />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/public" element={<PublicCalendar />} />
+            <Route path="/public/:slug" element={<PublicCalendar />} />
             <Route
               path="/dashboard"
               element={
@@ -87,7 +95,8 @@ const App = () => (
               }
             />
             <Route path="*" element={<NotFound />} />
-          </Routes>
+            </Routes>
+          </OrganizationProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

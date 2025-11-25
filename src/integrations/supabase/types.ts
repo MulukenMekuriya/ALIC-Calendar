@@ -14,6 +14,98 @@ export type Database = {
   }
   public: {
     Tables: {
+      organizations: {
+        Row: {
+          id: string
+          name: string
+          slug: string
+          country: string | null
+          state: string | null
+          city: string | null
+          address: string | null
+          timezone: string
+          contact_email: string | null
+          contact_phone: string | null
+          website: string | null
+          logo_url: string | null
+          is_active: boolean
+          settings: Record<string, unknown>
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          slug: string
+          country?: string | null
+          state?: string | null
+          city?: string | null
+          address?: string | null
+          timezone?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          website?: string | null
+          logo_url?: string | null
+          is_active?: boolean
+          settings?: Record<string, unknown>
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          slug?: string
+          country?: string | null
+          state?: string | null
+          city?: string | null
+          address?: string | null
+          timezone?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          website?: string | null
+          logo_url?: string | null
+          is_active?: boolean
+          settings?: Record<string, unknown>
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_organizations: {
+        Row: {
+          id: string
+          user_id: string
+          organization_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          is_primary: boolean
+          joined_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          organization_id: string
+          role?: Database["public"]["Enums"]["app_role"]
+          is_primary?: boolean
+          joined_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          organization_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          is_primary?: boolean
+          joined_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_organizations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           created_at: string
@@ -22,6 +114,7 @@ export type Database = {
           ends_at: string
           id: string
           is_recurring: boolean | null
+          organization_id: string
           parent_event_id: string | null
           recurrence_end_date: string | null
           recurrence_rule: string | null
@@ -41,6 +134,7 @@ export type Database = {
           ends_at: string
           id?: string
           is_recurring?: boolean | null
+          organization_id: string
           parent_event_id?: string | null
           recurrence_end_date?: string | null
           recurrence_rule?: string | null
@@ -60,6 +154,7 @@ export type Database = {
           ends_at?: string
           id?: string
           is_recurring?: boolean | null
+          organization_id?: string
           parent_event_id?: string | null
           recurrence_end_date?: string | null
           recurrence_rule?: string | null
@@ -73,6 +168,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "events_parent_event_id_fkey"
             columns: ["parent_event_id"]
@@ -92,6 +194,7 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          default_organization_id: string | null
           email: string
           full_name: string
           id: string
@@ -101,6 +204,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          default_organization_id?: string | null
           email: string
           full_name: string
           id: string
@@ -110,6 +214,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          default_organization_id?: string | null
           email?: string
           full_name?: string
           id?: string
@@ -117,7 +222,15 @@ export type Database = {
           phone_number?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_default_organization_id_fkey"
+            columns: ["default_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rooms: {
         Row: {
@@ -128,6 +241,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          organization_id: string
           updated_at: string
         }
         Insert: {
@@ -138,6 +252,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          organization_id: string
           updated_at?: string
         }
         Update: {
@@ -148,9 +263,18 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          organization_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "rooms_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

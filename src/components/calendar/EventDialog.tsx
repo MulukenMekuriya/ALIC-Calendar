@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +44,7 @@ const eventSchema = z.object({
 
 const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess, allEvents = [], onEventSelect }: EventDialogProps) => {
   const { user, isAdmin } = useAuth();
+  const { currentOrganization } = useOrganization();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
@@ -80,17 +82,21 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess, allE
   });
 
   const { data: rooms } = useQuery({
-    queryKey: ["rooms"],
+    queryKey: ["rooms", currentOrganization?.id],
     queryFn: async () => {
+      if (!currentOrganization?.id) return [];
+
       const { data, error } = await supabase
         .from("rooms")
         .select("*")
+        .eq("organization_id", currentOrganization.id)
         .eq("is_active", true)
         .order("name");
 
       if (error) throw error;
       return data;
     },
+    enabled: !!currentOrganization?.id,
   });
 
   // Helper function to format date for datetime-local input (preserves local timezone)
@@ -279,6 +285,16 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess, allE
     setLoading(true);
 
     try {
+      if (!currentOrganization?.id) {
+        toast({
+          title: "Error",
+          description: "No organization selected",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
       const validated = eventSchema.parse(formData);
 
       // Validate recurrence
@@ -301,6 +317,7 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess, allE
         room_id: validated.room_id,
         starts_at: startsAt,
         ends_at: endsAt,
+        organization_id: currentOrganization.id,
       };
 
       if (eventId) {
@@ -372,6 +389,7 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess, allE
             status: 'pending_review' as const,
             is_recurring: true,
             parent_event_id: parent.id,
+            organization_id: currentOrganization.id,
           }));
 
           if (instancesData.length > 0) {

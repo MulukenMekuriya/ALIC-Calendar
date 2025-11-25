@@ -12,6 +12,7 @@ interface CreateUserRequest {
   full_name: string;
   ministry_name?: string;
   role: "admin" | "contributor";
+  organization_id: string;
 }
 
 Deno.serve(async (req) => {
@@ -57,33 +58,35 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check if user is admin
-    const { data: userRoles } = await supabaseAdmin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin");
-
-    if (!userRoles || userRoles.length === 0) {
-      return new Response(
-        JSON.stringify({ error: "Insufficient permissions" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 403,
-        }
-      );
-    }
-
     // Parse request body
-    const { email, password, full_name, ministry_name, role } = await req.json() as CreateUserRequest;
+    const { email, password, full_name, ministry_name, role, organization_id } = await req.json() as CreateUserRequest;
 
     // Validate input
-    if (!email || !password || !full_name || !role) {
+    if (!email || !password || !full_name || !role || !organization_id) {
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 400,
+        }
+      );
+    }
+
+    // Check if requesting user is admin in the target organization
+    const { data: userOrgRole } = await supabaseAdmin
+      .from("user_organizations")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("organization_id", organization_id)
+      .eq("role", "admin")
+      .single();
+
+    if (!userOrgRole) {
+      return new Response(
+        JSON.stringify({ error: "Insufficient permissions for this organization" }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 403,
         }
       );
     }
@@ -108,67 +111,84 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create auth user with admin API
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: {
-        full_name,
-      },
-    });
-
-    if (authError) {
-      return new Response(
-        JSON.stringify({ error: authError.message }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
-        }
-      );
-    }
-
-    if (!authData.user) {
-      return new Response(
-        JSON.stringify({ error: "Failed to create user" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 500,
-        }
-      );
-    }
-
-    // Create/update profile
-    const { error: profileError } = await supabaseAdmin
+    // Check if user already exists
+    const { data: existingUsers } = await supabaseAdmin
       .from("profiles")
-      .upsert({
-        id: authData.user.id,
+      .select("id")
+      .eq("email", email)
+      .limit(1);
+
+    let userId: string;
+
+    if (existingUsers && existingUsers.length > 0) {
+      // User already exists, just add them to the organization
+      userId = existingUsers[0].id;
+
+      // Check if user is already in this organization
+      const { data: existingMembership } = await supabaseAdmin
+        .from("user_organizations")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("organization_id", organization_id)
+        .single();
+
+      if (existingMembership) {
+        return new Response(
+          JSON.stringify({ error: "User is already a member of this organization" }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 400,
+          }
+        );
+      }
+    } else {
+      // Create new auth user with admin API
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email,
-        full_name,
-        ministry_name: ministry_name || null,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          full_name,
+        },
       });
 
-    if (profileError) {
-      console.error("Profile creation error:", profileError);
-      return new Response(
-        JSON.stringify({ error: "User created but profile update failed" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 500,
-        }
-      );
-    }
-
-    // Add admin role if needed
-    if (role === "admin") {
-      const { error: roleError } = await supabaseAdmin
-        .from("user_roles")
-        .insert([{ user_id: authData.user.id, role: "admin" }]);
-
-      if (roleError) {
-        console.error("Role creation error:", roleError);
+      if (authError) {
         return new Response(
-          JSON.stringify({ error: "User created but role assignment failed" }),
+          JSON.stringify({ error: authError.message }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 400,
+          }
+        );
+      }
+
+      if (!authData.user) {
+        return new Response(
+          JSON.stringify({ error: "Failed to create user" }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 500,
+          }
+        );
+      }
+
+      userId = authData.user.id;
+
+      // Create profile
+      const { error: profileError } = await supabaseAdmin
+        .from("profiles")
+        .upsert({
+          id: userId,
+          email,
+          full_name,
+          ministry_name: ministry_name || null,
+          default_organization_id: organization_id,
+        });
+
+      if (profileError) {
+        console.error("Profile creation error:", profileError);
+        return new Response(
+          JSON.stringify({ error: "User created but profile update failed" }),
           {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
             status: 500,
@@ -177,12 +197,33 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Add user to organization with specified role
+    const { error: orgMemberError } = await supabaseAdmin
+      .from("user_organizations")
+      .insert([{
+        user_id: userId,
+        organization_id: organization_id,
+        role: role,
+        is_primary: true,
+      }]);
+
+    if (orgMemberError) {
+      console.error("Organization membership error:", orgMemberError);
+      return new Response(
+        JSON.stringify({ error: "User created but organization assignment failed" }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 500,
+        }
+      );
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         user: {
-          id: authData.user.id,
-          email: authData.user.email,
+          id: userId,
+          email: email,
         }
       }),
       {

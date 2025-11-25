@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import GoogleCalendarView from "@/components/calendar/GoogleCalendarView";
 import CalendarViewSwitcher, { CalendarView } from "@/components/calendar/CalendarViewSwitcher";
@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogIn,
+  Building2,
 } from "lucide-react";
 import {
   Card,
@@ -43,9 +44,11 @@ import {
   subMonths,
 } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { PageLoader } from "@/components/ui/loading";
 
 const PublicCalendar = () => {
   const navigate = useNavigate();
+  const { slug } = useParams<{ slug?: string }>();
   const { toast } = useToast();
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
@@ -54,9 +57,31 @@ const PublicCalendar = () => {
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 0 });
   const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 0 });
 
-  const { data: events } = useQuery({
-    queryKey: ["public-events", weekStart.toISOString()],
+  // Fetch organization by slug or get the default one
+  const { data: organization, isLoading: orgLoading, error: orgError } = useQuery({
+    queryKey: ["public-organization", slug],
     queryFn: async () => {
+      let query = supabase
+        .from("organizations")
+        .select("*")
+        .eq("is_active", true);
+
+      if (slug) {
+        query = query.eq("slug", slug);
+      }
+
+      const { data, error } = await query.limit(1).single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: events } = useQuery({
+    queryKey: ["public-events", organization?.id, weekStart.toISOString()],
+    queryFn: async () => {
+      if (!organization?.id) return [];
+
       const { data, error } = await supabase
         .from("events")
         .select(
@@ -65,6 +90,7 @@ const PublicCalendar = () => {
           rooms(id, name, color)
         `
         )
+        .eq("organization_id", organization.id)
         .eq("status", "published")
         .gte("starts_at", weekStart.toISOString())
         .lte("starts_at", weekEnd.toISOString())
@@ -79,6 +105,7 @@ const PublicCalendar = () => {
         })) || []
       );
     },
+    enabled: !!organization?.id,
   });
 
   const handleEventClick = (eventId: string) => {
@@ -117,17 +144,20 @@ const PublicCalendar = () => {
         return;
       }
 
+      const orgTimezone = organization?.timezone || "America/New_York";
+      const orgName = organization?.name || "Church Events";
+
       let icsContent = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
-        "PRODID:-//ALIC MD//Events Calendar//EN",
+        `PRODID:-//${orgName}//Events Calendar//EN`,
         "CALSCALE:GREGORIAN",
         "METHOD:PUBLISH",
-        "X-WR-CALNAME:ALIC MD Events",
-        "X-WR-TIMEZONE:America/New_York",
+        `X-WR-CALNAME:${orgName} Events`,
+        `X-WR-TIMEZONE:${orgTimezone}`,
         // Add VTIMEZONE component for proper timezone handling
         "BEGIN:VTIMEZONE",
-        "TZID:America/New_York",
+        `TZID:${orgTimezone}`,
         "BEGIN:DAYLIGHT",
         "TZOFFSETFROM:-0500",
         "TZOFFSETTO:-0400",
@@ -151,10 +181,10 @@ const PublicCalendar = () => {
 
         icsContent.push(
           "BEGIN:VEVENT",
-          `UID:${event.id}@addislidetchurch.org`,
+          `UID:${event.id}@${organization?.slug || "calendar"}.events`,
           `DTSTAMP:${format(new Date(), "yyyyMMdd'T'HHmmss'Z'")}`,
-          `DTSTART;TZID=America/New_York:${format(start, "yyyyMMdd'T'HHmmss")}`,
-          `DTEND;TZID=America/New_York:${format(end, "yyyyMMdd'T'HHmmss")}`,
+          `DTSTART;TZID=${orgTimezone}:${format(start, "yyyyMMdd'T'HHmmss")}`,
+          `DTEND;TZID=${orgTimezone}:${format(end, "yyyyMMdd'T'HHmmss")}`,
           `SUMMARY:${escapeICalText(event.title)}`,
           `DESCRIPTION:${escapeICalText(event.description || "")}`,
           `LOCATION:${escapeICalText(event.room?.name || "")}`,
@@ -169,7 +199,7 @@ const PublicCalendar = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `alic-md-events-${format(currentWeek, "yyyy-MM-dd")}.ics`;
+      link.download = `${organization?.slug || "events"}-${format(currentWeek, "yyyy-MM-dd")}.ics`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -189,6 +219,33 @@ const PublicCalendar = () => {
     }
   };
 
+  if (orgLoading) {
+    return <PageLoader message="Loading calendar..." />;
+  }
+
+  if (orgError || !organization) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-red-500" />
+              Organization Not Found
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">
+              The organization you're looking for doesn't exist or is not active.
+            </p>
+            <Button onClick={() => navigate("/auth")}>
+              Sign In
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       {/* Hero Header */}
@@ -197,17 +254,25 @@ const PublicCalendar = () => {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="bg-white/20 backdrop-blur-sm p-2 rounded-xl">
-                <img
-                  src="/alic-logo.png"
-                  alt="ALIC Logo"
-                  className="h-16 w-16 object-contain"
-                />
+                {organization.logo_url ? (
+                  <img
+                    src={organization.logo_url}
+                    alt={`${organization.name} Logo`}
+                    className="h-16 w-16 object-contain"
+                  />
+                ) : (
+                  <Church className="h-16 w-16 text-white" />
+                )}
               </div>
               <div>
                 <h1 className="text-3xl md:text-4xl font-bold">
-                  Addis Lidet International Church
+                  {organization.name}
                 </h1>
-                <p className="text-blue-100 mt-1">Silver Spring, Maryland</p>
+                <p className="text-blue-100 mt-1">
+                  {organization.city && organization.state
+                    ? `${organization.city}, ${organization.state}`
+                    : organization.city || organization.state || ""}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -235,56 +300,77 @@ const PublicCalendar = () => {
       {/* Church Info Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="border-2 hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-blue-600" />
-                Location
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">11961 Tech Rd</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Silver Spring, MD 20904
-              </p>
-            </CardContent>
-          </Card>
+          {organization.address && (
+            <Card className="border-2 hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-blue-600" />
+                  Location
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">{organization.address}</p>
+                {(organization.city || organization.state) && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {[organization.city, organization.state].filter(Boolean).join(", ")}
+                    {organization.country && organization.country !== "United States" && `, ${organization.country}`}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
-          <Card className="border-2 hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Phone className="h-5 w-5 text-green-600" />
-                Contact
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span>info@addislidetchurch.org</span>
+          {(organization.contact_email || organization.contact_phone) && (
+            <Card className="border-2 hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Phone className="h-5 w-5 text-green-600" />
+                  Contact
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm">
+                  {organization.contact_email && (
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <a href={`mailto:${organization.contact_email}`} className="hover:underline">
+                        {organization.contact_email}
+                      </a>
+                    </div>
+                  )}
+                  {organization.contact_phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <a href={`tel:${organization.contact_phone}`} className="hover:underline">
+                        {organization.contact_phone}
+                      </a>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
-          <Card className="border-2 hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Globe className="h-5 w-5 text-purple-600" />
-                Visit Website
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <a
-                href="https://addislidetchurch.org"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:underline"
-              >
-                addislidetchurch.org
-              </a>
-            </CardContent>
-          </Card>
+          {organization.website && (
+            <Card className="border-2 hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5 text-purple-600" />
+                  Visit Website
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <a
+                  href={organization.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  {organization.website.replace(/^https?:\/\//, "")}
+                </a>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </section>
 
@@ -489,32 +575,42 @@ const PublicCalendar = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
             <div className="flex justify-center mb-4">
-              <img
-                src="/alic-logo.png"
-                alt="ALIC Logo"
-                className="h-12 w-12 object-contain"
-              />
+              {organization.logo_url ? (
+                <img
+                  src={organization.logo_url}
+                  alt={`${organization.name} Logo`}
+                  className="h-12 w-12 object-contain"
+                />
+              ) : (
+                <Church className="h-12 w-12 text-slate-400" />
+              )}
             </div>
             <p className="text-sm text-slate-400">
-              © 2025 Addis Lidet International Church. All rights reserved.
+              © {new Date().getFullYear()} {organization.name}. All rights reserved.
             </p>
-            <div className="mt-4 flex items-center justify-center gap-4">
-              <a
-                href="https://addislidetchurch.org"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-slate-400 hover:text-white transition-colors"
-              >
-                Website
-              </a>
-              <span className="text-slate-600">•</span>
-              <a
-                href="mailto: info@addislidetchurch.org"
-                className="text-sm text-slate-400 hover:text-white transition-colors"
-              >
-                Contact
-              </a>
-            </div>
+            {organization.website && (
+              <div className="mt-4 flex items-center justify-center gap-4">
+                <a
+                  href={organization.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-slate-400 hover:text-white transition-colors"
+                >
+                  Website
+                </a>
+                {organization.contact_email && (
+                  <>
+                    <span className="text-slate-600">•</span>
+                    <a
+                      href={`mailto:${organization.contact_email}`}
+                      className="text-sm text-slate-400 hover:text-white transition-colors"
+                    >
+                      Contact
+                    </a>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </footer>

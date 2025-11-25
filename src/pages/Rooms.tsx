@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, DoorOpen } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useOrganization } from "@/contexts/OrganizationContext";
 
 interface Room {
   id: string;
@@ -19,6 +20,7 @@ interface Room {
   description: string | null;
   color: string;
   is_active: boolean;
+  organization_id: string;
   created_at: string;
   updated_at: string;
 }
@@ -26,6 +28,7 @@ interface Room {
 const Rooms = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { currentOrganization } = useOrganization();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [deleteRoomId, setDeleteRoomId] = useState<string | null>(null);
@@ -37,23 +40,29 @@ const Rooms = () => {
   });
 
   const { data: rooms, isLoading } = useQuery({
-    queryKey: ["rooms-admin"],
+    queryKey: ["rooms-admin", currentOrganization?.id],
     queryFn: async () => {
+      if (!currentOrganization?.id) return [];
+
       const { data, error } = await supabase
         .from("rooms")
         .select("*")
+        .eq("organization_id", currentOrganization.id)
         .order("name");
 
       if (error) throw error;
       return data as Room[];
     },
+    enabled: !!currentOrganization?.id,
   });
 
   const createRoomMutation = useMutation({
     mutationFn: async (newRoom: typeof formData) => {
+      if (!currentOrganization?.id) throw new Error("No organization selected");
+
       const { data, error } = await supabase
         .from("rooms")
-        .insert([newRoom])
+        .insert([{ ...newRoom, organization_id: currentOrganization.id }])
         .select()
         .single();
 

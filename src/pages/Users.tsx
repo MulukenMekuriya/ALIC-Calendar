@@ -12,55 +12,70 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { UserPlus, Shield, UserCog, Pencil, Trash2 } from "lucide-react";
+import { useOrganization } from "@/contexts/OrganizationContext";
 
 const Users = () => {
   const { toast } = useToast();
+  const { currentOrganization } = useOrganization();
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
   const [newUser, setNewUser] = useState({ email: "", password: "", full_name: "", ministry_name: "", role: "contributor" });
   const [editingUser, setEditingUser] = useState<{ id: string; email: string; full_name: string; phone_number?: string; ministry_name?: string; role: string } | null>(null);
 
   const { data: users, refetch: refetchUsers, error: usersError } = useQuery({
-    queryKey: ["users-with-roles"],
+    queryKey: ["users-with-roles", currentOrganization?.id],
     queryFn: async () => {
-      // First, get all profiles
+      if (!currentOrganization?.id) return [];
+
+      // First, get user IDs in this organization
+      const { data: orgUsers, error: orgUsersError } = await supabase
+        .from("user_organizations")
+        .select("user_id, role")
+        .eq("organization_id", currentOrganization.id);
+
+      if (orgUsersError) {
+        console.error("Error fetching org users:", orgUsersError);
+        throw orgUsersError;
+      }
+
+      if (!orgUsers || orgUsers.length === 0) return [];
+
+      const userIds = orgUsers.map(u => u.user_id);
+
+      // Get profiles for users in this organization
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("*");
+        .select("*")
+        .in("id", userIds);
 
       if (profilesError) {
         console.error("Error fetching profiles:", profilesError);
         throw profilesError;
       }
 
-      // Then, get all user roles
-      const { data: roles, error: rolesError } = await supabase
-        .from("user_roles")
-        .select("user_id, role");
-
-      if (rolesError) {
-        console.error("Error fetching roles:", rolesError);
-        throw rolesError;
-      }
-
-      // Manually join the data
+      // Manually join the data with org roles
       const usersWithRoles = profiles?.map(profile => {
-        const userRoles = roles?.filter(role => role.user_id === profile.id) || [];
+        const userOrgInfo = orgUsers.find(u => u.user_id === profile.id);
         return {
           ...profile,
-          user_roles: userRoles.map(r => ({ role: r.role }))
+          user_roles: userOrgInfo ? [{ role: userOrgInfo.role }] : []
         };
       }) || [];
 
       console.log("Fetched users:", usersWithRoles);
       return usersWithRoles;
     },
+    enabled: !!currentOrganization?.id,
   });
 
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      if (!currentOrganization?.id) {
+        throw new Error("No organization selected");
+      }
+
       // Get current session token
       const { data: { session } } = await supabase.auth.getSession();
 
@@ -76,6 +91,7 @@ const Users = () => {
           full_name: newUser.full_name,
           ministry_name: newUser.ministry_name,
           role: newUser.role,
+          organization_id: currentOrganization.id,
         },
       });
 
@@ -100,7 +116,7 @@ const Users = () => {
 
   const handleEditUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingUser) return;
+    if (!editingUser || !currentOrganization?.id) return;
 
     try {
       // Update profile
@@ -115,27 +131,14 @@ const Users = () => {
 
       if (profileError) throw profileError;
 
-      // Update role
-      const { data: currentRole } = await supabase
-        .from("user_roles")
-        .select("*")
+      // Update role in user_organizations table
+      const { error: roleError } = await supabase
+        .from("user_organizations")
+        .update({ role: editingUser.role as "admin" | "contributor" })
         .eq("user_id", editingUser.id)
-        .single();
+        .eq("organization_id", currentOrganization.id);
 
-      if (editingUser.role === "admin" && !currentRole) {
-        // Add admin role
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .insert([{ user_id: editingUser.id, role: "admin" }]);
-        if (roleError) throw roleError;
-      } else if (editingUser.role === "contributor" && currentRole) {
-        // Remove admin role
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .delete()
-          .eq("user_id", editingUser.id);
-        if (roleError) throw roleError;
-      }
+      if (roleError) throw roleError;
 
       toast({ title: "User updated successfully" });
       setIsEditUserOpen(false);
@@ -151,26 +154,26 @@ const Users = () => {
   };
 
   const handleDeleteUser = async (userId: string, userName: string) => {
-    if (!confirm(`Are you sure you want to delete ${userName}? This action cannot be undone.`)) {
+    if (!confirm(`Are you sure you want to remove ${userName} from this organization? This action cannot be undone.`)) {
       return;
     }
 
+    if (!currentOrganization?.id) return;
+
     try {
-      // Delete user roles first
-      await supabase.from("user_roles").delete().eq("user_id", userId);
-
-      // Delete profile
-      const { error: profileError } = await supabase
-        .from("profiles")
+      // Remove user from this organization
+      const { error: orgError } = await supabase
+        .from("user_organizations")
         .delete()
-        .eq("id", userId);
+        .eq("user_id", userId)
+        .eq("organization_id", currentOrganization.id);
 
-      if (profileError) throw profileError;
+      if (orgError) throw orgError;
 
-      // Note: Deleting auth user requires admin privileges via a Supabase function
-      // For now, we'll just remove the profile and role
+      // Note: We don't delete the profile or auth user since they may belong to other organizations
+      // The profile is only deleted if this was their only organization
 
-      toast({ title: "User deleted successfully" });
+      toast({ title: "User removed from organization successfully" });
       refetchUsers();
     } catch (error) {
       toast({

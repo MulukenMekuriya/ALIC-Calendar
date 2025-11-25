@@ -10,21 +10,26 @@ import { Check, X, Eye, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import EventDialog from "@/components/calendar/EventDialog";
 import { formatDistance, format } from "date-fns";
+import { useOrganization } from "@/contexts/OrganizationContext";
 
 const Admin = () => {
   const { toast } = useToast();
+  const { currentOrganization } = useOrganization();
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
 
   const { data: pendingEvents, refetch: refetchPending } = useQuery({
-    queryKey: ["pending-events"],
+    queryKey: ["pending-events", currentOrganization?.id],
     queryFn: async () => {
+      if (!currentOrganization?.id) return [];
+
       const { data, error } = await supabase
         .from("events")
         .select(`
           *,
           rooms(name, color)
         `)
+        .eq("organization_id", currentOrganization.id)
         .eq("status", "pending_review")
         .order("created_at", { ascending: false });
 
@@ -49,17 +54,21 @@ const Admin = () => {
 
       return eventsWithCreators;
     },
+    enabled: !!currentOrganization?.id,
   });
 
   const { data: approvedEvents, refetch: refetchApproved } = useQuery({
-    queryKey: ["approved-events"],
+    queryKey: ["approved-events", currentOrganization?.id],
     queryFn: async () => {
+      if (!currentOrganization?.id) return [];
+
       const { data, error } = await supabase
         .from("events")
         .select(`
           *,
           rooms(name, color)
         `)
+        .eq("organization_id", currentOrganization.id)
         .eq("status", "approved")
         .order("starts_at", { ascending: true });
 
@@ -84,17 +93,21 @@ const Admin = () => {
 
       return eventsWithCreators;
     },
+    enabled: !!currentOrganization?.id,
   });
 
   const { data: publishedEvents, refetch: refetchPublished } = useQuery({
-    queryKey: ["published-events"],
+    queryKey: ["published-events", currentOrganization?.id],
     queryFn: async () => {
+      if (!currentOrganization?.id) return [];
+
       const { data, error } = await supabase
         .from("events")
         .select(`
           *,
           rooms(name, color)
         `)
+        .eq("organization_id", currentOrganization.id)
         .eq("status", "published")
         .order("starts_at", { ascending: true });
 
@@ -119,17 +132,21 @@ const Admin = () => {
 
       return eventsWithCreators;
     },
+    enabled: !!currentOrganization?.id,
   });
 
   const { data: rejectedEvents, refetch: refetchRejected } = useQuery({
-    queryKey: ["rejected-events"],
+    queryKey: ["rejected-events", currentOrganization?.id],
     queryFn: async () => {
+      if (!currentOrganization?.id) return [];
+
       const { data, error } = await supabase
         .from("events")
         .select(`
           *,
           rooms(name, color)
         `)
+        .eq("organization_id", currentOrganization.id)
         .eq("status", "rejected")
         .order("created_at", { ascending: false });
 
@@ -154,6 +171,7 @@ const Admin = () => {
 
       return eventsWithCreators;
     },
+    enabled: !!currentOrganization?.id,
   });
 
   const handleStatusChange = async (eventId: string, status: "approved" | "rejected" | "published" | "pending_review", isUnpublishing?: boolean) => {

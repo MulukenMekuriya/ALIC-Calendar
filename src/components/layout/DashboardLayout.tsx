@@ -1,5 +1,6 @@
 import { ReactNode, useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +34,7 @@ interface DashboardLayoutProps {
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { user, isAdmin, signOut } = useAuth();
+  const { currentOrganization } = useOrganization();
   const { profile } = useUserProfile();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -115,7 +117,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 <Calendar className="h-6 w-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="font-bold text-lg">ALIC Calendar Manager</h1>
+                <h1 className="font-bold text-lg">{currentOrganization?.name || "Calendar Manager"}</h1>
                 <p className="text-xs text-muted-foreground">
                   Event Management
                 </p>

@@ -8,11 +8,13 @@ import GoogleCalendarView from "@/components/calendar/GoogleCalendarView";
 import CalendarViewSwitcher, { CalendarView } from "@/components/calendar/CalendarViewSwitcher";
 import EventDialog from "@/components/calendar/EventDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { addWeeks, subWeeks, addDays, addMonths, subMonths, format } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { currentOrganization } = useOrganization();
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [currentWeek, setCurrentWeek] = useState(new Date());
@@ -21,8 +23,10 @@ const Dashboard = () => {
   const [dayViewDate, setDayViewDate] = useState(new Date());
 
   const { data: events, refetch } = useQuery({
-    queryKey: ["events"],
+    queryKey: ["events", currentOrganization?.id],
     queryFn: async () => {
+      if (!currentOrganization?.id) return [];
+
       const { data, error } = await supabase
         .from("events")
         .select(
@@ -31,6 +35,7 @@ const Dashboard = () => {
           rooms(id, name, color)
         `
         )
+        .eq("organization_id", currentOrganization.id)
         .order("starts_at", { ascending: true });
 
       if (error) throw error;
@@ -54,6 +59,7 @@ const Dashboard = () => {
 
       return eventsWithCreators;
     },
+    enabled: !!currentOrganization?.id,
   });
 
 
