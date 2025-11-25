@@ -445,6 +445,41 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess, allE
     }
   };
 
+  // Helper function to get the nth weekday of a month (e.g., 1st Monday, last Saturday)
+  // weekOfMonth: 1-4 for first through fourth, -1 for last
+  const getNthWeekdayOfMonth = (
+    year: number,
+    month: number,
+    dayOfWeek: number, // 0 = Sunday, 6 = Saturday
+    weekOfMonth: number // 1-4 or -1 for last
+  ): Date | null => {
+    if (weekOfMonth === -1) {
+      // Last occurrence of the weekday in the month
+      const lastDay = new Date(year, month + 1, 0); // Last day of month
+      const lastDayOfWeek = lastDay.getDay();
+      let diff = lastDayOfWeek - dayOfWeek;
+      if (diff < 0) diff += 7;
+      const result = new Date(year, month, lastDay.getDate() - diff);
+      return result;
+    } else if (weekOfMonth >= 1 && weekOfMonth <= 4) {
+      // First, second, third, or fourth occurrence
+      const firstDay = new Date(year, month, 1);
+      const firstDayOfWeek = firstDay.getDay();
+      let diff = dayOfWeek - firstDayOfWeek;
+      if (diff < 0) diff += 7;
+      const firstOccurrence = 1 + diff;
+      const nthOccurrence = firstOccurrence + (weekOfMonth - 1) * 7;
+
+      // Verify it's still in the same month
+      const result = new Date(year, month, nthOccurrence);
+      if (result.getMonth() !== month) {
+        return null; // This occurrence doesn't exist (e.g., 5th Monday)
+      }
+      return result;
+    }
+    return null;
+  };
+
   // Helper function to generate recurring event instances
   const generateRecurringInstances = (
     startDate: Date,
@@ -505,10 +540,25 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess, allE
 
         case 'monthly':
           currentDate.setMonth(currentDate.getMonth() + config.interval);
-          if (config.dayOfMonth) {
+          if (config.monthlyType === 'weekday' && config.weekOfMonth !== undefined && config.dayOfWeekForMonth !== undefined) {
+            // Calculate the nth weekday of the month (e.g., first Monday, last Saturday)
+            nextDate = getNthWeekdayOfMonth(
+              currentDate.getFullYear(),
+              currentDate.getMonth(),
+              config.dayOfWeekForMonth,
+              config.weekOfMonth
+            );
+            if (nextDate) {
+              // Preserve the time from the original event
+              nextDate.setHours(startDate.getHours(), startDate.getMinutes(), startDate.getSeconds());
+              currentDate = new Date(nextDate);
+            }
+          } else if (config.dayOfMonth) {
             currentDate.setDate(Math.min(config.dayOfMonth, new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate()));
+            nextDate = new Date(currentDate);
+          } else {
+            nextDate = new Date(currentDate);
           }
-          nextDate = new Date(currentDate);
           break;
 
         case 'yearly':

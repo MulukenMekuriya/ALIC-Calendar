@@ -13,6 +13,12 @@ export interface RecurrenceConfig {
   daysOfWeek?: number[]; // 0 = Sunday, 1 = Monday, etc.
   dayOfMonth?: number;
   monthOfYear?: number;
+  // Monthly recurrence type: 'dayOfMonth' (e.g., 15th of every month) or 'weekday' (e.g., first Monday)
+  monthlyType?: 'dayOfMonth' | 'weekday';
+  // For weekday-based monthly recurrence: which week (1=first, 2=second, 3=third, 4=fourth, -1=last)
+  weekOfMonth?: number;
+  // For weekday-based monthly recurrence: which day (0=Sunday, 1=Monday, etc.)
+  dayOfWeekForMonth?: number;
   endType: 'never' | 'on' | 'after';
   endDate?: string;
   occurrences?: number;
@@ -38,6 +44,29 @@ const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
+
+const WEEK_ORDINALS = [
+  { label: 'First', value: 1 },
+  { label: 'Second', value: 2 },
+  { label: 'Third', value: 3 },
+  { label: 'Fourth', value: 4 },
+  { label: 'Last', value: -1 },
+];
+
+// Helper to get the week ordinal of a date within its month
+function getWeekOrdinalOfDate(date: Date): number {
+  const dayOfMonth = date.getDate();
+
+  // Check if it's the last occurrence of this weekday in the month
+  const nextWeekSameDay = new Date(date);
+  nextWeekSameDay.setDate(dayOfMonth + 7);
+  if (nextWeekSameDay.getMonth() !== date.getMonth()) {
+    return -1; // Last occurrence
+  }
+
+  // Calculate which week (1-4) this is
+  return Math.ceil(dayOfMonth / 7);
+}
 
 export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
   value,
@@ -82,17 +111,24 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
         daysOfWeek: undefined,
         dayOfMonth: undefined,
         monthOfYear: undefined,
+        monthlyType: undefined,
+        weekOfMonth: undefined,
+        dayOfWeekForMonth: undefined,
         endDate: undefined,
         occurrences: undefined,
       });
     } else {
+      const startDateObj = startDate ? new Date(startDate) : null;
       updateConfig({
         frequency: newFreq,
         interval: 1,
         endType: 'never',
-        daysOfWeek: newFreq === 'weekly' && startDate ? [new Date(startDate).getDay()] : undefined,
-        dayOfMonth: (newFreq === 'monthly' || newFreq === 'yearly') && startDate ? new Date(startDate).getDate() : undefined,
-        monthOfYear: newFreq === 'yearly' && startDate ? new Date(startDate).getMonth() + 1 : undefined,
+        daysOfWeek: newFreq === 'weekly' && startDateObj ? [startDateObj.getDay()] : undefined,
+        dayOfMonth: (newFreq === 'monthly' || newFreq === 'yearly') && startDateObj ? startDateObj.getDate() : undefined,
+        monthOfYear: newFreq === 'yearly' && startDateObj ? startDateObj.getMonth() + 1 : undefined,
+        monthlyType: newFreq === 'monthly' ? 'dayOfMonth' : undefined,
+        weekOfMonth: newFreq === 'monthly' && startDateObj ? getWeekOrdinalOfDate(startDateObj) : undefined,
+        dayOfWeekForMonth: newFreq === 'monthly' && startDateObj ? startDateObj.getDay() : undefined,
       });
     }
   };
@@ -222,26 +258,101 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
           </div>
         )}
 
-        {/* Monthly: Day of Month */}
+        {/* Monthly: Day of Month or Weekday Pattern */}
         {value.frequency === 'monthly' && (
-          <div className="space-y-2">
-            <Label htmlFor="dayOfMonth" className="text-xs font-medium text-muted-foreground">
-              Day of month
+          <div className="space-y-3">
+            <Label className="text-xs font-medium text-muted-foreground">
+              Repeat on
             </Label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="dayOfMonth"
-                type="number"
-                min="1"
-                max="31"
-                value={value.dayOfMonth || 1}
-                onChange={(e) => updateConfig({ dayOfMonth: Math.min(31, Math.max(1, parseInt(e.target.value) || 1)) })}
-                className="w-20 h-9 bg-background"
-              />
-              <span className="text-xs text-muted-foreground">
-                (1-31)
-              </span>
-            </div>
+            <RadioGroup
+              value={value.monthlyType || 'dayOfMonth'}
+              onValueChange={(type) => updateConfig({ monthlyType: type as 'dayOfMonth' | 'weekday' })}
+              className="space-y-2"
+            >
+              {/* Day of Month option */}
+              <div className={cn(
+                "flex items-center space-x-3 p-2.5 rounded-md transition-all",
+                value.monthlyType === 'dayOfMonth' || !value.monthlyType ? 'bg-background shadow-sm' : 'hover:bg-background/50'
+              )}>
+                <RadioGroupItem value="dayOfMonth" id="dayOfMonth-radio" className="mt-0" />
+                <div className="flex-1 flex items-center gap-2">
+                  <Label htmlFor="dayOfMonth-radio" className="font-normal cursor-pointer text-sm whitespace-nowrap">
+                    Day
+                  </Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={value.dayOfMonth || 1}
+                    onChange={(e) => updateConfig({
+                      dayOfMonth: Math.min(31, Math.max(1, parseInt(e.target.value) || 1)),
+                      monthlyType: 'dayOfMonth'
+                    })}
+                    onClick={() => updateConfig({ monthlyType: 'dayOfMonth' })}
+                    className={cn(
+                      "w-16 h-8 text-xs bg-background",
+                      value.monthlyType !== 'dayOfMonth' && value.monthlyType && "opacity-50"
+                    )}
+                    disabled={value.monthlyType === 'weekday'}
+                  />
+                  <span className="text-xs text-muted-foreground">of the month</span>
+                </div>
+              </div>
+
+              {/* Weekday Pattern option */}
+              <div className={cn(
+                "flex items-center space-x-3 p-2.5 rounded-md transition-all",
+                value.monthlyType === 'weekday' ? 'bg-background shadow-sm' : 'hover:bg-background/50'
+              )}>
+                <RadioGroupItem value="weekday" id="weekday-radio" className="mt-0" />
+                <div className="flex-1 flex flex-wrap items-center gap-2">
+                  <Select
+                    value={String(value.weekOfMonth || 1)}
+                    onValueChange={(week) => updateConfig({
+                      weekOfMonth: parseInt(week),
+                      monthlyType: 'weekday'
+                    })}
+                    disabled={value.monthlyType !== 'weekday'}
+                  >
+                    <SelectTrigger className={cn(
+                      "w-24 h-8 text-xs bg-background",
+                      value.monthlyType !== 'weekday' && "opacity-50"
+                    )}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {WEEK_ORDINALS.map((ordinal) => (
+                        <SelectItem key={ordinal.value} value={String(ordinal.value)}>
+                          {ordinal.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={String(value.dayOfWeekForMonth ?? 0)}
+                    onValueChange={(day) => updateConfig({
+                      dayOfWeekForMonth: parseInt(day),
+                      monthlyType: 'weekday'
+                    })}
+                    disabled={value.monthlyType !== 'weekday'}
+                  >
+                    <SelectTrigger className={cn(
+                      "w-28 h-8 text-xs bg-background",
+                      value.monthlyType !== 'weekday' && "opacity-50"
+                    )}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DAYS_OF_WEEK.map((day) => (
+                        <SelectItem key={day.value} value={String(day.value)}>
+                          {day.fullLabel}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </RadioGroup>
           </div>
         )}
 
@@ -402,7 +513,11 @@ function getRecurrenceSummary(config: RecurrenceConfig): string {
       break;
     case 'monthly':
       summary += config.interval === 1 ? 'month' : 'months';
-      if (config.dayOfMonth) {
+      if (config.monthlyType === 'weekday' && config.weekOfMonth !== undefined && config.dayOfWeekForMonth !== undefined) {
+        const ordinalLabel = WEEK_ORDINALS.find(o => o.value === config.weekOfMonth)?.label.toLowerCase() || '';
+        const dayLabel = DAYS_OF_WEEK[config.dayOfWeekForMonth]?.fullLabel || '';
+        summary += ` on the ${ordinalLabel} ${dayLabel}`;
+      } else if (config.dayOfMonth) {
         const suffix = getDaySuffix(config.dayOfMonth);
         summary += ` on the ${config.dayOfMonth}${suffix}`;
       }
@@ -458,8 +573,17 @@ export function recurrenceConfigToRRule(config: RecurrenceConfig, startDate: Dat
     parts.push(`BYDAY=${days}`);
   }
 
-  // Day of month (for monthly/yearly)
-  if ((config.frequency === 'monthly' || config.frequency === 'yearly') && config.dayOfMonth) {
+  // Monthly with weekday pattern (e.g., "first Monday", "last Saturday")
+  if (config.frequency === 'monthly' && config.monthlyType === 'weekday' &&
+      config.weekOfMonth !== undefined && config.dayOfWeekForMonth !== undefined) {
+    const dayMap = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+    const dayCode = dayMap[config.dayOfWeekForMonth];
+    // RRULE uses ordinal prefix: 1MO = first Monday, -1SA = last Saturday
+    parts.push(`BYDAY=${config.weekOfMonth}${dayCode}`);
+  }
+  // Day of month (for monthly without weekday pattern, or yearly)
+  else if ((config.frequency === 'monthly' && config.monthlyType !== 'weekday' && config.dayOfMonth) ||
+           (config.frequency === 'yearly' && config.dayOfMonth)) {
     parts.push(`BYMONTHDAY=${config.dayOfMonth}`);
   }
 
@@ -511,10 +635,21 @@ export function rruleToRecurrenceConfig(rrule: string | null): RecurrenceConfig 
         break;
       case 'BYDAY':
         const dayMap: { [key: string]: number } = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 };
-        config.daysOfWeek = value.split(',').map(d => dayMap[d]).filter(d => d !== undefined);
+        // Check if this is an ordinal weekday pattern (e.g., "1MO", "-1SA")
+        const ordinalMatch = value.match(/^(-?\d+)(SU|MO|TU|WE|TH|FR|SA)$/);
+        if (ordinalMatch) {
+          // Monthly weekday pattern
+          config.monthlyType = 'weekday';
+          config.weekOfMonth = parseInt(ordinalMatch[1]);
+          config.dayOfWeekForMonth = dayMap[ordinalMatch[2]];
+        } else {
+          // Weekly days of week (comma-separated)
+          config.daysOfWeek = value.split(',').map(d => dayMap[d]).filter(d => d !== undefined);
+        }
         break;
       case 'BYMONTHDAY':
         config.dayOfMonth = parseInt(value);
+        config.monthlyType = 'dayOfMonth';
         break;
       case 'BYMONTH':
         config.monthOfYear = parseInt(value);
