@@ -439,26 +439,26 @@ const BudgetDashboard = () => {
                       allocations={allocationRequests || []}
                       title="Organization Overview"
                       description={`Comprehensive view of ${currentOrganization.name} expenses and budget allocations`}
+                      showDetailedLists={true}
+                      expenseListProps={{
+                        isLoading: expensesLoading,
+                        userRole: isAdmin
+                          ? "admin"
+                          : isTreasury
+                          ? "treasury"
+                          : "finance",
+                        onRefresh: handleRefresh,
+                      }}
+                      allocationListProps={{
+                        isLoading: false,
+                        userRole: isAdmin
+                          ? "admin"
+                          : isTreasury
+                          ? "treasury"
+                          : "finance",
+                        onRefresh: handleRefresh,
+                      }}
                     />
-
-                    {/* Detailed Expense List */}
-                    <div className="mt-12">
-                      <h3 className="text-xl font-semibold mb-4">
-                        All Expense Requests
-                      </h3>
-                      <ExpenseList
-                        expenses={expenses}
-                        isLoading={expensesLoading}
-                        userRole={
-                          isAdmin
-                            ? "admin"
-                            : isTreasury
-                            ? "treasury"
-                            : "finance"
-                        }
-                        onRefresh={handleRefresh}
-                      />
-                    </div>
                   </>
                 )}
 
@@ -470,19 +470,18 @@ const BudgetDashboard = () => {
                       allocations={myAllocationRequests}
                       title={`${userMinistryName} Budget Overview`}
                       description={`${userMinistryName} expense requests and budget allocations`}
+                      showDetailedLists={true}
+                      expenseListProps={{
+                        isLoading: expensesLoading,
+                        userRole: "requester",
+                        onRefresh: handleRefresh,
+                      }}
+                      allocationListProps={{
+                        isLoading: false,
+                        userRole: "requester",
+                        onRefresh: handleRefresh,
+                      }}
                     />
-
-                    <div className="mt-12">
-                      <h3 className="text-xl font-semibold mb-4">
-                        {userMinistryName} Expense Requests
-                      </h3>
-                      <ExpenseList
-                        expenses={expenses}
-                        isLoading={expensesLoading}
-                        userRole="requester"
-                        onRefresh={handleRefresh}
-                      />
-                    </div>
                   </>
                 )}
 
@@ -496,6 +495,17 @@ const BudgetDashboard = () => {
                         allocations={myAllocationRequests}
                         title={`${userMinistryName} Budget Overview`}
                         description={`${userMinistryName} budget allocations`}
+                        showDetailedLists={true}
+                        expenseListProps={{
+                          isLoading: expensesLoading,
+                          userRole: "requester",
+                          onRefresh: handleRefresh,
+                        }}
+                        allocationListProps={{
+                          isLoading: false,
+                          userRole: "requester",
+                          onRefresh: handleRefresh,
+                        }}
                       />
                     ) : (
                       /* Empty state card */

@@ -13,6 +13,8 @@ import {
 import { Badge } from "@/shared/components/ui/badge";
 import { DollarSign, Wallet, TrendingUp, BarChart3 } from "lucide-react";
 import BudgetSection from "./BudgetSection";
+import { ExpenseList } from "./ExpenseList";
+import { AllocationRequestList } from "./AllocationRequestList";
 import type {
   ExpenseRequestWithRelations,
   AllocationRequestWithRelations,
@@ -24,6 +26,18 @@ interface BudgetOverviewProps {
   title?: string;
   description?: string;
   defaultView?: "expenses" | "allocations" | "combined";
+  // Props for detailed lists
+  showDetailedLists?: boolean;
+  expenseListProps?: {
+    isLoading?: boolean;
+    userRole?: "admin" | "treasury" | "finance" | "requester";
+    onRefresh?: () => void;
+  };
+  allocationListProps?: {
+    isLoading?: boolean;
+    userRole?: "admin" | "treasury" | "finance" | "requester";
+    onRefresh?: () => void;
+  };
 }
 
 const BudgetOverview = ({
@@ -32,6 +46,9 @@ const BudgetOverview = ({
   title = "Budget Overview",
   description = "Comprehensive view of your financial requests and allocations",
   defaultView = "combined",
+  showDetailedLists = false,
+  expenseListProps = {},
+  allocationListProps = {},
 }: BudgetOverviewProps) => {
   const [activeView, setActiveView] = useState(defaultView);
 
@@ -203,22 +220,66 @@ const BudgetOverview = ({
                     {/* Expense Tab */}
                     {hasExpenses && (
                       <TabsContent value="expenses" className="mt-0">
-                        <BudgetSection
-                          type="expenses"
-                          data={expenses}
-                          showHeader={false}
-                        />
+                        <div className="space-y-8">
+                          <BudgetSection
+                            type="expenses"
+                            data={expenses}
+                            showHeader={false}
+                          />
+
+                          {/* Detailed Expense List */}
+                          {showDetailedLists && (
+                            <div>
+                              <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                                <DollarSign className="h-5 w-5" />
+                                All Expense Requests
+                              </h3>
+                              <ExpenseList
+                                expenses={expenses}
+                                isLoading={expenseListProps.isLoading || false}
+                                userRole={expenseListProps.userRole || "admin"}
+                                onRefresh={
+                                  expenseListProps.onRefresh || (() => {})
+                                }
+                              />
+                            </div>
+                          )}
+                        </div>
                       </TabsContent>
                     )}
 
                     {/* Allocation Tab */}
                     {hasAllocations && (
                       <TabsContent value="allocations" className="mt-0">
-                        <BudgetSection
-                          type="allocations"
-                          data={allocations}
-                          showHeader={false}
-                        />
+                        <div className="space-y-8">
+                          <BudgetSection
+                            type="allocations"
+                            data={allocations}
+                            showHeader={false}
+                          />
+
+                          {/* Detailed Allocation List */}
+                          {showDetailedLists && (
+                            <div>
+                              <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                                <Wallet className="h-5 w-5" />
+                                All Allocation Requests
+                              </h3>
+                              <AllocationRequestList
+                                requests={allocations}
+                                isLoading={
+                                  allocationListProps.isLoading || false
+                                }
+                                isAdmin={
+                                  allocationListProps.userRole === "admin"
+                                }
+                                onRefresh={
+                                  allocationListProps.onRefresh || (() => {})
+                                }
+                              />
+                            </div>
+                          )}
+                        </div>
                       </TabsContent>
                     )}
                   </div>
