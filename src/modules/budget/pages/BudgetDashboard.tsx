@@ -150,7 +150,7 @@ const BudgetDashboard = () => {
   const userMinistryName =
     myExpenses[0]?.ministry?.name ||
     myAllocationRequests[0]?.ministry?.name ||
-    "Personal";
+    "Ministries";
 
   const handleRefresh = () => {
     refetchExpenses();
