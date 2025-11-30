@@ -277,21 +277,6 @@ const Auth = () => {
               </div>
             ))}
           </div>
-
-          {/* Bottom trust indicators */}
-          <div className="mt-auto pt-12">
-            <div className="flex items-center justify-center gap-6 text-xs text-white/60">
-              <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4" />
-                <span>Secure & Private</span>
-              </div>
-              <div className="w-1 h-1 rounded-full bg-white/40" />
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4" />
-                <span>Trusted by Churches</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
