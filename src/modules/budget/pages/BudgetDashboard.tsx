@@ -14,6 +14,7 @@ import { Button } from "@/shared/components/ui/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/shared/components/ui/card";
@@ -40,9 +41,6 @@ import {
   DollarSign,
   Plus,
   FileText,
-  CheckCircle,
-  CreditCard,
-  Settings2,
   Wallet,
   ChevronDown,
   ChevronRight,
@@ -51,14 +49,9 @@ import {
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useOrganization } from "@/shared/contexts/OrganizationContext";
 import { useFiscalYears, useActiveFiscalYear } from "../hooks";
-import {
-  useExpenses,
-  useExpenseStatistics,
-  useExpensesPendingTreasury,
-  useExpensesPendingFinance,
-} from "../hooks";
+import { useExpenses, useExpenseStatistics } from "../hooks";
 import { useOrganizationBudgetSummary } from "../hooks";
-import { useAllocationRequests, usePendingAllocationRequests } from "../hooks";
+import { useAllocationRequests } from "../hooks";
 import {
   ExpenseRequestForm,
   ExpenseList,
@@ -122,21 +115,9 @@ const BudgetDashboard = () => {
       effectiveFiscalYearId
     );
 
-  // Fetch pending expenses for different roles
-  const { data: pendingTreasury, refetch: refetchPendingTreasury } =
-    useExpensesPendingTreasury(
-      isAdmin || isTreasury ? currentOrganization?.id : undefined
-    );
-  const { data: pendingFinance, refetch: refetchPendingFinance } =
-    useExpensesPendingFinance(
-      isAdmin || isFinance ? currentOrganization?.id : undefined
-    );
-
   // Fetch allocation requests
   const { data: allocationRequests, refetch: refetchAllocationRequests } =
     useAllocationRequests(effectiveFiscalYearId);
-  const { data: pendingAllocations, refetch: refetchPendingAllocations } =
-    usePendingAllocationRequests(currentOrganization?.id);
 
   // User's expenses (requester's own)
   const myExpenses = expenses?.filter((e) => e.requester_id === user?.id) || [];
@@ -153,16 +134,7 @@ const BudgetDashboard = () => {
 
   const handleRefresh = () => {
     refetchExpenses();
-    if ((isAdmin || isTreasury) && currentOrganization?.id) {
-      refetchPendingTreasury();
-    }
-    if ((isAdmin || isFinance) && currentOrganization?.id) {
-      refetchPendingFinance();
-    }
     refetchAllocationRequests();
-    if (currentOrganization?.id) {
-      refetchPendingAllocations();
-    }
   };
 
   const isLoading =
@@ -348,71 +320,43 @@ const BudgetDashboard = () => {
               Overview
             </TabsTrigger>
             <TabsTrigger
-              value="my-expenses"
+              value="expenses"
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
               <DollarSign className="mr-2 h-4 w-4" />
-              {userMinistryName} Expenses
-              {myExpenses.length > 0 && (
-                <span className="ml-2 bg-muted text-muted-foreground rounded-full px-2 text-xs">
-                  {myExpenses.length}
-                </span>
-              )}
+              Expenses
+              {hasFullAccess
+                ? expenses &&
+                  expenses.length > 0 && (
+                    <span className="ml-2 bg-muted text-muted-foreground rounded-full px-2 text-xs">
+                      {expenses.length}
+                    </span>
+                  )
+                : myExpenses.length > 0 && (
+                    <span className="ml-2 bg-muted text-muted-foreground rounded-full px-2 text-xs">
+                      {myExpenses.length}
+                    </span>
+                  )}
             </TabsTrigger>
             <TabsTrigger
-              value="my-allocations"
+              value="allocations"
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
               <Wallet className="mr-2 h-4 w-4" />
-              {userMinistryName} Allocations
-              {myAllocationRequests.length > 0 && (
-                <span className="ml-2 bg-muted text-muted-foreground rounded-full px-2 text-xs">
-                  {myAllocationRequests.length}
-                </span>
-              )}
+              Allocations
+              {hasFullAccess
+                ? allocationRequests &&
+                  allocationRequests.length > 0 && (
+                    <span className="ml-2 bg-muted text-muted-foreground rounded-full px-2 text-xs">
+                      {allocationRequests.length}
+                    </span>
+                  )
+                : myAllocationRequests.length > 0 && (
+                    <span className="ml-2 bg-muted text-muted-foreground rounded-full px-2 text-xs">
+                      {myAllocationRequests.length}
+                    </span>
+                  )}
             </TabsTrigger>
-            {(isAdmin || isTreasury) && (
-              <TabsTrigger
-                value="treasury"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Treasury
-                {(pendingTreasury?.length || 0) > 0 && (
-                  <span className="ml-2 bg-orange-500 text-white rounded-full px-2 text-xs">
-                    {pendingTreasury?.length}
-                  </span>
-                )}
-              </TabsTrigger>
-            )}
-            {(isAdmin || isFinance) && (
-              <TabsTrigger
-                value="finance"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                <CreditCard className="mr-2 h-4 w-4" />
-                Finance
-                {(pendingFinance?.length || 0) > 0 && (
-                  <span className="ml-2 bg-purple-500 text-white rounded-full px-2 text-xs">
-                    {pendingFinance?.length}
-                  </span>
-                )}
-              </TabsTrigger>
-            )}
-            {isAdmin && (
-              <TabsTrigger
-                value="allocation-review"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                <Settings2 className="mr-2 h-4 w-4" />
-                Allocation Review
-                {(pendingAllocations?.length || 0) > 0 && (
-                  <span className="ml-2 bg-blue-500 text-white rounded-full px-2 text-xs">
-                    {pendingAllocations?.length}
-                  </span>
-                )}
-              </TabsTrigger>
-            )}
           </TabsList>
 
           {/* Overview Tab - World Class Analytics */}
@@ -526,78 +470,70 @@ const BudgetDashboard = () => {
             )}
           </TabsContent>
 
-          {/* User Expenses Tab */}
-          <TabsContent value="my-expenses" className="mt-6">
-            <ExpenseList
-              expenses={myExpenses}
-              isLoading={expensesLoading}
-              userRole="requester"
-              onRefresh={handleRefresh}
-            />
+          {/* Expenses Tab */}
+          <TabsContent value="expenses" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  {hasFullAccess
+                    ? "All Organization Expenses"
+                    : `${userMinistryName} Expenses`}
+                </CardTitle>
+                <CardDescription>
+                  {hasFullAccess
+                    ? `View and manage all expense requests across ${currentOrganization.name}`
+                    : `View and manage your ${userMinistryName} expense requests`}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ExpenseList
+                  expenses={hasFullAccess ? expenses || [] : myExpenses}
+                  isLoading={expensesLoading}
+                  userRole={
+                    isAdmin
+                      ? "admin"
+                      : isTreasury
+                      ? "treasury"
+                      : isFinance
+                      ? "finance"
+                      : "requester"
+                  }
+                  onRefresh={handleRefresh}
+                />
+              </CardContent>
+            </Card>
           </TabsContent>
 
-          {/* User Allocations Tab */}
-          <TabsContent value="my-allocations" className="mt-6">
-            <AllocationRequestList
-              requests={myAllocationRequests}
-              isLoading={false}
-              isAdmin={false}
-              onRefresh={handleRefresh}
-            />
-          </TabsContent>
-
-          {/* Treasury Tab */}
-          <TabsContent value="treasury" className="mt-6">
-            {isAdmin || isTreasury ? (
-              <ExpenseList
-                expenses={pendingTreasury || []}
-                isLoading={false}
-                userRole="treasury"
-                onRefresh={handleRefresh}
-              />
-            ) : (
-              <Card>
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  You don't have access to treasury functions.
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          {/* Finance Tab */}
-          <TabsContent value="finance" className="mt-6">
-            {isAdmin || isFinance ? (
-              <ExpenseList
-                expenses={pendingFinance || []}
-                isLoading={false}
-                userRole="finance"
-                onRefresh={handleRefresh}
-              />
-            ) : (
-              <Card>
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  You don't have access to finance functions.
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          {/* Allocation Review Tab (Admin Only) */}
-          <TabsContent value="allocation-review" className="mt-6">
-            {isAdmin ? (
-              <AllocationRequestList
-                requests={pendingAllocations || []}
-                isLoading={false}
-                isAdmin={true}
-                onRefresh={handleRefresh}
-              />
-            ) : (
-              <Card>
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  You don't have access to allocation review functions.
-                </CardContent>
-              </Card>
-            )}
+          {/* Allocations Tab */}
+          <TabsContent value="allocations" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Wallet className="h-5 w-5" />
+                  {hasFullAccess
+                    ? "All Organization Allocations"
+                    : `${userMinistryName} Allocations`}
+                </CardTitle>
+                <CardDescription>
+                  {hasFullAccess
+                    ? `View and manage all allocation requests across ${currentOrganization.name}`
+                    : `View and manage your ${userMinistryName} allocation requests`}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AllocationRequestList
+                  requests={
+                    hasFullAccess
+                      ? allocationRequests || []
+                      : myAllocationRequests
+                  }
+                  isLoading={false}
+                  isAdmin={isAdmin}
+                  onRefresh={handleRefresh}
+                />
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
