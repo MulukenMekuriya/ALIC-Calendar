@@ -1,18 +1,19 @@
 import { useState } from "react";
 import DashboardLayout from "@/shared/components/layout/DashboardLayout";
 import { Button } from "@/shared/components/ui/button";
-import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
-import { GoogleCalendarView, CalendarViewSwitcher, EventDialog } from "../components";
+import { Plus, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { GoogleCalendarView, CalendarViewSwitcher, EventDialog, ExportDialog } from "../components";
 import type { CalendarView } from "../components";
 import { useEvents } from "../hooks";
 import { useAuth } from "@/shared/contexts";
 import { useOrganization } from "@/shared/contexts";
-import { addWeeks, subWeeks, addDays, addMonths, subMonths, format } from "date-fns";
+import { addWeeks, subWeeks, addDays, addMonths, subMonths, format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 
 const Dashboard = () => {
-  const { user } = useAuth();
-  const { currentOrganization } = useOrganization();
+  const { user, isAdmin } = useAuth();
+  const { currentOrganization, isOrgAdmin } = useOrganization();
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -57,10 +58,20 @@ const Dashboard = () => {
               Manage and schedule events across multiple rooms
             </p>
           </div>
-          <Button onClick={handleCreateEvent} size="lg" className="gap-2">
-            <Plus className="h-5 w-5" />
-            Create Event
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsExportDialogOpen(true)}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+            <Button onClick={handleCreateEvent} size="lg" className="gap-2">
+              <Plus className="h-5 w-5" />
+              Create Event
+            </Button>
+          </div>
         </div>
 
         <div className="flex justify-between items-center">
@@ -156,6 +167,30 @@ const Dashboard = () => {
             setSelectedEventId(eventId);
             setSelectedDate(null);
           }}
+        />
+
+        <ExportDialog
+          open={isExportDialogOpen}
+          onOpenChange={setIsExportDialogOpen}
+          events={events || []}
+          organizationName={currentOrganization?.name || "Calendar"}
+          organizationSlug={currentOrganization?.slug}
+          timezone={currentOrganization?.timezone}
+          userId={user?.id}
+          isAdmin={isAdmin || isOrgAdmin}
+          dateRange={
+            calendarView === "month"
+              ? {
+                  start: startOfMonth(currentWeek),
+                  end: endOfMonth(currentWeek),
+                }
+              : calendarView === "week"
+              ? {
+                  start: startOfWeek(currentWeek, { weekStartsOn: 0 }),
+                  end: endOfWeek(currentWeek, { weekStartsOn: 0 }),
+                }
+              : undefined
+          }
         />
       </div>
     </DashboardLayout>

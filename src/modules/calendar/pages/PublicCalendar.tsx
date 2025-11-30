@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import GoogleCalendarView from "@/modules/calendar/components/GoogleCalendarView";
 import CalendarViewSwitcher, { CalendarView } from "@/modules/calendar/components/CalendarViewSwitcher";
+import ExportDialog from "@/modules/calendar/components/ExportDialog";
 import {
   Calendar,
   Church,
@@ -54,18 +55,17 @@ import {
   startOfDay,
   endOfDay,
 } from "date-fns";
-import { useToast } from "@/shared/hooks/use-toast";
 import { PageLoader } from "@/shared/components/ui/loading";
 
 const PublicCalendar = () => {
   const navigate = useNavigate();
   const { slug } = useParams<{ slug?: string }>();
-  const { toast } = useToast();
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [calendarView, setCalendarView] = useState<CalendarView>("week");
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 0 });
   const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 0 });
 
@@ -184,102 +184,6 @@ const PublicCalendar = () => {
     }
   };
 
-  // Helper function to escape special characters in iCalendar format
-  const escapeICalText = (text: string): string => {
-    if (!text) return "";
-    return text
-      .replace(/\\/g, "\\\\")  // Backslash
-      .replace(/;/g, "\\;")    // Semicolon
-      .replace(/,/g, "\\,")    // Comma
-      .replace(/\n/g, "\\n")   // Newline
-      .replace(/\r/g, "");     // Remove carriage return
-  };
-
-  const exportToICS = () => {
-    try {
-      if (!events || events.length === 0) {
-        toast({
-          title: "No events to export",
-          description: "There are no events available for export.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const orgTimezone = organization?.timezone || "America/New_York";
-      const orgName = organization?.name || "Church Events";
-
-      let icsContent = [
-        "BEGIN:VCALENDAR",
-        "VERSION:2.0",
-        `PRODID:-//${orgName}//Events Calendar//EN`,
-        "CALSCALE:GREGORIAN",
-        "METHOD:PUBLISH",
-        `X-WR-CALNAME:${orgName} Events`,
-        `X-WR-TIMEZONE:${orgTimezone}`,
-        // Add VTIMEZONE component for proper timezone handling
-        "BEGIN:VTIMEZONE",
-        `TZID:${orgTimezone}`,
-        "BEGIN:DAYLIGHT",
-        "TZOFFSETFROM:-0500",
-        "TZOFFSETTO:-0400",
-        "TZNAME:EDT",
-        "DTSTART:19700308T020000",
-        "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU",
-        "END:DAYLIGHT",
-        "BEGIN:STANDARD",
-        "TZOFFSETFROM:-0400",
-        "TZOFFSETTO:-0500",
-        "TZNAME:EST",
-        "DTSTART:19701101T020000",
-        "RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU",
-        "END:STANDARD",
-        "END:VTIMEZONE",
-      ];
-
-      events.forEach((event: any) => {
-        const start = parseISO(event.starts_at);
-        const end = parseISO(event.ends_at);
-
-        icsContent.push(
-          "BEGIN:VEVENT",
-          `UID:${event.id}@${organization?.slug || "calendar"}.events`,
-          `DTSTAMP:${format(new Date(), "yyyyMMdd'T'HHmmss'Z'")}`,
-          `DTSTART;TZID=${orgTimezone}:${format(start, "yyyyMMdd'T'HHmmss")}`,
-          `DTEND;TZID=${orgTimezone}:${format(end, "yyyyMMdd'T'HHmmss")}`,
-          `SUMMARY:${escapeICalText(event.title)}`,
-          `DESCRIPTION:${escapeICalText(event.description || "")}`,
-          `LOCATION:${escapeICalText(event.room?.name || "")}`,
-          "STATUS:CONFIRMED",
-          "END:VEVENT"
-        );
-      });
-
-      icsContent.push("END:VCALENDAR");
-
-      const blob = new Blob([icsContent.join("\r\n")], { type: "text/calendar;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${organization?.slug || "events"}-${format(currentWeek, "yyyy-MM-dd")}.ics`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: "Calendar exported successfully",
-        description: `Exported ${events.length} event${events.length !== 1 ? 's' : ''} to iCalendar format.`,
-      });
-    } catch (error) {
-      console.error("Error exporting calendar:", error);
-      toast({
-        title: "Export failed",
-        description: error instanceof Error ? error.message : "An error occurred while exporting the calendar.",
-        variant: "destructive",
-      });
-    }
-  };
 
   if (orgLoading) {
     return <PageLoader message="Loading calendar..." />;
@@ -372,7 +276,7 @@ const PublicCalendar = () => {
               )}
               <Button
                 variant="secondary"
-                onClick={exportToICS}
+                onClick={() => setIsExportDialogOpen(true)}
                 className="gap-2"
               >
                 <Download className="h-4 w-4" />
@@ -708,6 +612,21 @@ const PublicCalendar = () => {
           </div>
         </div>
       </footer>
+
+      {/* Export Dialog */}
+      <ExportDialog
+        open={isExportDialogOpen}
+        onOpenChange={setIsExportDialogOpen}
+        events={events || []}
+        organizationName={organization.name}
+        organizationSlug={organization.slug}
+        timezone={organization.timezone}
+        isAdmin={false}
+        dateRange={{
+          start: dateRange.start,
+          end: dateRange.end,
+        }}
+      />
     </div>
   );
 };
