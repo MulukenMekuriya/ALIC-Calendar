@@ -135,12 +135,19 @@ const BudgetDashboard = () => {
   const { data: pendingAllocations, refetch: refetchPendingAllocations } =
     usePendingAllocationRequests(currentOrganization?.id);
 
-  // My expenses (requester's own)
+  // User's expenses (requester's own)
   const myExpenses = expenses?.filter((e) => e.requester_id === user?.id) || [];
 
-  // My allocation requests
+  // User's allocation requests
   const myAllocationRequests =
     allocationRequests?.filter((r) => r.requester_id === user?.id) || [];
+
+  // Extract ministry name from user's expenses or allocations
+  const userMinistryName =
+    myExpenses[0]?.ministry?.name ||
+    myAllocationRequests[0]?.ministry?.name ||
+    leaderMinistries?.[0]?.name ||
+    "Personal";
 
   const handleRefresh = () => {
     refetchExpenses();
@@ -188,7 +195,7 @@ const BudgetDashboard = () => {
             <p className="text-muted-foreground mt-1">
               {hasFullAccess
                 ? "Manage expenses, track budgets, and process payments"
-                : "Submit and track your expense requests"}
+                : `Submit and track ${userMinistryName.toLowerCase()} expense requests`}
             </p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
@@ -272,7 +279,7 @@ const BudgetDashboard = () => {
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
               <DollarSign className="mr-2 h-4 w-4" />
-              My Expenses
+              {userMinistryName} Expenses
               {myExpenses.length > 0 && (
                 <span className="ml-2 bg-muted text-muted-foreground rounded-full px-2 text-xs">
                   {myExpenses.length}
@@ -284,7 +291,7 @@ const BudgetDashboard = () => {
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
               <Wallet className="mr-2 h-4 w-4" />
-              My Allocations
+              {userMinistryName} Allocations
               {myAllocationRequests.length > 0 && (
                 <span className="ml-2 bg-muted text-muted-foreground rounded-full px-2 text-xs">
                   {myAllocationRequests.length}
@@ -394,13 +401,13 @@ const BudgetDashboard = () => {
                     <BudgetOverview
                       expenses={expenses}
                       allocations={myAllocationRequests}
-                      title="My Budget Overview"
-                      description="Your personal expense requests and budget allocations"
+                      title={`${userMinistryName} Budget Overview`}
+                      description={`${userMinistryName} expense requests and budget allocations`}
                     />
 
                     <div className="mt-12">
                       <h3 className="text-xl font-semibold mb-4">
-                        My Expense Requests
+                        {userMinistryName} Expense Requests
                       </h3>
                       <ExpenseList
                         expenses={expenses}
@@ -420,8 +427,8 @@ const BudgetDashboard = () => {
                       <BudgetOverview
                         expenses={[]}
                         allocations={myAllocationRequests}
-                        title="My Budget Overview"
-                        description="Your budget allocations"
+                        title={`${userMinistryName} Budget Overview`}
+                        description={`${userMinistryName} budget allocations`}
                       />
                     ) : (
                       /* Empty state card */
@@ -450,7 +457,7 @@ const BudgetDashboard = () => {
             )}
           </TabsContent>
 
-          {/* My Expenses Tab */}
+          {/* User Expenses Tab */}
           <TabsContent value="my-expenses" className="mt-6">
             <ExpenseList
               expenses={myExpenses}
@@ -460,7 +467,7 @@ const BudgetDashboard = () => {
             />
           </TabsContent>
 
-          {/* My Allocations Tab */}
+          {/* User Allocations Tab */}
           <TabsContent value="my-allocations" className="mt-6">
             <AllocationRequestList
               requests={myAllocationRequests}
