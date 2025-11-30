@@ -14,14 +14,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
-import { Loader2, DollarSign, Plus, FileText, Clock, CheckCircle, CreditCard, Settings2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/components/ui/dropdown-menu";
+import { Loader2, DollarSign, Plus, FileText, Clock, CheckCircle, CreditCard, Settings2, Wallet, ChevronDown } from "lucide-react";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useOrganization } from "@/shared/contexts/OrganizationContext";
 import { useFiscalYears, useActiveFiscalYear } from "../hooks";
 import { useExpenses, useExpenseStatistics, useExpensesPendingLeader, useExpensesPendingTreasury, useExpensesPendingFinance } from "../hooks";
 import { useOrganizationBudgetSummary } from "../hooks";
 import { useMinistriesByLeader } from "../hooks";
+import { useAllocationRequests, usePendingAllocationRequests } from "../hooks";
 import { ExpenseRequestForm, ExpenseList, BudgetSummaryCard, BudgetQuickStats } from "../components";
+import { AllocationRequestForm } from "../components/AllocationRequestForm";
+import { AllocationRequestList } from "../components/AllocationRequestList";
 
 const BudgetDashboard = () => {
   const { user, isAdmin, isTreasury, isFinance } = useAuth();
@@ -29,6 +38,7 @@ const BudgetDashboard = () => {
 
   // State
   const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
+  const [isAllocationFormOpen, setIsAllocationFormOpen] = useState(false);
   const [selectedFiscalYearId, setSelectedFiscalYearId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
 
@@ -72,14 +82,27 @@ const BudgetDashboard = () => {
     (isAdmin || isFinance) ? currentOrganization?.id : undefined
   );
 
+  // Fetch allocation requests
+  const { data: allocationRequests, refetch: refetchAllocationRequests } = useAllocationRequests(
+    effectiveFiscalYearId
+  );
+  const { data: pendingAllocations, refetch: refetchPendingAllocations } = usePendingAllocationRequests(
+    currentOrganization?.id
+  );
+
   // My expenses (requester's own)
   const myExpenses = expenses?.filter((e) => e.requester_id === user?.id) || [];
+
+  // My allocation requests
+  const myAllocationRequests = allocationRequests?.filter((r) => r.requester_id === user?.id) || [];
 
   const handleRefresh = () => {
     refetchExpenses();
     refetchPendingLeader();
     refetchPendingTreasury();
     refetchPendingFinance();
+    refetchAllocationRequests();
+    refetchPendingAllocations();
   };
 
   const isLoading = fiscalYearsLoading || expensesLoading || statisticsLoading || summaryLoading;
@@ -126,11 +149,26 @@ const BudgetDashboard = () => {
               </SelectContent>
             </Select>
 
-            {/* New Expense Button */}
-            <Button onClick={() => setIsExpenseFormOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              New Expense
-            </Button>
+            {/* New Request Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Request
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setIsExpenseFormOpen(true)}>
+                  <DollarSign className="mr-2 h-4 w-4" />
+                  Expense Request
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsAllocationFormOpen(true)}>
+                  <Wallet className="mr-2 h-4 w-4" />
+                  Budget Allocation Request
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -146,7 +184,7 @@ const BudgetDashboard = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto gap-2 bg-transparent p-0">
+          <TabsList className="flex flex-wrap h-auto gap-2 bg-transparent p-0">
             <TabsTrigger
               value="overview"
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
@@ -163,6 +201,18 @@ const BudgetDashboard = () => {
               {myExpenses.length > 0 && (
                 <span className="ml-2 bg-muted text-muted-foreground rounded-full px-2 text-xs">
                   {myExpenses.length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger
+              value="my-allocations"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <Wallet className="mr-2 h-4 w-4" />
+              My Allocations
+              {myAllocationRequests.length > 0 && (
+                <span className="ml-2 bg-muted text-muted-foreground rounded-full px-2 text-xs">
+                  {myAllocationRequests.length}
                 </span>
               )}
             </TabsTrigger>
@@ -204,6 +254,20 @@ const BudgetDashboard = () => {
                 {(pendingFinance?.length || 0) > 0 && (
                   <span className="ml-2 bg-purple-500 text-white rounded-full px-2 text-xs">
                     {pendingFinance?.length}
+                  </span>
+                )}
+              </TabsTrigger>
+            )}
+            {isAdmin && (
+              <TabsTrigger
+                value="allocation-review"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                <Settings2 className="mr-2 h-4 w-4" />
+                Allocation Review
+                {(pendingAllocations?.length || 0) > 0 && (
+                  <span className="ml-2 bg-blue-500 text-white rounded-full px-2 text-xs">
+                    {pendingAllocations?.length}
                   </span>
                 )}
               </TabsTrigger>
@@ -299,6 +363,16 @@ const BudgetDashboard = () => {
             />
           </TabsContent>
 
+          {/* My Allocations Tab */}
+          <TabsContent value="my-allocations" className="mt-6">
+            <AllocationRequestList
+              requests={myAllocationRequests}
+              isLoading={false}
+              isAdmin={false}
+              onRefresh={handleRefresh}
+            />
+          </TabsContent>
+
           {/* Leader Review Tab */}
           <TabsContent value="leader-review" className="mt-6">
             {isMinistryLeader || isAdmin ? (
@@ -352,6 +426,24 @@ const BudgetDashboard = () => {
               </Card>
             )}
           </TabsContent>
+
+          {/* Allocation Review Tab (Admin Only) */}
+          <TabsContent value="allocation-review" className="mt-6">
+            {isAdmin ? (
+              <AllocationRequestList
+                requests={pendingAllocations || []}
+                isLoading={false}
+                isAdmin={true}
+                onRefresh={handleRefresh}
+              />
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  You don't have access to allocation review functions.
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -359,6 +451,13 @@ const BudgetDashboard = () => {
       <ExpenseRequestForm
         open={isExpenseFormOpen}
         onOpenChange={setIsExpenseFormOpen}
+        onSuccess={handleRefresh}
+      />
+
+      {/* New Allocation Request Form Dialog */}
+      <AllocationRequestForm
+        open={isAllocationFormOpen}
+        onOpenChange={setIsAllocationFormOpen}
         onSuccess={handleRefresh}
       />
     </DashboardLayout>

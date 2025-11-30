@@ -276,3 +276,192 @@ export const REIMBURSEMENT_TYPE_LABELS: Record<ReimbursementType, string> = {
   zelle: "Zelle",
   other: "Other",
 };
+
+// =====================================================
+// Allocation Request Types
+// =====================================================
+
+export type AllocationPeriodType = "annual" | "quarterly" | "monthly";
+
+export type AllocationRequestStatus =
+  | "draft"
+  | "pending"
+  | "approved"
+  | "partially_approved"
+  | "denied"
+  | "cancelled";
+
+export interface AllocationRequest {
+  id: string;
+  organization_id: string;
+  fiscal_year_id: string;
+  ministry_id: string;
+  requester_id: string;
+  requester_name: string;
+  period_type: AllocationPeriodType;
+  period_number: number | null;
+  requested_amount: number;
+  justification: string;
+  budget_breakdown: BudgetBreakdownItem[] | null;
+  status: AllocationRequestStatus;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  admin_notes: string | null;
+  approved_amount: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AllocationRequestInsert {
+  organization_id: string;
+  fiscal_year_id: string;
+  ministry_id: string;
+  requester_id: string;
+  requester_name: string;
+  period_type: AllocationPeriodType;
+  period_number?: number | null;
+  requested_amount: number;
+  justification: string;
+  budget_breakdown?: BudgetBreakdownItem[] | null;
+  status?: AllocationRequestStatus;
+}
+
+export interface AllocationRequestUpdate {
+  period_type?: AllocationPeriodType;
+  period_number?: number | null;
+  requested_amount?: number;
+  justification?: string;
+  budget_breakdown?: BudgetBreakdownItem[] | null;
+  status?: AllocationRequestStatus;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  admin_notes?: string | null;
+  approved_amount?: number | null;
+}
+
+export interface BudgetBreakdownItem {
+  category: string;
+  description: string;
+  amount: number;
+}
+
+export interface AllocationRequestWithRelations extends AllocationRequest {
+  ministry: Ministry;
+  fiscal_year: FiscalYear;
+  requester_profile?: {
+    id: string;
+    full_name: string;
+    email: string;
+  } | null;
+  reviewer_profile?: {
+    id: string;
+    full_name: string;
+  } | null;
+}
+
+export interface AllocationRequestHistory {
+  id: string;
+  request_id: string;
+  action: string;
+  actor_id: string;
+  actor_name: string;
+  old_status: AllocationRequestStatus | null;
+  new_status: AllocationRequestStatus | null;
+  notes: string | null;
+  created_at: string;
+}
+
+// Period helpers
+export const PERIOD_TYPE_LABELS: Record<AllocationPeriodType, string> = {
+  annual: "Annual",
+  quarterly: "Quarterly",
+  monthly: "Monthly",
+};
+
+export const QUARTERLY_PERIODS = [
+  { value: 1, label: "Q1 (Jan - Mar)" },
+  { value: 2, label: "Q2 (Apr - Jun)" },
+  { value: 3, label: "Q3 (Jul - Sep)" },
+  { value: 4, label: "Q4 (Oct - Dec)" },
+];
+
+export const MONTHLY_PERIODS = [
+  { value: 1, label: "January" },
+  { value: 2, label: "February" },
+  { value: 3, label: "March" },
+  { value: 4, label: "April" },
+  { value: 5, label: "May" },
+  { value: 6, label: "June" },
+  { value: 7, label: "July" },
+  { value: 8, label: "August" },
+  { value: 9, label: "September" },
+  { value: 10, label: "October" },
+  { value: 11, label: "November" },
+  { value: 12, label: "December" },
+];
+
+export const getPeriodLabel = (
+  periodType: AllocationPeriodType,
+  periodNumber: number | null
+): string => {
+  if (periodType === "annual") return "Annual";
+  if (periodType === "quarterly" && periodNumber) {
+    return QUARTERLY_PERIODS.find((p) => p.value === periodNumber)?.label || `Q${periodNumber}`;
+  }
+  if (periodType === "monthly" && periodNumber) {
+    return MONTHLY_PERIODS.find((p) => p.value === periodNumber)?.label || `Month ${periodNumber}`;
+  }
+  return "Unknown";
+};
+
+// Allocation Request Status Config
+export const ALLOCATION_REQUEST_STATUS_CONFIG: Record<AllocationRequestStatus, StatusConfig> = {
+  draft: {
+    label: "Draft",
+    color: "text-gray-600",
+    bgColor: "bg-gray-100",
+    borderColor: "border-gray-200",
+    icon: "FileEdit",
+    description: "Not yet submitted",
+  },
+  pending: {
+    label: "Pending Review",
+    color: "text-yellow-600",
+    bgColor: "bg-yellow-50",
+    borderColor: "border-yellow-200",
+    icon: "Clock",
+    description: "Awaiting admin review",
+  },
+  approved: {
+    label: "Approved",
+    color: "text-green-600",
+    bgColor: "bg-green-50",
+    borderColor: "border-green-200",
+    icon: "CheckCircle",
+    description: "Request approved in full",
+  },
+  partially_approved: {
+    label: "Partially Approved",
+    color: "text-blue-600",
+    bgColor: "bg-blue-50",
+    borderColor: "border-blue-200",
+    icon: "CheckCircle",
+    description: "Approved for a different amount",
+  },
+  denied: {
+    label: "Denied",
+    color: "text-red-600",
+    bgColor: "bg-red-50",
+    borderColor: "border-red-200",
+    icon: "XCircle",
+    description: "Request was denied",
+  },
+  cancelled: {
+    label: "Cancelled",
+    color: "text-gray-500",
+    bgColor: "bg-gray-50",
+    borderColor: "border-gray-200",
+    icon: "Ban",
+    description: "Request was cancelled",
+  },
+};
