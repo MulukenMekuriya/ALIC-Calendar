@@ -224,9 +224,24 @@ const BudgetDashboard = () => {
                 organizationName={currentOrganization.name}
               />
             )}
-            {/* Enhanced Report Export */}
+            {/* Enhanced Report Export - Role-based data filtering */}
+            {hasFullAccess &&
+              (expenses?.length > 0 || allocationRequests?.length > 0) &&
+              user && (
+                <EnhancedReportExport
+                  expenses={expenses || []}
+                  allocations={allocationRequests || []}
+                  userName={user.email || "User"}
+                  organizationName={currentOrganization.name}
+                  ministryName="All Ministries"
+                  fiscalYearName={
+                    fiscalYears?.find((fy) => fy.id === effectiveFiscalYearId)
+                      ?.name
+                  }
+                />
+              )}
             {isContributor &&
-              (expenses?.length > 0 || myAllocationRequests?.length > 0) &&
+              (myExpenses?.length > 0 || myAllocationRequests?.length > 0) &&
               user && (
                 <EnhancedReportExport
                   expenses={myExpenses}
