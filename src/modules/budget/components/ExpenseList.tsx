@@ -257,6 +257,7 @@ export function ExpenseList({
                     <TableHead>Amount</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Date</TableHead>
+                    <TableHead className="w-[80px]">View</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -279,6 +280,19 @@ export function ExpenseList({
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {format(new Date(expense.created_at), "MMM d, yyyy")}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedExpense(expense);
+                            setIsDetailDialogOpen(true);
+                          }}
+                          title="View Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>

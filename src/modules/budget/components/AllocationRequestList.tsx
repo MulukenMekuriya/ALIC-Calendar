@@ -276,6 +276,7 @@ export function AllocationRequestList({
                     <TableHead>Amount</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Date</TableHead>
+                    <TableHead className="w-[80px]">View</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -321,6 +322,19 @@ export function AllocationRequestList({
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {format(new Date(request.created_at), "MMM d, yyyy")}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedRequest(request);
+                            setIsDetailDialogOpen(true);
+                          }}
+                          title="View Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
