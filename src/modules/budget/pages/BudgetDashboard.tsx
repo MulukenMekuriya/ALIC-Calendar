@@ -313,7 +313,7 @@ const BudgetDashboard = () => {
                     <p className="text-sm text-muted-foreground">
                       {isMetricsCollapsed
                         ? "Click to view detailed financial metrics"
-                        : "Comprehensive overview of budget performance"}
+                        : "Comprehensive overview of budget performance with real-time data"}
                     </p>
                     {isMetricsCollapsed && (
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 text-xs text-muted-foreground">
@@ -337,7 +337,8 @@ const BudgetDashboard = () => {
                 <CardContent className="pt-0">
                   <BudgetMetricsGrid
                     budgetSummary={budgetSummary}
-                    expenses={expenses}
+                    expenses={expenses || []}
+                    allocations={allocationRequests || []}
                   />
                 </CardContent>
               </CollapsibleContent>

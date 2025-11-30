@@ -18,12 +18,14 @@ import {
 import type {
   OrganizationBudgetSummary,
   ExpenseRequestWithRelations,
+  AllocationRequestWithRelations,
 } from "../types";
 import { useEffect, useState } from "react";
 
 interface BudgetMetricsGridProps {
   budgetSummary: OrganizationBudgetSummary;
   expenses: ExpenseRequestWithRelations[];
+  allocations?: AllocationRequestWithRelations[];
 }
 
 interface MetricCardProps {
@@ -104,28 +106,65 @@ const MetricCard = ({
 const BudgetMetricsGrid = ({
   budgetSummary,
   expenses,
+  allocations = [],
 }: BudgetMetricsGridProps) => {
-  // Calculate metrics
-  const totalBudget = budgetSummary.total_allocated;
-  const totalSpent = budgetSummary.total_spent;
-  const totalPending = budgetSummary.total_pending;
-  const totalRemaining = budgetSummary.total_remaining;
+  // Ensure we have valid data to prevent errors
+  const safeExpenses = Array.isArray(expenses) ? expenses : [];
+  const safeAllocations = Array.isArray(allocations) ? allocations : [];
+  const safeBudgetSummary = budgetSummary || {
+    total_allocated: 0,
+    total_spent: 0,
+    total_pending: 0,
+    total_remaining: 0,
+    fiscal_year_name: "Current Year",
+  };
+
+  // Calculate metrics from real database data
+  const totalBudget = safeBudgetSummary.total_allocated || 0;
+  const totalSpent = safeBudgetSummary.total_spent || 0;
+  const totalPending = safeBudgetSummary.total_pending || 0;
+  const totalRemaining = safeBudgetSummary.total_remaining || 0;
 
   const utilizationRate =
     totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(1) : "0";
 
-  const pendingApprovals = expenses.filter(
+  // Expense calculations from real data
+  const pendingExpenses = safeExpenses.filter(
     (e) =>
       e.status === "pending_leader" ||
       e.status === "pending_treasury" ||
       e.status === "pending_finance"
   ).length;
 
-  const completedExpenses = expenses.filter(
+  const completedExpenses = safeExpenses.filter(
     (e) => e.status === "treasury_approved" || e.status === "leader_approved"
   ).length;
 
-  const totalExpenses = expenses.length;
+  const deniedExpenses = safeExpenses.filter(
+    (e) => e.status === "leader_denied" || e.status === "treasury_denied"
+  ).length;
+
+  const totalExpenses = safeExpenses.length;
+
+  // Allocation calculations from real data
+  const pendingAllocations = safeAllocations.filter(
+    (a) => a.status === "pending"
+  ).length;
+
+  const approvedAllocations = safeAllocations.filter(
+    (a) => a.status === "approved" || a.status === "partially_approved"
+  ).length;
+
+  const deniedAllocations = safeAllocations.filter(
+    (a) => a.status === "denied"
+  ).length;
+
+  const totalAllocations = safeAllocations.length;
+
+  // Combined metrics
+  const totalRequests = totalExpenses + totalAllocations;
+  const totalPendingRequests = pendingExpenses + pendingAllocations;
+  const totalApprovedRequests = completedExpenses + approvedAllocations;
 
   const completionRate =
     totalExpenses > 0
@@ -133,17 +172,13 @@ const BudgetMetricsGrid = ({
       : "0";
 
   const averageExpense =
-    totalExpenses > 0 ? Math.round(totalSpent / completedExpenses) || 0 : 0;
-
-  const deniedExpenses = expenses.filter(
-    (e) => e.status === "leader_denied" || e.status === "treasury_denied"
-  ).length;
+    completedExpenses > 0 ? Math.round(totalSpent / completedExpenses) || 0 : 0;
 
   const approvalRate =
-    totalExpenses - deniedExpenses > 0
+    totalRequests > 0
       ? (
-          ((totalExpenses - deniedExpenses - pendingApprovals) /
-            (totalExpenses - deniedExpenses)) *
+          (totalApprovedRequests /
+            (totalRequests - deniedExpenses - deniedAllocations)) *
           100
         ).toFixed(1)
       : "0";
@@ -195,10 +230,10 @@ const BudgetMetricsGrid = ({
     },
     {
       title: "Pending Approvals",
-      value: pendingApprovals,
+      value: totalPendingRequests,
       subtitle: `$${totalPending.toLocaleString()} total`,
       icon: <Clock className="h-5 w-5 text-white" />,
-      colorClass: pendingApprovals > 10 ? "bg-yellow-500" : "bg-orange-500",
+      colorClass: totalPendingRequests > 10 ? "bg-yellow-500" : "bg-orange-500",
       delay: 150,
     },
     {
@@ -266,12 +301,12 @@ const BudgetMetricsGrid = ({
 
   return (
     <div className="space-y-6">
-      {/* Primary Metrics - Most Important */}
+      {/* Essential Financial Metrics - Most Important */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           title="Total Budget"
           value={`$${totalBudget.toLocaleString()}`}
-          subtitle={budgetSummary.fiscal_year_name}
+          subtitle={safeBudgetSummary.fiscal_year_name}
           icon={<DollarSign className="h-6 w-6 text-white" />}
           colorClass="bg-gradient-to-br from-blue-500 to-blue-600"
           delay={0}
@@ -310,11 +345,11 @@ const BudgetMetricsGrid = ({
         />
         <MetricCard
           title="Pending Approvals"
-          value={pendingApprovals}
+          value={totalPendingRequests}
           subtitle={`$${totalPending.toLocaleString()} total`}
           icon={<Clock className="h-6 w-6 text-white" />}
           colorClass={
-            pendingApprovals > 10
+            totalPendingRequests > 10
               ? "bg-gradient-to-br from-yellow-500 to-yellow-600"
               : "bg-gradient-to-br from-orange-500 to-orange-600"
           }
@@ -322,76 +357,37 @@ const BudgetMetricsGrid = ({
         />
       </div>
 
-      {/* Secondary Metrics - Additional Insights */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      {/* Activity & Performance Metrics */}
+      <div className="grid gap-6 md:grid-cols-2">
         <MetricCard
-          title="Budget Utilization"
-          value={`${utilizationRate}%`}
-          subtitle={
-            budgetHealth === "over"
-              ? "Over budget!"
-              : budgetHealth === "warning"
-              ? "Near limit"
-              : budgetHealth === "good"
-              ? "On track"
-              : "Healthy"
-          }
-          icon={<Target className="h-6 w-6 text-white" />}
-          trend={
-            parseFloat(utilizationRate) > 100
-              ? ("up" as const)
-              : ("neutral" as const)
-          }
-          colorClass={
-            budgetHealth === "over"
-              ? "bg-gradient-to-br from-red-500 to-red-600"
-              : budgetHealth === "warning"
-              ? "bg-gradient-to-br from-yellow-500 to-yellow-600"
-              : budgetHealth === "good"
-              ? "bg-gradient-to-br from-blue-500 to-blue-600"
-              : "bg-gradient-to-br from-green-500 to-green-600"
-          }
+          title="Activity Summary"
+          value={totalRequests}
+          subtitle={`${totalExpenses} expenses${
+            totalAllocations > 0 ? ` + ${totalAllocations} allocations` : ""
+          }`}
+          icon={<Activity className="h-6 w-6 text-white" />}
+          colorClass="bg-gradient-to-br from-indigo-500 to-indigo-600"
           delay={400}
         />
         <MetricCard
-          title="Total Expenses"
-          value={totalExpenses}
-          subtitle={`${completedExpenses} completed`}
-          icon={<Activity className="h-6 w-6 text-white" />}
-          colorClass="bg-gradient-to-br from-indigo-500 to-indigo-600"
-          delay={500}
-        />
-        <MetricCard
-          title="Average Expense"
-          value={`$${averageExpense.toLocaleString()}`}
-          subtitle={
-            completedExpenses > 0
-              ? `From ${completedExpenses} expenses`
-              : "No completed expenses"
-          }
-          icon={<PieChartIcon className="h-6 w-6 text-white" />}
-          colorClass="bg-gradient-to-br from-teal-500 to-teal-600"
-          delay={600}
-        />
-        <MetricCard
-          title="Completion Rate"
-          value={`${completionRate}%`}
-          subtitle={`${completedExpenses} of ${totalExpenses} completed`}
+          title="Overall Success Rate"
+          value={`${approvalRate}%`}
+          subtitle={`${totalApprovedRequests} of ${totalRequests} approved`}
           icon={<CheckCircle className="h-6 w-6 text-white" />}
           trend={
-            parseFloat(completionRate) > 50
+            parseFloat(approvalRate) > 75
               ? ("up" as const)
-              : ("down" as const)
+              : ("neutral" as const)
           }
-          trendValue={`${approvalRate}% approved`}
+          trendValue={`${completionRate}% completed`}
           colorClass={
-            parseFloat(completionRate) > 75
+            parseFloat(approvalRate) > 90
               ? "bg-gradient-to-br from-green-500 to-green-600"
-              : parseFloat(completionRate) > 50
-              ? "bg-gradient-to-br from-yellow-500 to-yellow-600"
-              : "bg-gradient-to-br from-red-500 to-red-600"
+              : parseFloat(approvalRate) > 75
+              ? "bg-gradient-to-br from-blue-500 to-blue-600"
+              : "bg-gradient-to-br from-yellow-500 to-yellow-600"
           }
-          delay={700}
+          delay={500}
         />
       </div>
     </div>
