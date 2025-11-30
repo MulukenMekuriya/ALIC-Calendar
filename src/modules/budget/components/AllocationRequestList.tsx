@@ -52,6 +52,7 @@ import { AllocationRequestDetailDialog } from "./AllocationRequestDetailDialog";
 import { AllocationReviewDialog } from "./AllocationReviewDialog";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useAuth } from "@/shared/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import {
   useDeleteAllocationRequest,
   useSubmitAllocationRequest,
@@ -77,7 +78,8 @@ export function AllocationRequestList({
   onRefresh,
 }: AllocationRequestListProps) {
   const { toast } = useToast();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  const { profile } = useUserProfile();
 
   // State for dialogs
   const [selectedRequest, setSelectedRequest] =

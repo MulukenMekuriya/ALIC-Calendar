@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useAuth } from "@/shared/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import {
   useApproveAllocationRequest,
   useDenyAllocationRequest,
@@ -74,7 +75,8 @@ export function AllocationReviewDialog({
   onSuccess,
 }: AllocationReviewDialogProps) {
   const { toast } = useToast();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  const { profile } = useUserProfile();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const approveRequest = useApproveAllocationRequest();
