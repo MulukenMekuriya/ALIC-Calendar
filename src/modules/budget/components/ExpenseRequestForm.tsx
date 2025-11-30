@@ -36,8 +36,7 @@ import { Loader2, Send, Save, Paperclip, X, FileText, Image as ImageIcon, Calend
 import { supabase } from "@/integrations/supabase/client";
 import type { AttachmentData } from "../types";
 import { useToast } from "@/shared/hooks/use-toast";
-import { useMinistries } from "../hooks";
-import { useActiveFiscalYear } from "../hooks";
+import { useMinistries, useFiscalYears, useActiveFiscalYear } from "../hooks";
 import { useCreateExpense, useUpdateExpense, useSubmitExpenseForReview } from "../hooks";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useOrganization } from "@/shared/contexts/OrganizationContext";
@@ -99,9 +98,20 @@ export function ExpenseRequestForm({
   const { data: ministries, isLoading: ministriesLoading } = useMinistries(
     currentOrganization?.id
   );
-  const { data: activeFiscalYear, isLoading: fiscalYearLoading } = useActiveFiscalYear(
+  const { data: fiscalYears, isLoading: fiscalYearsLoading } = useFiscalYears(
     currentOrganization?.id
   );
+  const { data: activeFiscalYear } = useActiveFiscalYear(
+    currentOrganization?.id
+  );
+
+  // Selected fiscal year state - defaults to active fiscal year
+  const [selectedFiscalYearId, setSelectedFiscalYearId] = useState<string | null>(null);
+
+  // Get the effective fiscal year (selected or active)
+  const selectedFiscalYear = fiscalYears?.find(
+    (fy) => fy.id === (selectedFiscalYearId || activeFiscalYear?.id)
+  ) || activeFiscalYear;
 
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
@@ -283,7 +293,7 @@ export function ExpenseRequestForm({
   const isImageFile = (type: string) => type.startsWith("image/");
 
   const handleSave = async (values: ExpenseFormValues, submit: boolean = false) => {
-    if (!currentOrganization || !user || !activeFiscalYear) {
+    if (!currentOrganization || !user || !selectedFiscalYear) {
       toast({
         title: "Error",
         description: "Missing required data. Please try again.",
@@ -340,7 +350,7 @@ export function ExpenseRequestForm({
         const newExpense = await createExpense.mutateAsync({
           expenseData: {
             organization_id: currentOrganization.id,
-            fiscal_year_id: activeFiscalYear.id,
+            fiscal_year_id: selectedFiscalYear.id,
             ministry_id: userMinistry.id,
             title: values.title,
             description: values.description || null,
@@ -387,9 +397,9 @@ export function ExpenseRequestForm({
     }
   };
 
-  const isLoading = ministriesLoading || fiscalYearLoading;
+  const isLoading = ministriesLoading || fiscalYearsLoading;
 
-  if (!activeFiscalYear && !fiscalYearLoading) {
+  if (!selectedFiscalYear && !fiscalYearsLoading) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent>
@@ -418,7 +428,29 @@ export function ExpenseRequestForm({
           </DialogTitle>
           <div className="flex items-center gap-2 mt-2 text-emerald-100 text-sm">
             <Calendar className="h-4 w-4" />
-            <span>{activeFiscalYear?.name}</span>
+            <Select
+              value={selectedFiscalYearId || activeFiscalYear?.id || ""}
+              onValueChange={setSelectedFiscalYearId}
+            >
+              <SelectTrigger className="h-7 w-auto gap-1 border-emerald-400/50 bg-emerald-500/30 text-white hover:bg-emerald-500/50 focus:ring-emerald-300 [&>svg]:text-white">
+                <SelectValue placeholder="Select year" />
+              </SelectTrigger>
+              <SelectContent>
+                {fiscalYears?.map((fy) => {
+                  const isFuture = fy.year > new Date().getFullYear();
+                  return (
+                    <SelectItem
+                      key={fy.id}
+                      value={fy.id}
+                      disabled={isFuture}
+                      className={isFuture ? "text-muted-foreground opacity-50" : ""}
+                    >
+                      {fy.name} {fy.is_active && "(Active)"} {isFuture && "(Future)"}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
             <span className="opacity-50">•</span>
             <span>{userMinistry?.name || "No Ministry"}</span>
           </div>
