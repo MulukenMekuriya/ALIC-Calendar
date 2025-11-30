@@ -438,7 +438,7 @@ const BudgetDashboard = () => {
                       expenses={expenses}
                       allocations={allocationRequests || []}
                       title="Organization Overview"
-                      description="Comprehensive view of organizational expenses and budget allocations"
+                      description={`Comprehensive view of ${currentOrganization.name} expenses and budget allocations`}
                     />
 
                     {/* Detailed Expense List */}
