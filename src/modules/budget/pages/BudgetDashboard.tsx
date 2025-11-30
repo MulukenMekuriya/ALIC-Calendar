@@ -30,7 +30,6 @@ import {
   DollarSign,
   Plus,
   FileText,
-  Clock,
   CheckCircle,
   CreditCard,
   Settings2,
@@ -43,12 +42,10 @@ import { useFiscalYears, useActiveFiscalYear } from "../hooks";
 import {
   useExpenses,
   useExpenseStatistics,
-  useExpensesPendingLeader,
   useExpensesPendingTreasury,
   useExpensesPendingFinance,
 } from "../hooks";
 import { useOrganizationBudgetSummary } from "../hooks";
-import { useMinistriesByLeader } from "../hooks";
 import { useAllocationRequests, usePendingAllocationRequests } from "../hooks";
 import {
   ExpenseRequestForm,
@@ -113,13 +110,7 @@ const BudgetDashboard = () => {
       effectiveFiscalYearId
     );
 
-  // Fetch ministry leader's ministries
-  const { data: leaderMinistries } = useMinistriesByLeader(user?.id);
-  const isMinistryLeader = (leaderMinistries?.length || 0) > 0;
-
   // Fetch pending expenses for different roles
-  const { data: pendingLeader, refetch: refetchPendingLeader } =
-    useExpensesPendingLeader(isMinistryLeader ? user?.id : undefined);
   const { data: pendingTreasury, refetch: refetchPendingTreasury } =
     useExpensesPendingTreasury(
       isAdmin || isTreasury ? currentOrganization?.id : undefined
@@ -146,14 +137,10 @@ const BudgetDashboard = () => {
   const userMinistryName =
     myExpenses[0]?.ministry?.name ||
     myAllocationRequests[0]?.ministry?.name ||
-    leaderMinistries?.[0]?.name ||
     "Personal";
 
   const handleRefresh = () => {
     refetchExpenses();
-    if (isMinistryLeader && user?.id) {
-      refetchPendingLeader();
-    }
     if ((isAdmin || isTreasury) && currentOrganization?.id) {
       refetchPendingTreasury();
     }
@@ -323,21 +310,7 @@ const BudgetDashboard = () => {
                 </span>
               )}
             </TabsTrigger>
-            {isAdmin && (
-              <TabsTrigger
-                value="leader-review"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                <Clock className="mr-2 h-4 w-4" />
-                Leader Review
-                {(pendingLeader?.length || 0) > 0 && (
-                  <span className="ml-2 bg-yellow-500 text-white rounded-full px-2 text-xs">
-                    {pendingLeader?.length}
-                  </span>
-                )}
-              </TabsTrigger>
-            )}
-            {(isAdmin || isTreasury) && (
+                        {(isAdmin || isTreasury) && (
               <TabsTrigger
                 value="treasury"
                 className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
@@ -502,24 +475,7 @@ const BudgetDashboard = () => {
             />
           </TabsContent>
 
-          {/* Leader Review Tab */}
-          <TabsContent value="leader-review" className="mt-6">
-            {isAdmin ? (
-              <ExpenseList
-                expenses={pendingLeader || []}
-                isLoading={false}
-                userRole="leader"
-                onRefresh={handleRefresh}
-              />
-            ) : (
-              <Card>
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  You don't have access to leader review functions.
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
+          
           {/* Treasury Tab */}
           <TabsContent value="treasury" className="mt-6">
             {isAdmin || isTreasury ? (
