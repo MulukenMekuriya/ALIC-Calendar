@@ -382,39 +382,19 @@ export const EnhancedReportExport = ({
 
       // Expense Details Section
       if (expenses.length > 0) {
+        // Check if we need a new page
+        if (currentY > pageHeight - 100) {
+          doc.addPage();
+          currentY = 20;
+        }
+
         doc.setFontSize(14);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(30, 64, 175);
         doc.text("Expense Analysis", margin, currentY);
-        currentY += 5;
+        currentY += 8;
 
-        // Expense summary table
-        const expenseTableData = [
-          ["Total Requests", stats.expenses.count.toString()],
-          ["Total Amount", `$${stats.expenses.total.toLocaleString()}`],
-          ["Approved Amount", `$${stats.expenses.approved.toLocaleString()}`],
-          ["Pending Amount", `$${stats.expenses.pending.toLocaleString()}`],
-          ["Approval Rate", `${stats.expenses.approvalRate}%`],
-        ];
-
-        autoTable(doc, {
-          startY: currentY,
-          head: [["Metric", "Value"]],
-          body: expenseTableData,
-          theme: "grid",
-          headStyles: {
-            fillColor: [59, 130, 246], // Blue-500
-            textColor: [255, 255, 255],
-            fontStyle: "bold",
-          },
-          columnStyles: {
-            0: { cellWidth: 70 },
-            1: { cellWidth: 70, halign: "right" },
-          },
-          margin: { left: margin, right: pageWidth / 2 + 5 },
-        });
-
-        // Expense status breakdown
+        // Combined expense data in single table
         const expenseStatusBreakdown = chartData.expenseChartData.map(
           (item) => [
             item.name,
@@ -423,28 +403,50 @@ export const EnhancedReportExport = ({
           ]
         );
 
+        // Add totals row
+        expenseStatusBreakdown.push([
+          "TOTAL",
+          stats.expenses.count.toString(),
+          `$${stats.expenses.total.toLocaleString()}`,
+        ]);
+
         autoTable(doc, {
           startY: currentY,
           head: [["Status", "Count", "Amount"]],
           body: expenseStatusBreakdown,
-          theme: "grid",
+          theme: "striped",
           headStyles: {
-            fillColor: [139, 92, 246], // Purple-500
+            fillColor: [59, 130, 246],
             textColor: [255, 255, 255],
             fontStyle: "bold",
           },
-          margin: { left: pageWidth / 2 + 5, right: margin },
+          bodyStyles: {
+            fontSize: 10,
+          },
+          columnStyles: {
+            0: { cellWidth: 80 },
+            1: { cellWidth: 40, halign: "center" },
+            2: { cellWidth: 60, halign: "right" },
+          },
+          margin: { left: margin, right: margin },
+          didParseCell: (data) => {
+            // Style the TOTAL row
+            if (data.row.index === expenseStatusBreakdown.length - 1) {
+              data.cell.styles.fontStyle = "bold";
+              data.cell.styles.fillColor = [239, 246, 255];
+            }
+          },
         });
 
         const docWithTable = doc as jsPDF & {
           lastAutoTable?: { finalY: number };
         };
-        currentY = (docWithTable.lastAutoTable?.finalY || currentY) + 10;
+        currentY = (docWithTable.lastAutoTable?.finalY || currentY) + 15;
       }
 
       // Allocation Details Section
       if (allocations.length > 0) {
-        if (currentY > pageHeight - 80) {
+        if (currentY > pageHeight - 100) {
           doc.addPage();
           currentY = 20;
         }
@@ -453,38 +455,9 @@ export const EnhancedReportExport = ({
         doc.setFont("helvetica", "bold");
         doc.setTextColor(30, 64, 175);
         doc.text("Budget Allocation Analysis", margin, currentY);
-        currentY += 5;
+        currentY += 8;
 
-        // Allocation summary table
-        const allocationTableData = [
-          ["Total Requests", stats.allocations.count.toString()],
-          ["Total Requested", `$${stats.allocations.total.toLocaleString()}`],
-          [
-            "Approved Amount",
-            `$${stats.allocations.approved.toLocaleString()}`,
-          ],
-          ["Pending Amount", `$${stats.allocations.pending.toLocaleString()}`],
-          ["Approval Rate", `${stats.allocations.approvalRate}%`],
-        ];
-
-        autoTable(doc, {
-          startY: currentY,
-          head: [["Metric", "Value"]],
-          body: allocationTableData,
-          theme: "grid",
-          headStyles: {
-            fillColor: [139, 92, 246], // Purple-500
-            textColor: [255, 255, 255],
-            fontStyle: "bold",
-          },
-          columnStyles: {
-            0: { cellWidth: 70 },
-            1: { cellWidth: 70, halign: "right" },
-          },
-          margin: { left: margin, right: pageWidth / 2 + 5 },
-        });
-
-        // Allocation status breakdown
+        // Combined allocation data in single table
         const allocationStatusBreakdown = chartData.allocationChartData.map(
           (item) => [
             item.name,
@@ -493,28 +466,50 @@ export const EnhancedReportExport = ({
           ]
         );
 
+        // Add totals row
+        allocationStatusBreakdown.push([
+          "TOTAL",
+          stats.allocations.count.toString(),
+          `$${stats.allocations.total.toLocaleString()}`,
+        ]);
+
         autoTable(doc, {
           startY: currentY,
           head: [["Status", "Count", "Amount"]],
           body: allocationStatusBreakdown,
-          theme: "grid",
+          theme: "striped",
           headStyles: {
-            fillColor: [16, 185, 129], // Green-500
+            fillColor: [139, 92, 246],
             textColor: [255, 255, 255],
             fontStyle: "bold",
           },
-          margin: { left: pageWidth / 2 + 5, right: margin },
+          bodyStyles: {
+            fontSize: 10,
+          },
+          columnStyles: {
+            0: { cellWidth: 80 },
+            1: { cellWidth: 40, halign: "center" },
+            2: { cellWidth: 60, halign: "right" },
+          },
+          margin: { left: margin, right: margin },
+          didParseCell: (data) => {
+            // Style the TOTAL row
+            if (data.row.index === allocationStatusBreakdown.length - 1) {
+              data.cell.styles.fontStyle = "bold";
+              data.cell.styles.fillColor = [243, 232, 255];
+            }
+          },
         });
 
         const docWithTable = doc as jsPDF & {
           lastAutoTable?: { finalY: number };
         };
-        currentY = (docWithTable.lastAutoTable?.finalY || currentY) + 10;
+        currentY = (docWithTable.lastAutoTable?.finalY || currentY) + 15;
       }
 
       // Ministry Breakdown
       if (chartData.ministryChartData.length > 0) {
-        if (currentY > pageHeight - 60) {
+        if (currentY > pageHeight - 80) {
           doc.addPage();
           currentY = 20;
         }
@@ -523,7 +518,7 @@ export const EnhancedReportExport = ({
         doc.setFont("helvetica", "bold");
         doc.setTextColor(30, 64, 175);
         doc.text("Top Ministries by Budget Activity", margin, currentY);
-        currentY += 5;
+        currentY += 8;
 
         const ministryTableData = chartData.ministryChartData.map((item) => [
           item.name,
@@ -536,12 +531,16 @@ export const EnhancedReportExport = ({
           body: ministryTableData,
           theme: "striped",
           headStyles: {
-            fillColor: [59, 130, 246],
+            fillColor: [16, 185, 129],
             textColor: [255, 255, 255],
             fontStyle: "bold",
           },
+          bodyStyles: {
+            fontSize: 10,
+          },
           columnStyles: {
-            1: { halign: "right" },
+            0: { cellWidth: 100 },
+            1: { cellWidth: 80, halign: "right" },
           },
           margin: { left: margin, right: margin },
         });
@@ -549,7 +548,7 @@ export const EnhancedReportExport = ({
         const docWithTable = doc as jsPDF & {
           lastAutoTable?: { finalY: number };
         };
-        currentY = (docWithTable.lastAutoTable?.finalY || currentY) + 10;
+        currentY = (docWithTable.lastAutoTable?.finalY || currentY) + 15;
       }
 
       // Recent Transactions
@@ -561,14 +560,14 @@ export const EnhancedReportExport = ({
         doc.setFont("helvetica", "bold");
         doc.setTextColor(30, 64, 175);
         doc.text("Recent Transactions", margin, currentY);
-        currentY += 5;
+        currentY += 15;
 
         if (expenses.length > 0) {
           doc.setFontSize(12);
           doc.setFont("helvetica", "bold");
           doc.setTextColor(60, 60, 60);
           doc.text("Expense Requests", margin, currentY);
-          currentY += 3;
+          currentY += 5;
 
           const recentExpenses = expenses
             .sort(
@@ -579,8 +578,8 @@ export const EnhancedReportExport = ({
             .slice(0, 10)
             .map((expense) => [
               new Date(expense.created_at).toLocaleDateString(),
-              expense.title.substring(0, 35) +
-                (expense.title.length > 35 ? "..." : ""),
+              expense.title.substring(0, 30) +
+                (expense.title.length > 30 ? "..." : ""),
               expense.ministry?.name || "N/A",
               `$${expense.amount.toLocaleString()}`,
               expense.status
@@ -599,19 +598,20 @@ export const EnhancedReportExport = ({
               fontStyle: "bold",
             },
             columnStyles: {
-              3: { halign: "right" },
+              3: { halign: "right" }, // Amount
             },
+            tableWidth: "auto",
             margin: { left: margin, right: margin },
           });
 
           const docWithTable = doc as jsPDF & {
             lastAutoTable?: { finalY: number };
           };
-          currentY = (docWithTable.lastAutoTable?.finalY || currentY) + 10;
+          currentY = (docWithTable.lastAutoTable?.finalY || currentY) + 15;
         }
 
         if (allocations.length > 0) {
-          if (currentY > pageHeight - 60) {
+          if (currentY > pageHeight - 80) {
             doc.addPage();
             currentY = 20;
           }
@@ -620,7 +620,7 @@ export const EnhancedReportExport = ({
           doc.setFont("helvetica", "bold");
           doc.setTextColor(60, 60, 60);
           doc.text("Budget Allocation Requests", margin, currentY);
-          currentY += 3;
+          currentY += 5;
 
           const recentAllocations = allocations
             .sort(
@@ -652,9 +652,10 @@ export const EnhancedReportExport = ({
               fontStyle: "bold",
             },
             columnStyles: {
-              2: { halign: "right" },
-              3: { halign: "right" },
+              2: { halign: "right" }, // Requested
+              3: { halign: "right" }, // Approved
             },
+            tableWidth: "auto",
             margin: { left: margin, right: margin },
           });
         }
