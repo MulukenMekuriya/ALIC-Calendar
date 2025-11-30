@@ -4,7 +4,12 @@ import { TooltipProvider } from "@/shared/components/ui/tooltip";
 import { PageLoader } from "@/shared/components/ui/loading";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth, OrganizationProvider, useOrganization } from "@/shared/contexts";
+import {
+  AuthProvider,
+  useAuth,
+  OrganizationProvider,
+  useOrganization,
+} from "@/shared/contexts";
 import { SearchProvider } from "@/shared/contexts/SearchContext";
 
 // Module page imports
@@ -28,7 +33,11 @@ const ProtectedRoute = ({
   adminOnly?: boolean;
 }) => {
   const { user, loading, isAdmin } = useAuth();
-  const { loading: orgLoading, currentOrganization, error: orgError } = useOrganization();
+  const {
+    loading: orgLoading,
+    currentOrganization,
+    error: orgError,
+  } = useOrganization();
 
   if (loading || orgLoading) {
     return <PageLoader message="Authenticating..." />;
@@ -41,7 +50,9 @@ const ProtectedRoute = ({
   if (orgError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <h1 className="text-xl font-semibold text-red-600 mb-2">Organization Error</h1>
+        <h1 className="text-xl font-semibold text-red-600 mb-2">
+          Organization Error
+        </h1>
         <p className="text-gray-600 mb-4">{orgError}</p>
         <button
           onClick={() => window.location.reload()}
@@ -57,7 +68,10 @@ const ProtectedRoute = ({
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
         <h1 className="text-xl font-semibold mb-2">No Organization Found</h1>
-        <p className="text-gray-600">You are not a member of any organization. Please contact an administrator.</p>
+        <p className="text-gray-600">
+          You are not a member of any organization. Please contact an
+          administrator.
+        </p>
       </div>
     );
   }
@@ -74,92 +88,97 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <AuthProvider>
           <OrganizationProvider>
             <SearchProvider>
-            <Routes>
-              {/* Public routes */}
-              <Route path="/" element={<Navigate to="/public" replace />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/public" element={<PublicCalendar />} />
-              <Route path="/public/:slug" element={<PublicCalendar />} />
+              <Routes>
+                {/* Public routes */}
+                <Route path="/" element={<Navigate to="/public" replace />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/public" element={<PublicCalendar />} />
+                <Route path="/public/:slug" element={<PublicCalendar />} />
 
-              {/* Calendar module routes */}
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Calendar module routes */}
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Admin module routes - accessible to all authenticated users */}
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute>
-                    <Admin />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Admin module routes - accessible to all authenticated users */}
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute>
+                      <Admin />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Users module routes */}
-              <Route
-                path="/users"
-                element={
-                  <ProtectedRoute adminOnly>
-                    <Users />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Users module routes */}
+                <Route
+                  path="/users"
+                  element={
+                    <ProtectedRoute adminOnly>
+                      <Users />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Rooms module routes */}
-              <Route
-                path="/rooms"
-                element={
-                  <ProtectedRoute adminOnly>
-                    <Rooms />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Rooms module routes */}
+                <Route
+                  path="/rooms"
+                  element={
+                    <ProtectedRoute adminOnly>
+                      <Rooms />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Inventory module routes (Coming Soon) - accessible to all authenticated users */}
-              <Route
-                path="/inventory"
-                element={
-                  <ProtectedRoute>
-                    <InventoryDashboard />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Inventory module routes (Coming Soon) - accessible to all authenticated users */}
+                <Route
+                  path="/inventory"
+                  element={
+                    <ProtectedRoute>
+                      <InventoryDashboard />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Budget module routes (Coming Soon) - accessible to all authenticated users */}
-              <Route
-                path="/budget"
-                element={
-                  <ProtectedRoute>
-                    <BudgetDashboard />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Budget module routes (Coming Soon) - accessible to all authenticated users */}
+                <Route
+                  path="/budget"
+                  element={
+                    <ProtectedRoute>
+                      <BudgetDashboard />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Members module routes (Coming Soon) */}
-              <Route
-                path="/members"
-                element={
-                  <ProtectedRoute adminOnly>
-                    <MembersDashboard />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Members module routes (Coming Soon) */}
+                <Route
+                  path="/members"
+                  element={
+                    <ProtectedRoute adminOnly>
+                      <MembersDashboard />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* 404 */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+                {/* 404 */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
             </SearchProvider>
           </OrganizationProvider>
         </AuthProvider>

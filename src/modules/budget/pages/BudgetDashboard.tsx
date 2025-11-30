@@ -4,9 +4,20 @@
 
 import { useState } from "react";
 import DashboardLayout from "@/shared/components/layout/DashboardLayout";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/shared/components/ui/tabs";
 import { Button } from "@/shared/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/shared/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -20,15 +31,37 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
-import { Loader2, DollarSign, Plus, FileText, Clock, CheckCircle, CreditCard, Settings2, Wallet, ChevronDown } from "lucide-react";
+import {
+  Loader2,
+  DollarSign,
+  Plus,
+  FileText,
+  Clock,
+  CheckCircle,
+  CreditCard,
+  Settings2,
+  Wallet,
+  ChevronDown,
+} from "lucide-react";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useOrganization } from "@/shared/contexts/OrganizationContext";
 import { useFiscalYears, useActiveFiscalYear } from "../hooks";
-import { useExpenses, useExpenseStatistics, useExpensesPendingLeader, useExpensesPendingTreasury, useExpensesPendingFinance } from "../hooks";
+import {
+  useExpenses,
+  useExpenseStatistics,
+  useExpensesPendingLeader,
+  useExpensesPendingTreasury,
+  useExpensesPendingFinance,
+} from "../hooks";
 import { useOrganizationBudgetSummary } from "../hooks";
 import { useMinistriesByLeader } from "../hooks";
 import { useAllocationRequests, usePendingAllocationRequests } from "../hooks";
-import { ExpenseRequestForm, ExpenseList, BudgetSummaryCard, BudgetQuickStats } from "../components";
+import {
+  ExpenseRequestForm,
+  ExpenseList,
+  BudgetSummaryCard,
+  BudgetQuickStats,
+} from "../components";
 import { AllocationRequestForm } from "../components/AllocationRequestForm";
 import { AllocationRequestList } from "../components/AllocationRequestList";
 
@@ -39,73 +72,94 @@ const BudgetDashboard = () => {
   // State
   const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
   const [isAllocationFormOpen, setIsAllocationFormOpen] = useState(false);
-  const [selectedFiscalYearId, setSelectedFiscalYearId] = useState<string | null>(null);
+  const [selectedFiscalYearId, setSelectedFiscalYearId] = useState<
+    string | null
+  >(null);
   const [activeTab, setActiveTab] = useState("overview");
 
   // Fetch fiscal years
   const { data: fiscalYears, isLoading: fiscalYearsLoading } = useFiscalYears(
     currentOrganization?.id
   );
-  const { data: activeFiscalYear } = useActiveFiscalYear(currentOrganization?.id);
+  const { data: activeFiscalYear } = useActiveFiscalYear(
+    currentOrganization?.id
+  );
 
   // Use active fiscal year if none selected
   const effectiveFiscalYearId = selectedFiscalYearId || activeFiscalYear?.id;
 
   // Fetch expenses and statistics
-  const { data: expenses, isLoading: expensesLoading, refetch: refetchExpenses } = useExpenses(
-    currentOrganization?.id,
-    effectiveFiscalYearId ? { fiscal_year_id: effectiveFiscalYearId } : undefined
-  );
-
-  const { data: statistics, isLoading: statisticsLoading } = useExpenseStatistics(
-    currentOrganization?.id,
-    effectiveFiscalYearId
-  );
-
-  const { data: budgetSummary, isLoading: summaryLoading } = useOrganizationBudgetSummary(
+  const {
+    data: expenses,
+    isLoading: expensesLoading,
+    refetch: refetchExpenses,
+  } = useExpenses(
     currentOrganization?.id,
     effectiveFiscalYearId
+      ? { fiscal_year_id: effectiveFiscalYearId }
+      : undefined
   );
+
+  const { data: statistics, isLoading: statisticsLoading } =
+    useExpenseStatistics(currentOrganization?.id, effectiveFiscalYearId);
+
+  const { data: budgetSummary, isLoading: summaryLoading } =
+    useOrganizationBudgetSummary(
+      currentOrganization?.id,
+      effectiveFiscalYearId
+    );
 
   // Fetch ministry leader's ministries
   const { data: leaderMinistries } = useMinistriesByLeader(user?.id);
   const isMinistryLeader = (leaderMinistries?.length || 0) > 0;
 
   // Fetch pending expenses for different roles
-  const { data: pendingLeader, refetch: refetchPendingLeader } = useExpensesPendingLeader(
-    isMinistryLeader ? user?.id : undefined
-  );
-  const { data: pendingTreasury, refetch: refetchPendingTreasury } = useExpensesPendingTreasury(
-    (isAdmin || isTreasury) ? currentOrganization?.id : undefined
-  );
-  const { data: pendingFinance, refetch: refetchPendingFinance } = useExpensesPendingFinance(
-    (isAdmin || isFinance) ? currentOrganization?.id : undefined
-  );
+  const { data: pendingLeader, refetch: refetchPendingLeader } =
+    useExpensesPendingLeader(isMinistryLeader ? user?.id : undefined);
+  const { data: pendingTreasury, refetch: refetchPendingTreasury } =
+    useExpensesPendingTreasury(
+      isAdmin || isTreasury ? currentOrganization?.id : undefined
+    );
+  const { data: pendingFinance, refetch: refetchPendingFinance } =
+    useExpensesPendingFinance(
+      isAdmin || isFinance ? currentOrganization?.id : undefined
+    );
 
   // Fetch allocation requests
-  const { data: allocationRequests, refetch: refetchAllocationRequests } = useAllocationRequests(
-    effectiveFiscalYearId
-  );
-  const { data: pendingAllocations, refetch: refetchPendingAllocations } = usePendingAllocationRequests(
-    currentOrganization?.id
-  );
+  const { data: allocationRequests, refetch: refetchAllocationRequests } =
+    useAllocationRequests(effectiveFiscalYearId);
+  const { data: pendingAllocations, refetch: refetchPendingAllocations } =
+    usePendingAllocationRequests(currentOrganization?.id);
 
   // My expenses (requester's own)
   const myExpenses = expenses?.filter((e) => e.requester_id === user?.id) || [];
 
   // My allocation requests
-  const myAllocationRequests = allocationRequests?.filter((r) => r.requester_id === user?.id) || [];
+  const myAllocationRequests =
+    allocationRequests?.filter((r) => r.requester_id === user?.id) || [];
 
   const handleRefresh = () => {
     refetchExpenses();
-    refetchPendingLeader();
-    refetchPendingTreasury();
-    refetchPendingFinance();
+    if (isMinistryLeader && user?.id) {
+      refetchPendingLeader();
+    }
+    if ((isAdmin || isTreasury) && currentOrganization?.id) {
+      refetchPendingTreasury();
+    }
+    if ((isAdmin || isFinance) && currentOrganization?.id) {
+      refetchPendingFinance();
+    }
     refetchAllocationRequests();
-    refetchPendingAllocations();
+    if (currentOrganization?.id) {
+      refetchPendingAllocations();
+    }
   };
 
-  const isLoading = fiscalYearsLoading || expensesLoading || statisticsLoading || summaryLoading;
+  const isLoading =
+    fiscalYearsLoading ||
+    expensesLoading ||
+    statisticsLoading ||
+    summaryLoading;
 
   if (!currentOrganization) {
     return (
@@ -284,61 +338,76 @@ const BudgetDashboard = () => {
               <>
                 {/* Budget Summary */}
                 {budgetSummary && (
-                  <BudgetSummaryCard summary={budgetSummary} type="organization" />
+                  <BudgetSummaryCard
+                    summary={budgetSummary}
+                    type="organization"
+                  />
                 )}
 
                 {/* Ministry Budgets */}
-                {budgetSummary?.ministry_summaries && budgetSummary.ministry_summaries.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Settings2 className="h-5 w-5" />
-                        Ministry Budgets
-                      </CardTitle>
-                      <CardDescription>
-                        Budget allocation and spending by ministry
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        {budgetSummary.ministry_summaries.map((ministry) => (
-                          <div
-                            key={ministry.ministry_id}
-                            className="p-4 border rounded-lg space-y-2"
-                          >
-                            <h4 className="font-medium">{ministry.ministry_name}</h4>
-                            <div className="grid grid-cols-2 gap-2 text-sm">
-                              <div>
-                                <span className="text-muted-foreground">Allocated:</span>
-                                <span className="ml-1 font-medium">
-                                  ${ministry.allocated_amount.toLocaleString()}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">Spent:</span>
-                                <span className="ml-1 font-medium text-green-600">
-                                  ${ministry.total_spent.toLocaleString()}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">Pending:</span>
-                                <span className="ml-1 font-medium text-yellow-600">
-                                  ${ministry.total_pending.toLocaleString()}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">Remaining:</span>
-                                <span className="ml-1 font-medium text-blue-600">
-                                  ${ministry.remaining.toLocaleString()}
-                                </span>
+                {budgetSummary?.ministry_summaries &&
+                  budgetSummary.ministry_summaries.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Settings2 className="h-5 w-5" />
+                          Ministry Budgets
+                        </CardTitle>
+                        <CardDescription>
+                          Budget allocation and spending by ministry
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                          {budgetSummary.ministry_summaries.map((ministry) => (
+                            <div
+                              key={ministry.ministry_id}
+                              className="p-4 border rounded-lg space-y-2"
+                            >
+                              <h4 className="font-medium">
+                                {ministry.ministry_name}
+                              </h4>
+                              <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div>
+                                  <span className="text-muted-foreground">
+                                    Allocated:
+                                  </span>
+                                  <span className="ml-1 font-medium">
+                                    $
+                                    {ministry.allocated_amount.toLocaleString()}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">
+                                    Spent:
+                                  </span>
+                                  <span className="ml-1 font-medium text-green-600">
+                                    ${ministry.total_spent.toLocaleString()}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">
+                                    Pending:
+                                  </span>
+                                  <span className="ml-1 font-medium text-yellow-600">
+                                    ${ministry.total_pending.toLocaleString()}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">
+                                    Remaining:
+                                  </span>
+                                  <span className="ml-1 font-medium text-blue-600">
+                                    ${ministry.remaining.toLocaleString()}
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
 
                 {/* All Expenses */}
                 {isAdmin && expenses && (
@@ -393,7 +462,7 @@ const BudgetDashboard = () => {
 
           {/* Treasury Tab */}
           <TabsContent value="treasury" className="mt-6">
-            {(isAdmin || isTreasury) ? (
+            {isAdmin || isTreasury ? (
               <ExpenseList
                 expenses={pendingTreasury || []}
                 isLoading={false}
@@ -411,7 +480,7 @@ const BudgetDashboard = () => {
 
           {/* Finance Tab */}
           <TabsContent value="finance" className="mt-6">
-            {(isAdmin || isFinance) ? (
+            {isAdmin || isFinance ? (
               <ExpenseList
                 expenses={pendingFinance || []}
                 isLoading={false}
