@@ -11,7 +11,17 @@ import {
   TabsTrigger,
 } from "@/shared/components/ui/tabs";
 import { Button } from "@/shared/components/ui/button";
-import { Card, CardContent } from "@/shared/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/shared/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/shared/components/ui/collapsible";
 import {
   Select,
   SelectContent,
@@ -35,6 +45,8 @@ import {
   Settings2,
   Wallet,
   ChevronDown,
+  ChevronRight,
+  BarChart3,
 } from "lucide-react";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useOrganization } from "@/shared/contexts/OrganizationContext";
@@ -69,6 +81,7 @@ const BudgetDashboard = () => {
     string | null
   >(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(true);
 
   // Determine if user has elevated permissions (can see all data)
   const hasFullAccess = isAdmin || isTreasury || isFinance;
@@ -171,15 +184,17 @@ const BudgetDashboard = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <DollarSign className="h-8 w-8" />
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-bold tracking-tight flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-primary/10">
+                <DollarSign className="h-8 w-8 text-primary" />
+              </div>
               Budget Management
             </h1>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-lg text-muted-foreground">
               {hasFullAccess
                 ? "Manage expenses, track budgets, and process payments"
                 : `Submit and track ${userMinistryName.toLowerCase()} expense requests`}
@@ -191,7 +206,7 @@ const BudgetDashboard = () => {
               value={effectiveFiscalYearId || ""}
               onValueChange={setSelectedFiscalYearId}
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[200px] shadow-sm">
                 <SelectValue placeholder="Select fiscal year" />
               </SelectTrigger>
               <SelectContent>
@@ -248,13 +263,13 @@ const BudgetDashboard = () => {
             {/* New Request Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button>
+                <Button size="lg" className="font-semibold shadow-sm">
                   <Plus className="mr-2 h-4 w-4" />
                   New Request
                   <ChevronDown className="ml-2 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuItem onClick={() => setIsExpenseFormOpen(true)}>
                   <DollarSign className="mr-2 h-4 w-4" />
                   Expense Request
@@ -270,10 +285,64 @@ const BudgetDashboard = () => {
 
         {/* Metrics Grid - World Class KPIs for Full Access Users */}
         {!isLoading && budgetSummary && expenses && hasFullAccess && (
-          <BudgetMetricsGrid
-            budgetSummary={budgetSummary}
-            expenses={expenses}
-          />
+          <Collapsible
+            open={!isMetricsCollapsed}
+            onOpenChange={(open) => setIsMetricsCollapsed(!open)}
+          >
+            <Card className="border shadow-sm">
+              <CollapsibleTrigger asChild>
+                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors collapsible-trigger">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-xl font-bold">
+                      <BarChart3 className="h-5 w-5 text-primary" />
+                      <span className="hidden sm:inline">Budget Metrics</span>
+                      <span className="sm:hidden">Metrics</span>
+                    </CardTitle>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <span className="text-sm font-medium hidden md:inline">
+                        {isMetricsCollapsed ? "Show details" : "Hide details"}
+                      </span>
+                      {isMetricsCollapsed ? (
+                        <ChevronRight className="h-4 w-4 transition-transform collapsible-icon" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 transition-transform collapsible-icon" />
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-sm text-muted-foreground">
+                      {isMetricsCollapsed
+                        ? "Click to view detailed financial metrics"
+                        : "Comprehensive overview of budget performance"}
+                    </p>
+                    {isMetricsCollapsed && (
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 text-xs text-muted-foreground">
+                        <span className="font-medium">
+                          Budget: $
+                          {budgetSummary.total_allocated.toLocaleString()}
+                        </span>
+                        <span className="font-medium">
+                          Spent: ${budgetSummary.total_spent.toLocaleString()}
+                        </span>
+                        <span className="font-medium">
+                          Remaining: $
+                          {budgetSummary.total_remaining.toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="collapsible-content">
+                <CardContent className="pt-0">
+                  <BudgetMetricsGrid
+                    budgetSummary={budgetSummary}
+                    expenses={expenses}
+                  />
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
         )}
 
         {/* Tabs */}
@@ -310,7 +379,7 @@ const BudgetDashboard = () => {
                 </span>
               )}
             </TabsTrigger>
-                        {(isAdmin || isTreasury) && (
+            {(isAdmin || isTreasury) && (
               <TabsTrigger
                 value="treasury"
                 className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
@@ -475,7 +544,6 @@ const BudgetDashboard = () => {
             />
           </TabsContent>
 
-          
           {/* Treasury Tab */}
           <TabsContent value="treasury" className="mt-6">
             {isAdmin || isTreasury ? (

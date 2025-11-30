@@ -59,133 +59,164 @@ const BudgetOverview = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header with Summary Stats */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b">
-        <div>
-          <h2 className="text-3xl font-bold flex items-center gap-3">
-            <BarChart3 className="h-8 w-8 text-primary" />
-            {title}
-          </h2>
-          <p className="text-muted-foreground mt-1">{description}</p>
-        </div>
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <BarChart3 className="h-6 w-6 text-primary" />
+              </div>
+              {title}
+            </h2>
+            <p className="text-muted-foreground text-lg">{description}</p>
+          </div>
 
-        {/* Quick Summary Cards */}
-        <div className="flex gap-4">
-          {hasExpenses && (
-            <div className="bg-blue-50 dark:bg-blue-950 rounded-lg px-4 py-3 border border-blue-200 dark:border-blue-800">
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                <div>
-                  <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                    Expenses
-                  </p>
-                  <p className="text-lg font-bold text-blue-900 dark:text-blue-100">
-                    ${expenseTotal.toLocaleString()}
-                  </p>
+          {/* Quick Summary Cards */}
+          <div className="flex flex-wrap gap-4">
+            {hasExpenses && (
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 rounded-2xl px-6 py-4 border border-blue-200 dark:border-blue-800 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-500 rounded-lg">
+                    <DollarSign className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wide">
+                      Expenses
+                    </p>
+                    <p className="text-xl font-bold text-blue-900 dark:text-blue-100">
+                      ${expenseTotal.toLocaleString()}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-          {hasAllocations && (
-            <div className="bg-purple-50 dark:bg-purple-950 rounded-lg px-4 py-3 border border-purple-200 dark:border-purple-800">
-              <div className="flex items-center gap-2">
-                <Wallet className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                <div>
-                  <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">
-                    Allocations
-                  </p>
-                  <p className="text-lg font-bold text-purple-900 dark:text-purple-100">
-                    ${allocationTotal.toLocaleString()}
-                  </p>
+            )}
+
+            {hasAllocations && (
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 rounded-2xl px-6 py-4 border border-purple-200 dark:border-purple-800 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-500 rounded-lg">
+                    <Wallet className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-purple-600 dark:text-purple-400 font-semibold uppercase tracking-wide">
+                      Allocations
+                    </p>
+                    <p className="text-xl font-bold text-purple-900 dark:text-purple-100">
+                      ${allocationTotal.toLocaleString()}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-          {hasExpenses && hasAllocations && (
-            <div className="bg-emerald-50 dark:bg-emerald-950 rounded-lg px-4 py-3 border border-emerald-200 dark:border-emerald-800">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                <div>
-                  <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                    Total Activity
-                  </p>
-                  <p className="text-lg font-bold text-emerald-900 dark:text-emerald-100">
-                    ${totalBudgetActivity.toLocaleString()}
-                  </p>
+            )}
+
+            {hasExpenses && hasAllocations && (
+              <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900 rounded-2xl px-6 py-4 border border-emerald-200 dark:border-emerald-800 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-500 rounded-lg">
+                    <TrendingUp className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wide">
+                      Total Activity
+                    </p>
+                    <p className="text-xl font-bold text-emerald-900 dark:text-emerald-100">
+                      ${totalBudgetActivity.toLocaleString()}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
       {/* Tabbed Interface */}
       {hasExpenses || hasAllocations ? (
-        <Tabs
-          defaultValue={getDefaultTab()}
-          value={activeView !== "combined" ? activeView : undefined}
-          onValueChange={(value) => setActiveView(value as typeof activeView)}
-          className="w-full"
-        >
-          <TabsList
-            className="grid w-full max-w-md"
-            style={{
-              gridTemplateColumns: `repeat(${
-                (hasExpenses ? 1 : 0) + (hasAllocations ? 1 : 0)
-              }, 1fr)`,
-            }}
+        <div className="border-t pt-8">
+          <Tabs
+            defaultValue={getDefaultTab()}
+            value={activeView !== "combined" ? activeView : undefined}
+            onValueChange={(value) => setActiveView(value as typeof activeView)}
+            className="w-full"
           >
-            {hasExpenses && (
-              <TabsTrigger value="expenses" className="gap-2">
-                <DollarSign className="h-4 w-4" />
-                Expenses
-                <Badge variant="secondary" className="ml-1">
-                  {expenses.length}
-                </Badge>
-              </TabsTrigger>
-            )}
-            {hasAllocations && (
-              <TabsTrigger value="allocations" className="gap-2">
-                <Wallet className="h-4 w-4" />
-                Allocations
-                <Badge variant="secondary" className="ml-1">
-                  {allocations.length}
-                </Badge>
-              </TabsTrigger>
-            )}
-          </TabsList>
+            <div className="flex items-center justify-center">
+              <TabsList
+                className="grid w-auto bg-muted/50 p-1 rounded-xl border shadow-sm"
+                style={{
+                  gridTemplateColumns: `repeat(${
+                    (hasExpenses ? 1 : 0) + (hasAllocations ? 1 : 0)
+                  }, 1fr)`,
+                }}
+              >
+                {hasExpenses && (
+                  <TabsTrigger
+                    value="expenses"
+                    className="flex items-center gap-2 px-6 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
+                  >
+                    <DollarSign className="h-4 w-4" />
+                    Expenses
+                    <Badge variant="secondary" className="ml-1">
+                      {expenses.length}
+                    </Badge>
+                  </TabsTrigger>
+                )}
+                {hasAllocations && (
+                  <TabsTrigger
+                    value="allocations"
+                    className="flex items-center gap-2 px-6 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
+                  >
+                    <Wallet className="h-4 w-4" />
+                    Allocations
+                    <Badge variant="secondary" className="ml-1">
+                      {allocations.length}
+                    </Badge>
+                  </TabsTrigger>
+                )}
+              </TabsList>
+            </div>
 
-          {/* Expense Tab */}
-          {hasExpenses && (
-            <TabsContent value="expenses" className="mt-6">
-              <BudgetSection
-                type="expenses"
-                data={expenses}
-                showHeader={false}
-              />
-            </TabsContent>
-          )}
+            {/* Tab Content */}
+            <div className="mt-8">
+              {/* Expense Tab */}
+              {hasExpenses && (
+                <TabsContent value="expenses" className="mt-0">
+                  <BudgetSection
+                    type="expenses"
+                    data={expenses}
+                    showHeader={false}
+                  />
+                </TabsContent>
+              )}
 
-          {/* Allocation Tab */}
-          {hasAllocations && (
-            <TabsContent value="allocations" className="mt-6">
-              <BudgetSection
-                type="allocations"
-                data={allocations}
-                showHeader={false}
-              />
-            </TabsContent>
-          )}
-        </Tabs>
+              {/* Allocation Tab */}
+              {hasAllocations && (
+                <TabsContent value="allocations" className="mt-0">
+                  <BudgetSection
+                    type="allocations"
+                    data={allocations}
+                    showHeader={false}
+                  />
+                </TabsContent>
+              )}
+            </div>
+          </Tabs>
+        </div>
       ) : (
         // Empty state
-        <div className="text-center py-12 bg-muted/30 rounded-lg border border-dashed">
-          <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No Budget Activity</h3>
-          <p className="text-muted-foreground">
-            Start by creating an expense request or budget allocation
-          </p>
+        <div className="text-center py-16 bg-muted/30 rounded-2xl border border-dashed">
+          <div className="space-y-4">
+            <div className="mx-auto w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center">
+              <BarChart3 className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold mb-2">No Budget Activity</h3>
+              <p className="text-muted-foreground">
+                Start by creating an expense request or budget allocation
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </div>
