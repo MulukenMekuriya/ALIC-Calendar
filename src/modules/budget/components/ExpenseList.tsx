@@ -54,7 +54,7 @@ import {
 } from "./ExpenseWorkflowActions";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useAuth } from "@/shared/contexts/AuthContext";
-import { useDeleteExpense, useSubmitExpenseForReview } from "../hooks";
+import { useDeleteExpense, useSubmitExpenseForReview, useCancelExpense } from "../hooks";
 import type { ExpenseRequestWithRelations, ExpenseStatus } from "../types";
 import { EXPENSE_STATUS_CONFIG } from "../types";
 
@@ -91,6 +91,7 @@ export function ExpenseList({
   // Mutations
   const deleteExpense = useDeleteExpense();
   const submitForReview = useSubmitExpenseForReview();
+  const cancelExpense = useCancelExpense();
 
   // Filter expenses
   const filteredExpenses = expenses.filter((expense) => {
@@ -147,6 +148,31 @@ export function ExpenseList({
     }
   };
 
+  const handleCancel = async (expense: ExpenseRequestWithRelations) => {
+    if (!user || !profile) return;
+    if (!confirm("Are you sure you want to cancel this expense request?")) return;
+
+    try {
+      await cancelExpense.mutateAsync({
+        expenseId: expense.id,
+        actorId: user.id,
+        actorName: profile.full_name,
+        reason: "Cancelled by requester",
+      });
+      toast({
+        title: "Expense cancelled",
+        description: "The expense request has been cancelled.",
+      });
+      onRefresh?.();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to cancel expense",
+        variant: "destructive",
+      });
+    }
+  };
+
   const canEdit = (expense: ExpenseRequestWithRelations) =>
     expense.status === "draft" && (expense.requester_id === user?.id || userRole === "admin");
 
@@ -155,6 +181,10 @@ export function ExpenseList({
 
   const canSubmit = (expense: ExpenseRequestWithRelations) =>
     expense.status === "draft" && expense.requester_id === user?.id;
+
+  const canCancel = (expense: ExpenseRequestWithRelations) =>
+    expense.status === "pending_leader" &&
+    (expense.requester_id === user?.id || userRole === "admin");
 
   const canLeaderReview = (expense: ExpenseRequestWithRelations) =>
     expense.status === "pending_leader" && (userRole === "leader" || userRole === "admin");
@@ -287,6 +317,19 @@ export function ExpenseList({
                                 <Send className="mr-2 h-4 w-4" />
                                 Submit for Review
                               </DropdownMenuItem>
+                            )}
+
+                            {canCancel(expense) && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => handleCancel(expense)}
+                                  className="text-orange-600"
+                                >
+                                  <XCircle className="mr-2 h-4 w-4" />
+                                  Cancel Request
+                                </DropdownMenuItem>
+                              </>
                             )}
 
                             {canLeaderReview(expense) && (
