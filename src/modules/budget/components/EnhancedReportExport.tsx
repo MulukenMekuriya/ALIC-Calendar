@@ -375,7 +375,7 @@ export const EnhancedReportExport = ({
         doc.text(item.label, item.x, item.y);
         doc.setFont("helvetica", "normal");
         const labelWidth = doc.getTextWidth(item.label);
-        doc.text(item.value, item.x + labelWidth + 2, item.y);
+        doc.text(item.value, item.x + labelWidth + 5, item.y);
       });
 
       currentY += 60;
