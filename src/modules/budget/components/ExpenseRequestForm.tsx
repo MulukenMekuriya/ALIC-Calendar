@@ -511,7 +511,7 @@ export function ExpenseRequestForm({
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full border-dashed"
+                  className="w-full border-dashed !bg-blue-50 hover:!bg-blue-100 border-blue-200 text-blue-700 transition-colors"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploading}
                 >
