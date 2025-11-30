@@ -47,13 +47,9 @@ import {
 } from "../hooks";
 import type {
   AllocationRequest,
-  AllocationPeriodType,
   BudgetBreakdownItem,
 } from "../types";
-import {
-  QUARTERLY_PERIODS,
-  MONTHLY_PERIODS,
-} from "../types";
+import { PERIOD_AMOUNT_CATEGORY } from "../types";
 
 // Form validation schema
 const breakdownItemSchema = z.object({
@@ -189,7 +185,7 @@ export function AllocationRequestForm({
     if (request) {
       const breakdown = request.budget_breakdown || [];
       const periodAmountsFromBreakdown = breakdown.filter(
-        (item) => item.category === "__period_amount__"
+        (item) => item.category === PERIOD_AMOUNT_CATEGORY
       );
 
       if (request.period_type === "annual") {
@@ -198,7 +194,7 @@ export function AllocationRequestForm({
           annual_amount: request.requested_amount,
           period_amounts: [],
           justification: request.justification,
-          budget_breakdown: breakdown.filter((item) => item.category !== "__period_amount__"),
+          budget_breakdown: breakdown.filter((item) => item.category !== PERIOD_AMOUNT_CATEGORY),
         });
       } else if (request.period_type === "quarterly") {
         const quarterAmounts = createQuarterlyAmounts().map((q) => {
@@ -210,7 +206,7 @@ export function AllocationRequestForm({
           annual_amount: 0,
           period_amounts: quarterAmounts,
           justification: request.justification,
-          budget_breakdown: breakdown.filter((item) => item.category !== "__period_amount__"),
+          budget_breakdown: breakdown.filter((item) => item.category !== PERIOD_AMOUNT_CATEGORY),
         });
       } else if (request.period_type === "monthly") {
         const monthAmounts = createMonthlyAmounts().map((m) => {
@@ -222,7 +218,7 @@ export function AllocationRequestForm({
           annual_amount: 0,
           period_amounts: monthAmounts,
           justification: request.justification,
-          budget_breakdown: breakdown.filter((item) => item.category !== "__period_amount__"),
+          budget_breakdown: breakdown.filter((item) => item.category !== PERIOD_AMOUNT_CATEGORY),
         });
       }
     } else {
@@ -261,7 +257,7 @@ export function AllocationRequestForm({
 
     const periodAmountsAsBreakdown: BudgetBreakdownItem[] = (values.period_amounts || [])
       .filter((pa) => pa.amount > 0)
-      .map((pa) => ({ category: "__period_amount__", description: pa.label, amount: pa.amount }));
+      .map((pa) => ({ category: PERIOD_AMOUNT_CATEGORY, description: pa.label, amount: pa.amount }));
 
     const combinedBreakdown = [...periodAmountsAsBreakdown, ...(values.budget_breakdown as BudgetBreakdownItem[] || [])];
 

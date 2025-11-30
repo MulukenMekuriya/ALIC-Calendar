@@ -179,53 +179,38 @@ export const expenseService = {
     if (error) throw error;
     if (!data) return null;
 
-    // Fetch related profiles from public schema
-    const profiles: Record<string, { id: string; full_name: string } | null> = {};
+    // Collect all unique profile IDs to fetch in a single query
+    const profileIds = [
+      data.requester_id,
+      data.leader_reviewer_id,
+      data.treasury_reviewer_id,
+      data.finance_processor_id,
+    ].filter((id): id is string => !!id);
 
-    if (data.requester_id) {
-      const { data: profile } = await supabase
+    // Batch fetch all profiles in a single query
+    const profilesMap: Record<string, { id: string; full_name: string; email?: string; phone_number?: string | null }> = {};
+
+    if (profileIds.length > 0) {
+      const { data: profiles } = await supabase
         .from("profiles")
         .select("id, full_name, email, phone_number")
-        .eq("id", data.requester_id)
-        .single();
-      profiles.requester = profile;
-    }
+        .in("id", profileIds);
 
-    if (data.leader_reviewer_id) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .eq("id", data.leader_reviewer_id)
-        .single();
-      profiles.leader = profile;
-    }
-
-    if (data.treasury_reviewer_id) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .eq("id", data.treasury_reviewer_id)
-        .single();
-      profiles.treasury = profile;
-    }
-
-    if (data.finance_processor_id) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .eq("id", data.finance_processor_id)
-        .single();
-      profiles.finance = profile;
+      if (profiles) {
+        for (const profile of profiles) {
+          profilesMap[profile.id] = profile;
+        }
+      }
     }
 
     return {
       ...data,
       ministry: data.ministries,
       fiscal_year: data.fiscal_years,
-      requester_profile: profiles.requester,
-      leader_reviewer_profile: profiles.leader,
-      treasury_reviewer_profile: profiles.treasury,
-      finance_processor_profile: profiles.finance,
+      requester_profile: data.requester_id ? profilesMap[data.requester_id] || null : null,
+      leader_reviewer_profile: data.leader_reviewer_id ? profilesMap[data.leader_reviewer_id] || null : null,
+      treasury_reviewer_profile: data.treasury_reviewer_id ? profilesMap[data.treasury_reviewer_id] || null : null,
+      finance_processor_profile: data.finance_processor_id ? profilesMap[data.finance_processor_id] || null : null,
     } as unknown as ExpenseRequestWithRelations;
   },
 
@@ -628,24 +613,30 @@ export const expenseService = {
       .order("created_at", { ascending: false });
 
     if (error) throw error;
+    if (!data || data.length === 0) return [];
 
-    // Fetch actor profiles from public schema
-    const historyWithActors = await Promise.all(
-      (data || []).map(async (history) => {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("id, full_name")
-          .eq("id", history.actor_id)
-          .single();
+    // Collect unique actor IDs and batch fetch profiles
+    const actorIds = [...new Set(data.map((h) => h.actor_id).filter((id): id is string => !!id))];
 
-        return {
-          ...history,
-          actor_profile: profile,
-        };
-      })
-    );
+    const profilesMap: Record<string, { id: string; full_name: string }> = {};
 
-    return historyWithActors;
+    if (actorIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", actorIds);
+
+      if (profiles) {
+        for (const profile of profiles) {
+          profilesMap[profile.id] = profile;
+        }
+      }
+    }
+
+    return data.map((history) => ({
+      ...history,
+      actor_profile: history.actor_id ? profilesMap[history.actor_id] || null : null,
+    }));
   },
 
   /**

@@ -6,6 +6,8 @@
  * - Expense tracking
  * - Multi-step approval workflows (Requester -> Leader -> Treasury -> Finance)
  * - Financial reporting
+ * - Export utilities (CSV, Excel, Print)
+ * - Budget alerts and monitoring
  */
 
 // Pages
@@ -22,3 +24,6 @@ export * from "./services";
 
 // Types
 export * from "./types";
+
+// Utilities
+export * from "./utils";

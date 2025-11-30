@@ -27,27 +27,30 @@ export const ministryService = {
       .order("name");
 
     if (error) throw error;
+    if (!data || data.length === 0) return [];
 
-    // Fetch leader profiles from public schema
-    const ministriesWithLeaders = await Promise.all(
-      (data || []).map(async (ministry) => {
-        let leader = null;
-        if (ministry.leader_id) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("id, full_name, email")
-            .eq("id", ministry.leader_id)
-            .single();
-          leader = profile;
+    // Collect unique leader IDs and batch fetch profiles in a single query
+    const leaderIds = [...new Set(data.map((m) => m.leader_id).filter((id): id is string => !!id))];
+
+    const leadersMap: Record<string, { id: string; full_name: string; email: string }> = {};
+
+    if (leaderIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", leaderIds);
+
+      if (profiles) {
+        for (const profile of profiles) {
+          leadersMap[profile.id] = profile;
         }
-        return {
-          ...ministry,
-          leader,
-        } as MinistryWithLeader;
-      })
-    );
+      }
+    }
 
-    return ministriesWithLeaders;
+    return data.map((ministry) => ({
+      ...ministry,
+      leader: ministry.leader_id ? leadersMap[ministry.leader_id] || null : null,
+    })) as MinistryWithLeader[];
   },
 
   /**

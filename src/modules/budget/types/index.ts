@@ -345,6 +345,9 @@ export interface BudgetBreakdownItem {
   amount: number;
 }
 
+// Internal category marker for period amounts in budget breakdown
+export const PERIOD_AMOUNT_CATEGORY = "__period_amount__" as const;
+
 export interface AllocationRequestWithRelations extends AllocationRequest {
   ministry: Ministry;
   fiscal_year: FiscalYear;

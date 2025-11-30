@@ -49,9 +49,28 @@ import { REIMBURSEMENT_TYPE_LABELS } from "../types";
 const expenseFormSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   description: z.string().optional(),
-  amount: z.coerce.number().positive("Amount must be greater than 0"),
+  amount: z.coerce.number().positive("Amount must be greater than 0").multipleOf(0.01, "Amount can have at most 2 decimal places"),
   reimbursement_type: z.enum(["cash", "check", "bank_transfer", "zelle", "other"]),
 });
+
+// File upload security constants
+const ALLOWED_MIME_TYPES = [
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/gif",
+  "image/webp",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+] as const;
+
+const ALLOWED_EXTENSIONS = ["pdf", "png", "jpg", "jpeg", "gif", "webp", "doc", "docx", "xls", "xlsx"] as const;
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILES = 10;
 
 type ExpenseFormValues = z.infer<typeof expenseFormSchema>;
 
@@ -114,8 +133,13 @@ export function ExpenseRequestForm({
         amount: expense.amount,
         reimbursement_type: expense.reimbursement_type,
       });
-      // Load existing attachments
-      setAttachments((expense.attachments as AttachmentData[]) || []);
+      // Load existing attachments with validation
+      const existingAttachments = expense.attachments;
+      if (Array.isArray(existingAttachments)) {
+        setAttachments(existingAttachments as unknown as AttachmentData[]);
+      } else {
+        setAttachments([]);
+      }
     } else {
       form.reset({
         title: "",
@@ -132,13 +156,23 @@ export function ExpenseRequestForm({
     const files = event.target.files;
     if (!files || files.length === 0 || !user) return;
 
+    // Check max files limit
+    if (attachments.length + files.length > MAX_FILES) {
+      toast({
+        title: "Too many files",
+        description: `You can upload a maximum of ${MAX_FILES} files`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsUploading(true);
     const newAttachments: AttachmentData[] = [];
 
     try {
       for (const file of Array.from(files)) {
-        // Validate file size (10MB limit)
-        if (file.size > 10 * 1024 * 1024) {
+        // Validate file size
+        if (file.size > MAX_FILE_SIZE) {
           toast({
             title: "File too large",
             description: `${file.name} exceeds the 10MB limit`,
@@ -147,9 +181,30 @@ export function ExpenseRequestForm({
           continue;
         }
 
-        // Create unique file path
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        // Validate MIME type
+        if (!ALLOWED_MIME_TYPES.includes(file.type as typeof ALLOWED_MIME_TYPES[number])) {
+          toast({
+            title: "Invalid file type",
+            description: `${file.name} is not a supported file type. Allowed: PDF, images, Word, Excel`,
+            variant: "destructive",
+          });
+          continue;
+        }
+
+        // Validate file extension
+        const fileExt = file.name.split(".").pop()?.toLowerCase();
+        if (!fileExt || !ALLOWED_EXTENSIONS.includes(fileExt as typeof ALLOWED_EXTENSIONS[number])) {
+          toast({
+            title: "Invalid file extension",
+            description: `${file.name} has an unsupported extension`,
+            variant: "destructive",
+          });
+          continue;
+        }
+
+        // Create unique file path with crypto for better randomness
+        const randomId = crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+        const fileName = `${user.id}/${randomId}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from("expense-attachments")
@@ -262,7 +317,7 @@ export function ExpenseRequestForm({
             requester_name: profile?.full_name || "Unknown",
             requester_phone: profile?.phone_number || null,
             requester_email: profile?.email || null,
-            attachments: attachments,
+            attachments: attachments as unknown as Record<string, unknown>[],
           },
         });
 
@@ -296,7 +351,7 @@ export function ExpenseRequestForm({
             requester_phone: profile?.phone_number || null,
             requester_email: profile?.email || null,
             status: "draft",
-            attachments: attachments,
+            attachments: attachments as unknown as Record<string, unknown>[],
           },
           actorId: user.id,
           actorName: profile?.full_name || "Unknown",
