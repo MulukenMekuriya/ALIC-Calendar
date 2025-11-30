@@ -47,6 +47,7 @@ interface EnhancedReportExportProps {
   organizationName: string;
   ministryName?: string;
   fiscalYearName?: string;
+  isContributor?: boolean;
 }
 
 const COLORS = {
@@ -76,6 +77,7 @@ export const EnhancedReportExport = ({
   organizationName,
   ministryName = "Personal",
   fiscalYearName,
+  isContributor = false,
 }: EnhancedReportExportProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const chartsRef = useRef<HTMLDivElement>(null);
@@ -507,8 +509,8 @@ export const EnhancedReportExport = ({
         currentY = (docWithTable.lastAutoTable?.finalY || currentY) + 15;
       }
 
-      // Ministry Breakdown
-      if (chartData.ministryChartData.length > 0) {
+      // Ministry Breakdown - Only show for admins/treasury/finance (not contributors)
+      if (!isContributor && chartData.ministryChartData.length > 1) {
         if (currentY > pageHeight - 80) {
           doc.addPage();
           currentY = 20;

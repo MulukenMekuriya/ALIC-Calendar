@@ -238,6 +238,7 @@ const BudgetDashboard = () => {
                     fiscalYears?.find((fy) => fy.id === effectiveFiscalYearId)
                       ?.name
                   }
+                  isContributor={false}
                 />
               )}
             {isContributor &&
@@ -253,6 +254,7 @@ const BudgetDashboard = () => {
                     fiscalYears?.find((fy) => fy.id === effectiveFiscalYearId)
                       ?.name
                   }
+                  isContributor={true}
                 />
               )}
 
