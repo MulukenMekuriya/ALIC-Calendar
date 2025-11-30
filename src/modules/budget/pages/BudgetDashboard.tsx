@@ -541,7 +541,15 @@ const BudgetDashboard = () => {
                       : myAllocationRequests
                   }
                   isLoading={false}
-                  isAdmin={isAdmin}
+                  userRole={
+                    isAdmin
+                      ? "admin"
+                      : isTreasury
+                      ? "treasury"
+                      : isFinance
+                      ? "finance"
+                      : "requester"
+                  }
                   onRefresh={handleRefresh}
                 />
               </CardContent>

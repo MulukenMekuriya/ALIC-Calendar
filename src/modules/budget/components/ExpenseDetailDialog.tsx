@@ -29,6 +29,8 @@ import {
   AlertCircle,
   Clock,
   Receipt,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +42,12 @@ interface ExpenseDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   expense: ExpenseRequestWithRelations | null;
+  userRole?: "requester" | "leader" | "treasury" | "finance" | "admin";
+  onLeaderApprove?: () => void;
+  onLeaderDeny?: () => void;
+  onTreasuryApprove?: () => void;
+  onTreasuryDeny?: () => void;
+  onFinanceProcess?: () => void;
 }
 
 interface AttachmentWithSignedUrl extends AttachmentData {
@@ -51,6 +59,12 @@ export function ExpenseDetailDialog({
   open,
   onOpenChange,
   expense,
+  userRole = "requester",
+  onLeaderApprove,
+  onLeaderDeny,
+  onTreasuryApprove,
+  onTreasuryDeny,
+  onFinanceProcess,
 }: ExpenseDetailDialogProps) {
   const [attachmentsWithUrls, setAttachmentsWithUrls] = useState<
     AttachmentWithSignedUrl[]
@@ -479,6 +493,91 @@ export function ExpenseDetailDialog({
               </div>
             </>
           )}
+
+          {/* Action Buttons based on status and user role */}
+          {/* Leader Review Actions */}
+          {expense.status === "pending_leader" &&
+            (userRole === "leader" || userRole === "admin") && (
+              <>
+                <Separator />
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                    onClick={() => {
+                      onOpenChange(false);
+                      onLeaderApprove?.();
+                    }}
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Approve
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={() => {
+                      onOpenChange(false);
+                      onLeaderDeny?.();
+                    }}
+                  >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Deny
+                  </Button>
+                </div>
+              </>
+            )}
+
+          {/* Treasury Review Actions */}
+          {(expense.status === "leader_approved" ||
+            expense.status === "pending_treasury") &&
+            (userRole === "treasury" || userRole === "admin") && (
+              <>
+                <Separator />
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                    onClick={() => {
+                      onOpenChange(false);
+                      onTreasuryApprove?.();
+                    }}
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Approve
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={() => {
+                      onOpenChange(false);
+                      onTreasuryDeny?.();
+                    }}
+                  >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Deny
+                  </Button>
+                </div>
+              </>
+            )}
+
+          {/* Finance Process Actions */}
+          {(expense.status === "treasury_approved" ||
+            expense.status === "pending_finance") &&
+            (userRole === "finance" || userRole === "admin") && (
+              <>
+                <Separator />
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                    onClick={() => {
+                      onOpenChange(false);
+                      onFinanceProcess?.();
+                    }}
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Process Payment
+                  </Button>
+                </div>
+              </>
+            )}
         </div>
       </DialogContent>
     </Dialog>

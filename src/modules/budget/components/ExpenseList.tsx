@@ -432,6 +432,22 @@ export function ExpenseList({
         open={isDetailDialogOpen}
         onOpenChange={setIsDetailDialogOpen}
         expense={selectedExpense}
+        userRole={userRole}
+        onLeaderApprove={() => {
+          setIsLeaderApproveOpen(true);
+        }}
+        onLeaderDeny={() => {
+          setIsLeaderDenyOpen(true);
+        }}
+        onTreasuryApprove={() => {
+          setIsTreasuryApproveOpen(true);
+        }}
+        onTreasuryDeny={() => {
+          setIsTreasuryDenyOpen(true);
+        }}
+        onFinanceProcess={() => {
+          setIsFinanceProcessOpen(true);
+        }}
       />
 
       {/* Edit Dialog */}

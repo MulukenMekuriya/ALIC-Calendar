@@ -66,14 +66,14 @@ import { ALLOCATION_REQUEST_STATUS_CONFIG, getPeriodLabel } from "../types";
 interface AllocationRequestListProps {
   requests: AllocationRequestWithRelations[];
   isLoading?: boolean;
-  isAdmin?: boolean;
+  userRole?: "admin" | "treasury" | "finance" | "requester";
   onRefresh?: () => void;
 }
 
 export function AllocationRequestList({
   requests,
   isLoading = false,
-  isAdmin = false,
+  userRole = "requester",
   onRefresh,
 }: AllocationRequestListProps) {
   const { toast } = useToast();
@@ -194,23 +194,26 @@ export function AllocationRequestList({
     }
   };
 
+  const isReviewer =
+    userRole === "admin" || userRole === "treasury" || userRole === "finance";
+
   const canEdit = (request: AllocationRequestWithRelations) =>
     request.status === "draft" &&
-    (request.requester_id === user?.id || isAdmin);
+    (request.requester_id === user?.id || isReviewer);
 
   const canDelete = (request: AllocationRequestWithRelations) =>
     request.status === "draft" &&
-    (request.requester_id === user?.id || isAdmin);
+    (request.requester_id === user?.id || isReviewer);
 
   const canSubmit = (request: AllocationRequestWithRelations) =>
     request.status === "draft" && request.requester_id === user?.id;
 
   const canCancel = (request: AllocationRequestWithRelations) =>
     request.status === "pending" &&
-    (request.requester_id === user?.id || isAdmin);
+    (request.requester_id === user?.id || isReviewer);
 
   const canReview = (request: AllocationRequestWithRelations) =>
-    request.status === "pending" && isAdmin;
+    request.status === "pending" && isReviewer;
 
   if (isLoading) {
     return (
@@ -428,6 +431,15 @@ export function AllocationRequestList({
         open={isDetailDialogOpen}
         onOpenChange={setIsDetailDialogOpen}
         request={selectedRequest}
+        userRole={userRole}
+        onApprove={() => {
+          setReviewAction("approve");
+          setIsReviewDialogOpen(true);
+        }}
+        onDeny={() => {
+          setReviewAction("deny");
+          setIsReviewDialogOpen(true);
+        }}
       />
 
       {/* Edit Dialog */}

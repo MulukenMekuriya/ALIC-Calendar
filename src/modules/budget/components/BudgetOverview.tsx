@@ -274,8 +274,8 @@ const BudgetOverview = ({
                                 isLoading={
                                   allocationListProps.isLoading || false
                                 }
-                                isAdmin={
-                                  allocationListProps.userRole === "admin"
+                                userRole={
+                                  allocationListProps.userRole || "requester"
                                 }
                                 onRefresh={
                                   allocationListProps.onRefresh || (() => {})

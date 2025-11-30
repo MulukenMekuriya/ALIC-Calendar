@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/components/ui/dialog";
+import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
 import {
   Card,
@@ -27,6 +28,7 @@ import {
   CheckCircle,
   TrendingUp,
   CalendarDays,
+  XCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { AllocationRequestStatusBadge } from "./AllocationRequestStatusBadge";
@@ -40,14 +42,25 @@ interface AllocationRequestDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   request: AllocationRequestWithRelations | null;
+  userRole?: "admin" | "treasury" | "finance" | "requester";
+  onApprove?: () => void;
+  onDeny?: () => void;
 }
 
 export function AllocationRequestDetailDialog({
   open,
   onOpenChange,
   request,
+  userRole = "requester",
+  onApprove,
+  onDeny,
 }: AllocationRequestDetailDialogProps) {
   if (!request) return null;
+
+  // Admin, treasury, and finance can review pending allocation requests
+  const canReview =
+    request.status === "pending" &&
+    (userRole === "admin" || userRole === "treasury" || userRole === "finance");
 
   const breakdown = (request.budget_breakdown as BudgetBreakdownItem[]) || [];
 
@@ -362,6 +375,36 @@ export function AllocationRequestDetailDialog({
                     </p>
                   </CardContent>
                 </Card>
+              </div>
+            </>
+          )}
+
+          {/* Action Buttons for Admin Review */}
+          {canReview && (
+            <>
+              <Separator />
+              <div className="flex gap-3 pt-2">
+                <Button
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                  onClick={() => {
+                    onOpenChange(false);
+                    onApprove?.();
+                  }}
+                >
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Approve
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={() => {
+                    onOpenChange(false);
+                    onDeny?.();
+                  }}
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Deny
+                </Button>
               </div>
             </>
           )}
