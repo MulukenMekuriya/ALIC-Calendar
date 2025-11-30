@@ -19,7 +19,6 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
 import { Button } from "@/shared/components/ui/button";
-import { Input } from "@/shared/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -35,7 +34,6 @@ import {
 } from "@/shared/components/ui/card";
 import {
   MoreHorizontal,
-  Search,
   Eye,
   Edit,
   Trash2,
@@ -52,6 +50,7 @@ import { AllocationRequestDetailDialog } from "./AllocationRequestDetailDialog";
 import { AllocationReviewDialog } from "./AllocationReviewDialog";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useAuth } from "@/shared/contexts/AuthContext";
+import { useSearch } from "@/shared/contexts/SearchContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import {
   useDeleteAllocationRequest,
@@ -91,8 +90,10 @@ export function AllocationRequestList({
     "approve"
   );
 
+  // Global search from header
+  const { searchQuery } = useSearch();
+
   // Filters
-  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     AllocationRequestStatus | "all"
   >("all");
@@ -228,15 +229,6 @@ export function AllocationRequestList({
         <CardContent>
           {/* Filters */}
           <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by justification, ministry, or requester..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
             <Select
               value={statusFilter}
               onValueChange={(value) =>

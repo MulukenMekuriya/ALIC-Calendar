@@ -393,7 +393,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                       <Search className="h-4 w-4 text-muted-foreground" />
                       <Input
                         ref={searchInputRef}
-                        placeholder="Search events..."
+                        placeholder="Search events and budget..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="h-8"
@@ -415,7 +415,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Search by event title, description, room, or requester
+                      Search events, expenses, and allocations
                     </p>
                   </div>
                 </PopoverContent>

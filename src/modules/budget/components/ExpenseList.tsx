@@ -19,7 +19,6 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
 import { Button } from "@/shared/components/ui/button";
-import { Input } from "@/shared/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -30,7 +29,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import {
   MoreHorizontal,
-  Search,
   Eye,
   Edit,
   Trash2,
@@ -54,6 +52,7 @@ import {
 } from "./ExpenseWorkflowActions";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useAuth } from "@/shared/contexts/AuthContext";
+import { useSearch } from "@/shared/contexts/SearchContext";
 import { useDeleteExpense, useSubmitExpenseForReview, useCancelExpense } from "../hooks";
 import type { ExpenseRequestWithRelations, ExpenseStatus } from "../types";
 import { EXPENSE_STATUS_CONFIG } from "../types";
@@ -73,6 +72,7 @@ export function ExpenseList({
 }: ExpenseListProps) {
   const { toast } = useToast();
   const { user, profile } = useAuth();
+  const { searchQuery } = useSearch();
 
   // State for dialogs
   const [selectedExpense, setSelectedExpense] = useState<ExpenseRequestWithRelations | null>(null);
@@ -85,7 +85,6 @@ export function ExpenseList({
   const [isFinanceProcessOpen, setIsFinanceProcessOpen] = useState(false);
 
   // Filters
-  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<ExpenseStatus | "all">("all");
 
   // Mutations
@@ -219,15 +218,6 @@ export function ExpenseList({
         <CardContent>
           {/* Filters */}
           <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by title, requester, or ministry..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
             <Select
               value={statusFilter}
               onValueChange={(value) => setStatusFilter(value as ExpenseStatus | "all")}
