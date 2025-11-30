@@ -230,7 +230,6 @@ export function ExpenseList({
                     <TableHead>Title</TableHead>
                     <TableHead>Ministry</TableHead>
                     <TableHead>Amount</TableHead>
-                    <TableHead>Requester</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
@@ -247,7 +246,6 @@ export function ExpenseList({
                           maximumFractionDigits: 2,
                         })}
                       </TableCell>
-                      <TableCell>{expense.requester_name}</TableCell>
                       <TableCell>
                         <ExpenseStatusBadge status={expense.status} />
                       </TableCell>
