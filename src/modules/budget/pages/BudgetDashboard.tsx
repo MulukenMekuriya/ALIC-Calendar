@@ -119,12 +119,16 @@ const BudgetDashboard = () => {
   const { data: allocationRequests, refetch: refetchAllocationRequests } =
     useAllocationRequests(effectiveFiscalYearId);
 
-  // User's expenses (requester's own)
-  const myExpenses = expenses?.filter((e) => e.requester_id === user?.id) || [];
+  // User's expenses (requester's own) - EXCLUDE cancelled
+  const myExpenses = expenses?.filter((e) => e.requester_id === user?.id && e.status !== "cancelled") || [];
 
-  // User's allocation requests
+  // User's allocation requests - EXCLUDE cancelled
   const myAllocationRequests =
-    allocationRequests?.filter((r) => r.requester_id === user?.id) || [];
+    allocationRequests?.filter((r) => r.requester_id === user?.id && r.status !== "cancelled") || [];
+
+  // Filtered data for admin views - EXCLUDE cancelled
+  const activeExpenses = expenses?.filter((e) => e.status !== "cancelled") || [];
+  const activeAllocationRequests = allocationRequests?.filter((r) => r.status !== "cancelled") || [];
 
   // Extract ministry name from user's expenses or allocations
   const userMinistryName =
@@ -191,7 +195,7 @@ const BudgetDashboard = () => {
 
             {/* Enhanced Report Export - Role-based data filtering */}
             {hasFullAccess &&
-              (expenses?.length > 0 || allocationRequests?.length > 0) &&
+              (activeExpenses?.length > 0 || activeAllocationRequests?.length > 0) &&
               user && (
                 <EnhancedReportExport
                   expenses={expenses || []}
@@ -326,10 +330,10 @@ const BudgetDashboard = () => {
               <DollarSign className="mr-2 h-4 w-4" />
               Expenses
               {hasFullAccess
-                ? expenses &&
-                  expenses.length > 0 && (
+                ? activeExpenses &&
+                  activeExpenses.length > 0 && (
                     <span className="ml-2 bg-muted text-muted-foreground rounded-full px-2 text-xs">
-                      {expenses.length}
+                      {activeExpenses.length}
                     </span>
                   )
                 : myExpenses.length > 0 && (
@@ -345,10 +349,10 @@ const BudgetDashboard = () => {
               <Wallet className="mr-2 h-4 w-4" />
               Allocations
               {hasFullAccess
-                ? allocationRequests &&
-                  allocationRequests.length > 0 && (
+                ? activeAllocationRequests &&
+                  activeAllocationRequests.length > 0 && (
                     <span className="ml-2 bg-muted text-muted-foreground rounded-full px-2 text-xs">
-                      {allocationRequests.length}
+                      {activeAllocationRequests.length}
                     </span>
                   )
                 : myAllocationRequests.length > 0 && (
@@ -368,11 +372,11 @@ const BudgetDashboard = () => {
             ) : (
               <>
                 {/* World-Class Overview for Admin/Treasury/Finance */}
-                {hasFullAccess && budgetSummary && expenses && (
+                {hasFullAccess && budgetSummary && activeExpenses && (
                   <>
                     <BudgetOverview
-                      expenses={expenses}
-                      allocations={allocationRequests || []}
+                      expenses={activeExpenses}
+                      allocations={activeAllocationRequests || []}
                       title="Organization Overview"
                       description={`Comprehensive view of ${currentOrganization.name} expenses and budget allocations`}
                       showDetailedLists={true}
@@ -399,7 +403,7 @@ const BudgetDashboard = () => {
                 )}
 
                 {/* Contributor View - Personal budget overview */}
-                {isContributor && expenses && expenses.length > 0 && (
+                {isContributor && myExpenses && myExpenses.length > 0 && (
                   <>
                     <BudgetOverview
                       expenses={expenses}
@@ -422,7 +426,7 @@ const BudgetDashboard = () => {
                 )}
 
                 {/* Empty state for contributors with no expenses */}
-                {isContributor && expenses && expenses.length === 0 && (
+                {isContributor && myExpenses && myExpenses.length === 0 && (
                   <>
                     {/* Show unified overview even with no expenses if there are allocations */}
                     {myAllocationRequests && myAllocationRequests.length > 0 ? (
@@ -488,7 +492,7 @@ const BudgetDashboard = () => {
               </CardHeader>
               <CardContent>
                 <ExpenseList
-                  expenses={hasFullAccess ? expenses || [] : myExpenses}
+                  expenses={hasFullAccess ? activeExpenses || [] : myExpenses}
                   isLoading={expensesLoading}
                   userRole={
                     isAdmin
@@ -525,7 +529,7 @@ const BudgetDashboard = () => {
                 <AllocationRequestList
                   requests={
                     hasFullAccess
-                      ? allocationRequests || []
+                      ? activeAllocationRequests || []
                       : myAllocationRequests
                   }
                   isLoading={false}
