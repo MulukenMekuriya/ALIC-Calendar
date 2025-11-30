@@ -11,7 +11,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/shared/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/shared/components/ui/tabs";
 import { LoadingButton } from "@/shared/components/ui/loading";
 import { useToast } from "@/shared/hooks/use-toast";
 import {
@@ -191,9 +196,12 @@ const Auth = () => {
             </div>
           </div>
           <h1 className="text-4xl font-bold mb-4">{CHURCH_BRANDING.name}</h1>
-          <h2 className="text-2xl font-semibold mb-4">{CHURCH_BRANDING.app.title}</h2>
+          <h2 className="text-2xl font-semibold mb-4">
+            {CHURCH_BRANDING.app.title}
+          </h2>
           <p className="text-xl opacity-90 mb-8">
-            {CHURCH_BRANDING.tagline}, bringing our community together in worship and service
+            {CHURCH_BRANDING.tagline}, bringing our community together in
+            worship and service
           </p>
           <div className="flex justify-center space-x-8 text-sm">
             <div className="flex items-center space-x-2">
