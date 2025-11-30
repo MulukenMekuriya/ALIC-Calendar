@@ -51,9 +51,6 @@ const expenseFormSchema = z.object({
   description: z.string().optional(),
   amount: z.coerce.number().positive("Amount must be greater than 0"),
   reimbursement_type: z.enum(["cash", "check", "bank_transfer", "zelle", "other"]),
-  requester_name: z.string().min(2, "Name is required"),
-  requester_phone: z.string().optional(),
-  requester_email: z.string().email("Invalid email").optional().or(z.literal("")),
 });
 
 type ExpenseFormValues = z.infer<typeof expenseFormSchema>;
@@ -98,13 +95,22 @@ export function ExpenseRequestForm({
       description: "",
       amount: 0,
       reimbursement_type: "check",
-      requester_name: profile?.full_name || "",
-      requester_phone: profile?.phone_number || "",
-      requester_email: profile?.email || "",
     },
   });
 
-  // Update form values when expense changes
+  // Auto-select ministry based on user's profile ministry_name
+  useEffect(() => {
+    if (!expense && profile?.ministry_name && ministries) {
+      const userMinistry = ministries.find(
+        (m) => m.name.toLowerCase() === profile.ministry_name?.toLowerCase()
+      );
+      if (userMinistry) {
+        form.setValue("ministry_id", userMinistry.id);
+      }
+    }
+  }, [profile?.ministry_name, ministries, expense, form]);
+
+  // Update form values when expense changes (for editing)
   useEffect(() => {
     if (expense) {
       form.reset({
@@ -113,9 +119,6 @@ export function ExpenseRequestForm({
         description: expense.description || "",
         amount: expense.amount,
         reimbursement_type: expense.reimbursement_type,
-        requester_name: expense.requester_name,
-        requester_phone: expense.requester_phone || "",
-        requester_email: expense.requester_email || "",
       });
     } else {
       form.reset({
@@ -124,12 +127,9 @@ export function ExpenseRequestForm({
         description: "",
         amount: 0,
         reimbursement_type: "check",
-        requester_name: profile?.full_name || "",
-        requester_phone: profile?.phone_number || "",
-        requester_email: profile?.email || "",
       });
     }
-  }, [expense, profile, form]);
+  }, [expense, form]);
 
   const handleSave = async (values: ExpenseFormValues, submit: boolean = false) => {
     if (!currentOrganization || !user || !activeFiscalYear) {
@@ -154,9 +154,9 @@ export function ExpenseRequestForm({
             description: values.description || null,
             amount: values.amount,
             reimbursement_type: values.reimbursement_type,
-            requester_name: values.requester_name,
-            requester_phone: values.requester_phone || null,
-            requester_email: values.requester_email || null,
+            requester_name: profile?.full_name || "Unknown",
+            requester_phone: profile?.phone_number || null,
+            requester_email: profile?.email || null,
           },
         });
 
@@ -186,9 +186,9 @@ export function ExpenseRequestForm({
             amount: values.amount,
             reimbursement_type: values.reimbursement_type,
             requester_id: user.id,
-            requester_name: values.requester_name,
-            requester_phone: values.requester_phone || null,
-            requester_email: values.requester_email || null,
+            requester_name: profile?.full_name || "Unknown",
+            requester_phone: profile?.phone_number || null,
+            requester_email: profile?.email || null,
             status: "draft",
           },
           actorId: user.id,
@@ -390,57 +390,6 @@ export function ExpenseRequestForm({
                     </FormItem>
                   )}
                 />
-              </div>
-
-              <div className="border-t pt-4">
-                <h4 className="text-sm font-medium mb-3">Requester Information</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="requester_name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Name *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Your full name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="requester_phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
-                        <FormControl>
-                          <Input placeholder="(555) 123-4567" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="requester_email"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Email Address</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="email"
-                            placeholder="your@email.com"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
               </div>
 
               <DialogFooter className="flex-col sm:flex-row gap-2 pt-4">
