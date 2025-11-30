@@ -2,7 +2,7 @@
  * ExpenseRequestForm - Form for creating and editing expense requests
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -33,7 +33,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
-import { Loader2, DollarSign, Send, Save } from "lucide-react";
+import { Loader2, DollarSign, Send, Save, Paperclip, X, FileText, Image as ImageIcon } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import type { AttachmentData } from "../types";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useMinistries } from "../hooks";
 import { useActiveFiscalYear } from "../hooks";
@@ -72,6 +74,9 @@ export function ExpenseRequestForm({
   const { profile } = useUserProfile();
   const { currentOrganization } = useOrganization();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [attachments, setAttachments] = useState<AttachmentData[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: ministries, isLoading: ministriesLoading } = useMinistries(
     currentOrganization?.id
@@ -110,6 +115,8 @@ export function ExpenseRequestForm({
         amount: expense.amount,
         reimbursement_type: expense.reimbursement_type,
       });
+      // Load existing attachments
+      setAttachments((expense.attachments as AttachmentData[]) || []);
     } else {
       form.reset({
         title: "",
@@ -117,8 +124,113 @@ export function ExpenseRequestForm({
         amount: 0,
         reimbursement_type: "check",
       });
+      setAttachments([]);
     }
   }, [expense, form]);
+
+  // Handle file upload
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0 || !user) return;
+
+    setIsUploading(true);
+    const newAttachments: AttachmentData[] = [];
+
+    try {
+      for (const file of Array.from(files)) {
+        // Validate file size (10MB limit)
+        if (file.size > 10 * 1024 * 1024) {
+          toast({
+            title: "File too large",
+            description: `${file.name} exceeds the 10MB limit`,
+            variant: "destructive",
+          });
+          continue;
+        }
+
+        // Create unique file path
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("expense-attachments")
+          .upload(fileName, file);
+
+        if (uploadError) {
+          console.error("Upload error:", uploadError);
+          toast({
+            title: "Upload failed",
+            description: `Failed to upload ${file.name}`,
+            variant: "destructive",
+          });
+          continue;
+        }
+
+        // Get the public URL
+        const { data: urlData } = supabase.storage
+          .from("expense-attachments")
+          .getPublicUrl(fileName);
+
+        newAttachments.push({
+          id: fileName,
+          name: file.name,
+          url: urlData.publicUrl,
+          type: file.type,
+          size: file.size,
+          uploaded_at: new Date().toISOString(),
+        });
+      }
+
+      setAttachments((prev) => [...prev, ...newAttachments]);
+
+      if (newAttachments.length > 0) {
+        toast({
+          title: "Files uploaded",
+          description: `${newAttachments.length} file(s) uploaded successfully`,
+        });
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast({
+        title: "Upload failed",
+        description: "An error occurred while uploading files",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      // Reset the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  // Remove attachment
+  const handleRemoveAttachment = async (attachment: AttachmentData) => {
+    try {
+      const { error } = await supabase.storage
+        .from("expense-attachments")
+        .remove([attachment.id]);
+
+      if (error) {
+        console.error("Delete error:", error);
+      }
+
+      setAttachments((prev) => prev.filter((a) => a.id !== attachment.id));
+    } catch (error) {
+      console.error("Delete error:", error);
+    }
+  };
+
+  // Format file size
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  // Check if file is an image
+  const isImageFile = (type: string) => type.startsWith("image/");
 
   const handleSave = async (values: ExpenseFormValues, submit: boolean = false) => {
     if (!currentOrganization || !user || !activeFiscalYear) {
@@ -155,6 +267,7 @@ export function ExpenseRequestForm({
             requester_name: profile?.full_name || "Unknown",
             requester_phone: profile?.phone_number || null,
             requester_email: profile?.email || null,
+            attachments: attachments,
           },
         });
 
@@ -188,6 +301,7 @@ export function ExpenseRequestForm({
             requester_phone: profile?.phone_number || null,
             requester_email: profile?.email || null,
             status: "draft",
+            attachments: attachments,
           },
           actorId: user.id,
           actorName: profile?.full_name || "Unknown",
@@ -372,6 +486,79 @@ export function ExpenseRequestForm({
                     </FormItem>
                   )}
                 />
+              </div>
+
+              {/* Attachments Section */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <FormLabel>Attachments</FormLabel>
+                  <span className="text-xs text-muted-foreground">
+                    Max 10MB per file. Supports images, PDFs, Word, Excel.
+                  </span>
+                </div>
+
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+
+                {/* Upload button */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-dashed"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Paperclip className="mr-2 h-4 w-4" />
+                  )}
+                  {isUploading ? "Uploading..." : "Add Attachments"}
+                </Button>
+
+                {/* Attachment list */}
+                {attachments.length > 0 && (
+                  <div className="space-y-2">
+                    {attachments.map((attachment) => (
+                      <div
+                        key={attachment.id}
+                        className="flex items-center justify-between p-2 bg-muted rounded-md"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          {isImageFile(attachment.type) ? (
+                            <ImageIcon className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                          ) : (
+                            <FileText className="h-4 w-4 text-orange-500 flex-shrink-0" />
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              {attachment.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatFileSize(attachment.size)}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveAttachment(attachment)}
+                          className="flex-shrink-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <DialogFooter className="flex-col sm:flex-row gap-2 pt-4">
