@@ -55,7 +55,7 @@ import {
   ExpenseList,
   BudgetMetricsGrid,
   BudgetReportExport,
-  ContributorReportExport,
+  EnhancedReportExport,
   BudgetOverview,
 } from "../components";
 import { AllocationRequestForm } from "../components/AllocationRequestForm";
@@ -224,14 +224,22 @@ const BudgetDashboard = () => {
                 organizationName={currentOrganization.name}
               />
             )}
-            {/* Contributor Export */}
-            {isContributor && expenses && expenses.length > 0 && user && (
-              <ContributorReportExport
-                expenses={expenses}
-                userName={user.email || "User"}
-                organizationName={currentOrganization.name}
-              />
-            )}
+            {/* Enhanced Report Export */}
+            {isContributor &&
+              (expenses?.length > 0 || myAllocationRequests?.length > 0) &&
+              user && (
+                <EnhancedReportExport
+                  expenses={myExpenses}
+                  allocations={myAllocationRequests}
+                  userName={user.email || "User"}
+                  organizationName={currentOrganization.name}
+                  ministryName={userMinistryName}
+                  fiscalYearName={
+                    fiscalYears?.find((fy) => fy.id === effectiveFiscalYearId)
+                      ?.name
+                  }
+                />
+              )}
 
             {/* New Request Dropdown */}
             <DropdownMenu>

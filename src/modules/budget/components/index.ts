@@ -17,6 +17,7 @@ export {
 export { BudgetSummaryCard, BudgetQuickStats } from "./BudgetSummaryCard";
 export { ExpenseList } from "./ExpenseList";
 export { ExpenseDetailDialog } from "./ExpenseDetailDialog";
+export { EnhancedReportExport } from "./EnhancedReportExport";
 
 // Allocation Request Components
 export { AllocationRequestForm } from "./AllocationRequestForm";
