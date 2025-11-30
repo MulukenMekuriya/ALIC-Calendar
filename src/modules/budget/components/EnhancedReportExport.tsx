@@ -571,7 +571,8 @@ export const EnhancedReportExport = ({
               new Date(expense.created_at).toLocaleDateString(),
               expense.title.substring(0, 30) +
                 (expense.title.length > 30 ? "..." : ""),
-              expense.ministry?.name || "N/A",
+              (expense.description || "").substring(0, 30) +
+                ((expense.description || "").length > 30 ? "..." : ""),
               `$${expense.amount.toLocaleString()}`,
               expense.status
                 .replace(/_/g, " ")
@@ -580,7 +581,7 @@ export const EnhancedReportExport = ({
 
           autoTable(doc, {
             startY: currentY,
-            head: [["Date", "Title", "Ministry", "Amount", "Status"]],
+            head: [["Date", "Justification", "Description", "Amount", "Status"]],
             body: recentExpenses,
             theme: "striped",
             headStyles: {
@@ -619,7 +620,8 @@ export const EnhancedReportExport = ({
             .slice(0, 10)
             .map((allocation) => [
               new Date(allocation.created_at).toLocaleDateString(),
-              allocation.ministry?.name || "N/A",
+              (allocation.justification || "").substring(0, 30) +
+                ((allocation.justification || "").length > 30 ? "..." : ""),
               `$${allocation.requested_amount.toLocaleString()}`,
               allocation.approved_amount
                 ? `$${allocation.approved_amount.toLocaleString()}`
@@ -631,7 +633,7 @@ export const EnhancedReportExport = ({
 
           autoTable(doc, {
             startY: currentY,
-            head: [["Date", "Ministry", "Requested", "Approved", "Status"]],
+            head: [["Date", "Justification", "Requested", "Approved", "Status"]],
             body: recentAllocations,
             theme: "striped",
             headStyles: {
@@ -732,11 +734,11 @@ export const EnhancedReportExport = ({
       ["Allocation Approval Rate", `${stats.allocations.approvalRate}%`],
       [],
       ["EXPENSE DETAILS"],
-      ["Date", "Title", "Ministry", "Amount", "Status", "Fiscal Year"],
+      ["Date", "Justification", "Description", "Amount", "Status", "Fiscal Year"],
       ...expenses.map((expense) => [
         new Date(expense.created_at).toLocaleDateString(),
         expense.title,
-        expense.ministry?.name || "N/A",
+        expense.description || "N/A",
         expense.amount,
         expense.status,
         expense.fiscal_year?.name || "N/A",
@@ -745,7 +747,7 @@ export const EnhancedReportExport = ({
       ["ALLOCATION DETAILS"],
       [
         "Date",
-        "Ministry",
+        "Justification",
         "Requested Amount",
         "Approved Amount",
         "Status",
@@ -753,7 +755,7 @@ export const EnhancedReportExport = ({
       ],
       ...allocations.map((allocation) => [
         new Date(allocation.created_at).toLocaleDateString(),
-        allocation.ministry?.name || "N/A",
+        allocation.justification || "N/A",
         allocation.requested_amount,
         allocation.approved_amount || "N/A",
         allocation.status,
@@ -1070,8 +1072,8 @@ export const EnhancedReportExport = ({
               <thead>
                 <tr>
                   <th>Date</th>
-                  <th>Title</th>
-                  <th>Ministry</th>
+                  <th>Justification</th>
+                  <th>Description</th>
                   <th class="text-right">Amount</th>
                   <th>Status</th>
                 </tr>
@@ -1091,7 +1093,7 @@ export const EnhancedReportExport = ({
                         expense.created_at
                       ).toLocaleDateString()}</td>
                       <td>${expense.title}</td>
-                      <td>${expense.ministry?.name || "N/A"}</td>
+                      <td>${expense.description || "N/A"}</td>
                       <td class="text-right">$${expense.amount.toLocaleString()}</td>
                       <td><span class="status-badge status-${
                         [
@@ -1165,7 +1167,7 @@ export const EnhancedReportExport = ({
               <thead>
                 <tr>
                   <th>Date</th>
-                  <th>Ministry</th>
+                  <th>Justification</th>
                   <th class="text-right">Requested</th>
                   <th class="text-right">Approved</th>
                   <th>Status</th>
@@ -1185,7 +1187,7 @@ export const EnhancedReportExport = ({
                       <td>${new Date(
                         allocation.created_at
                       ).toLocaleDateString()}</td>
-                      <td>${allocation.ministry?.name || "N/A"}</td>
+                      <td>${allocation.justification || "N/A"}</td>
                       <td class="text-right">$${allocation.requested_amount.toLocaleString()}</td>
                       <td class="text-right">${
                         allocation.approved_amount
