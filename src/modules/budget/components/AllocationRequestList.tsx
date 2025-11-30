@@ -103,8 +103,13 @@ export function AllocationRequestList({
   const submitRequest = useSubmitAllocationRequest();
   const cancelRequest = useCancelAllocationRequest();
 
-  // Filter requests
+  // Filter requests (EXCLUDE cancelled requests completely)
   const filteredRequests = requests.filter((request) => {
+    // First, exclude cancelled requests entirely
+    if (request.status === "cancelled") {
+      return false;
+    }
+
     const matchesSearch =
       request.justification.toLowerCase().includes(searchQuery.toLowerCase()) ||
       request.ministry?.name

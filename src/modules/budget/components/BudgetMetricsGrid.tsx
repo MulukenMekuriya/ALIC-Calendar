@@ -128,38 +128,42 @@ const BudgetMetricsGrid = ({
   const utilizationRate =
     totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(1) : "0";
 
-  // Expense calculations from real data
-  const pendingExpenses = safeExpenses.filter(
+  // Expense calculations from real data (EXCLUDING cancelled requests)
+  const activeExpenses = safeExpenses.filter((e) => e.status !== "cancelled");
+  
+  const pendingExpenses = activeExpenses.filter(
     (e) =>
       e.status === "pending_leader" ||
       e.status === "pending_treasury" ||
       e.status === "pending_finance"
   ).length;
 
-  const completedExpenses = safeExpenses.filter(
+  const completedExpenses = activeExpenses.filter(
     (e) => e.status === "treasury_approved" || e.status === "leader_approved"
   ).length;
 
-  const deniedExpenses = safeExpenses.filter(
+  const deniedExpenses = activeExpenses.filter(
     (e) => e.status === "leader_denied" || e.status === "treasury_denied"
   ).length;
 
-  const totalExpenses = safeExpenses.length;
+  const totalExpenses = activeExpenses.length;
 
-  // Allocation calculations from real data
-  const pendingAllocations = safeAllocations.filter(
+  // Allocation calculations from real data (EXCLUDING cancelled requests)
+  const activeAllocations = safeAllocations.filter((a) => a.status !== "cancelled");
+  
+  const pendingAllocations = activeAllocations.filter(
     (a) => a.status === "pending"
   ).length;
 
-  const approvedAllocations = safeAllocations.filter(
+  const approvedAllocations = activeAllocations.filter(
     (a) => a.status === "approved" || a.status === "partially_approved"
   ).length;
 
-  const deniedAllocations = safeAllocations.filter(
+  const deniedAllocations = activeAllocations.filter(
     (a) => a.status === "denied"
   ).length;
 
-  const totalAllocations = safeAllocations.length;
+  const totalAllocations = activeAllocations.length;
 
   // Combined metrics
   const totalRequests = totalExpenses + totalAllocations;

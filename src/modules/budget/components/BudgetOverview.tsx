@@ -52,12 +52,16 @@ const BudgetOverview = ({
 }: BudgetOverviewProps) => {
   const [activeView, setActiveView] = useState(defaultView);
 
-  const hasExpenses = expenses.length > 0;
-  const hasAllocations = allocations.length > 0;
+  // Filter out cancelled requests completely
+  const activeExpenses = expenses.filter((e) => e.status !== "cancelled");
+  const activeAllocations = allocations.filter((a) => a.status !== "cancelled");
 
-  // Calculate quick stats
-  const expenseTotal = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const allocationTotal = allocations.reduce(
+  const hasExpenses = activeExpenses.length > 0;
+  const hasAllocations = activeAllocations.length > 0;
+
+  // Calculate quick stats (excluding cancelled requests)
+  const expenseTotal = activeExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const allocationTotal = activeAllocations.reduce(
     (sum, a) => sum + a.requested_amount,
     0
   );
@@ -184,7 +188,7 @@ const BudgetOverview = ({
                           variant="secondary"
                           className="ml-1 bg-blue-100 text-blue-700 border-0 px-2 py-0.5 text-xs font-bold"
                         >
-                          {expenses.length}
+                          {activeExpenses.length}
                         </Badge>
                       </div>
                     </TabsTrigger>
@@ -203,7 +207,7 @@ const BudgetOverview = ({
                           variant="secondary"
                           className="ml-1 bg-purple-100 text-purple-700 border-0 px-2 py-0.5 text-xs font-bold"
                         >
-                          {allocations.length}
+                          {activeAllocations.length}
                         </Badge>
                       </div>
                     </TabsTrigger>
@@ -223,7 +227,7 @@ const BudgetOverview = ({
                         <div className="space-y-8">
                           <BudgetSection
                             type="expenses"
-                            data={expenses}
+                            data={activeExpenses}
                             showHeader={false}
                           />
 
@@ -235,7 +239,7 @@ const BudgetOverview = ({
                                 All Expense Requests
                               </h3>
                               <ExpenseList
-                                expenses={expenses}
+                                expenses={activeExpenses}
                                 isLoading={expenseListProps.isLoading || false}
                                 userRole={expenseListProps.userRole || "admin"}
                                 onRefresh={
@@ -254,7 +258,7 @@ const BudgetOverview = ({
                         <div className="space-y-8">
                           <BudgetSection
                             type="allocations"
-                            data={allocations}
+                            data={activeAllocations}
                             showHeader={false}
                           />
 
@@ -266,7 +270,7 @@ const BudgetOverview = ({
                                 All Allocation Requests
                               </h3>
                               <AllocationRequestList
-                                requests={allocations}
+                                requests={activeAllocations}
                                 isLoading={
                                   allocationListProps.isLoading || false
                                 }

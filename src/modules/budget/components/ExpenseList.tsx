@@ -95,8 +95,13 @@ export function ExpenseList({
   const deleteExpense = useDeleteExpense();
   const submitForReview = useSubmitExpenseForReview();
 
-  // Filter expenses
+  // Filter expenses (EXCLUDE cancelled requests completely)
   const filteredExpenses = expenses.filter((expense) => {
+    // First, exclude cancelled requests entirely
+    if (expense.status === "cancelled") {
+      return false;
+    }
+
     const matchesSearch =
       expense.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       expense.requester_name.toLowerCase().includes(searchQuery.toLowerCase()) ||

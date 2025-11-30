@@ -142,12 +142,13 @@ export const budgetAllocationService = {
     const allocation = await this.getByMinistryAndFiscalYear(ministryId, fiscalYearId);
     if (!allocation) return null;
 
-    // Get expense totals by status
+    // Get expense totals by status (EXCLUDING cancelled expenses)
     const { data: expenses, error } = await budgetSchema()
       .from("expense_requests")
       .select("amount, status")
       .eq("ministry_id", ministryId)
-      .eq("fiscal_year_id", fiscalYearId);
+      .eq("fiscal_year_id", fiscalYearId)
+      .neq("status", "cancelled"); // Exclude cancelled expenses
 
     if (error) throw error;
 
@@ -214,12 +215,13 @@ export const budgetAllocationService = {
 
     if (fyError) throw fyError;
 
-    // Get all expenses for this fiscal year
+    // Get all expenses for this fiscal year (EXCLUDING cancelled expenses)
     const { data: expenses, error: expError } = await budgetSchema()
       .from("expense_requests")
       .select("ministry_id, amount, status")
       .eq("organization_id", organizationId)
-      .eq("fiscal_year_id", fiscalYearId);
+      .eq("fiscal_year_id", fiscalYearId)
+      .neq("status", "cancelled"); // Exclude cancelled expenses
 
     if (expError) throw expError;
 

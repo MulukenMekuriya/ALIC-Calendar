@@ -61,26 +61,24 @@ async function createRealBudgetAllocation() {
   }
 }
 
-// Alternative: Direct SQL insert you can run in Supabase SQL editor
+// Alternative: Direct SQL insert you can run in Supabase SQL editor (EXCLUDING cancelled requests)
 const directSQLInsert = `
--- Run this in Supabase SQL Editor to create budget allocation
+-- Run this in Supabase SQL Editor to create budget allocation from APPROVED requests only
 INSERT INTO budget.budget_allocations (
   organization_id,
   ministry_id,
   fiscal_year_id,
-  allocated_amount,
-  created_by,
-  created_at,
-  updated_at
-) VALUES (
-  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-  '573b2781-1c72-44f6-9bca-3d5b48e5c950',
-  '85094e42-db58-4a7c-81f1-36c40d363c2b',
-  200.00,
-  'bacb3a03-a984-4320-8019-36c40d363c2b',
-  NOW(),
-  NOW()
-);
+  allocated_amount
+) 
+SELECT 
+  organization_id,
+  ministry_id,
+  fiscal_year_id,
+  approved_amount as allocated_amount
+FROM budget.allocation_requests 
+WHERE status IN ('approved', 'partially_approved')
+  AND status != 'cancelled'  -- Explicitly exclude cancelled requests
+  AND approved_amount > 0;
 `;
 
 console.log("🔧 Direct SQL Insert:", directSQLInsert);

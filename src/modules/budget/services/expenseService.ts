@@ -35,6 +35,7 @@ export const expenseService = {
         fiscal_years(id, name, year)
       `)
       .eq("organization_id", organizationId)
+      .neq("status", "cancelled") // Exclude cancelled requests by default
       .order("created_at", { ascending: false });
 
     // Apply filters
