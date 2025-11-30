@@ -11,7 +11,7 @@ export const CHURCH_BRANDING = {
 
   // Logo Paths
   logo: {
-    main: "/church-logo.png",
+    main: "/alic-logo.png",
     alt: "Addis Lidet International Church Logo",
     favicon: "/favicon.ico",
   },

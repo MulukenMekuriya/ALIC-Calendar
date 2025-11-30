@@ -182,7 +182,13 @@ const Auth = () => {
                 src={CHURCH_BRANDING.logo.main}
                 alt={CHURCH_BRANDING.logo.alt}
                 className="h-20 w-20 object-contain"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = "none";
+                  target.nextElementSibling?.classList.remove("hidden");
+                }}
               />
+              <Church className="h-20 w-20 text-white hidden" />
             </div>
           </div>
           <h1 className="text-4xl font-bold mb-4">{CHURCH_BRANDING.name}</h1>
@@ -224,7 +230,13 @@ const Auth = () => {
                   src={CHURCH_BRANDING.logo.main}
                   alt={CHURCH_BRANDING.logo.alt}
                   className="h-12 w-12 object-contain"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = "none";
+                    target.nextElementSibling?.classList.remove("hidden");
+                  }}
                 />
+                <Church className="h-12 w-12 text-white hidden" />
               </div>
             </div>
             <div className="text-center">

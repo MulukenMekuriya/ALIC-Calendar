@@ -19,7 +19,9 @@ import { Download, Printer, FileText } from "lucide-react";
 import type {
   ExpenseRequestWithRelations,
   AllocationRequestWithRelations,
+  AttachmentData,
 } from "../types";
+import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import html2canvas from "html2canvas";
@@ -567,21 +569,26 @@ export const EnhancedReportExport = ({
                 new Date(a.created_at).getTime()
             )
             .slice(0, 10)
-            .map((expense) => [
-              new Date(expense.created_at).toLocaleDateString(),
-              expense.title.substring(0, 30) +
-                (expense.title.length > 30 ? "..." : ""),
-              (expense.description || "").substring(0, 30) +
-                ((expense.description || "").length > 30 ? "..." : ""),
-              `$${expense.amount.toLocaleString()}`,
-              expense.status
-                .replace(/_/g, " ")
-                .replace(/\b\w/g, (l) => l.toUpperCase()),
-            ]);
+            .map((expense) => {
+              const attachments = expense.attachments as unknown as AttachmentData[] | undefined;
+              const attachmentCount = attachments?.length || 0;
+              return [
+                new Date(expense.created_at).toLocaleDateString(),
+                expense.title.substring(0, 30) +
+                  (expense.title.length > 30 ? "..." : ""),
+                (expense.description || "").substring(0, 30) +
+                  ((expense.description || "").length > 30 ? "..." : ""),
+                `$${expense.amount.toLocaleString()}`,
+                expense.status
+                  .replace(/_/g, " ")
+                  .replace(/\b\w/g, (l) => l.toUpperCase()),
+                attachmentCount > 0 ? `${attachmentCount} file${attachmentCount > 1 ? 's' : ''}` : '-',
+              ];
+            });
 
           autoTable(doc, {
             startY: currentY,
-            head: [["Date", "Justification", "Description", "Amount", "Status"]],
+            head: [["Date", "Justification", "Description", "Amount", "Status", "Attachments"]],
             body: recentExpenses,
             theme: "striped",
             headStyles: {
@@ -644,6 +651,141 @@ export const EnhancedReportExport = ({
             tableWidth: "auto",
             margin: { left: margin, right: margin },
           });
+        }
+      }
+
+      // Attachments Section - Add all expense attachments
+      const expensesWithAttachments = expenses.filter((expense) => {
+        const attachments = expense.attachments as unknown as AttachmentData[] | undefined;
+        return attachments && attachments.length > 0;
+      });
+
+      if (expensesWithAttachments.length > 0) {
+        doc.addPage();
+        currentY = 20;
+
+        doc.setFontSize(16);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30, 64, 175);
+        doc.text("Expense Attachments", margin, currentY);
+        currentY += 15;
+
+        for (const expense of expensesWithAttachments) {
+          const attachments = expense.attachments as unknown as AttachmentData[] | undefined;
+          if (!attachments || attachments.length === 0) continue;
+
+          // Check if we need a new page
+          if (currentY > pageHeight - 100) {
+            doc.addPage();
+            currentY = 20;
+          }
+
+          // Expense header
+          doc.setFillColor(239, 246, 255);
+          doc.rect(margin, currentY - 5, pageWidth - 2 * margin, 20, "F");
+
+          doc.setFontSize(11);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(30, 64, 175);
+          doc.text(expense.title, margin + 5, currentY + 5);
+
+          doc.setFontSize(9);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(100, 100, 100);
+          doc.text(
+            `$${expense.amount.toLocaleString()} • ${new Date(expense.created_at).toLocaleDateString()}`,
+            margin + 5,
+            currentY + 12
+          );
+          currentY += 25;
+
+          // Process each attachment
+          for (const attachment of attachments) {
+            try {
+              // Get signed URL for the attachment
+              let filePath = attachment.url || attachment.id;
+              if (filePath.includes("supabase.co/storage")) {
+                const match = filePath.match(/expense-attachments\/(.+)$/);
+                if (match) {
+                  filePath = match[1];
+                }
+              }
+
+              const { data: signedUrlData } = await supabase.storage
+                .from("expense-attachments")
+                .createSignedUrl(filePath, 3600);
+
+              if (signedUrlData?.signedUrl) {
+                const isImage = attachment.type.startsWith("image/");
+
+                if (isImage) {
+                  // Check if we need a new page for the image
+                  if (currentY > pageHeight - 120) {
+                    doc.addPage();
+                    currentY = 20;
+                  }
+
+                  try {
+                    // Load and add image to PDF
+                    const img = await loadImage(signedUrlData.signedUrl);
+
+                    // Calculate dimensions to fit within page width while maintaining aspect ratio
+                    const maxWidth = pageWidth - 2 * margin - 20;
+                    const maxHeight = 100;
+                    let imgWidth = img.width;
+                    let imgHeight = img.height;
+
+                    if (imgWidth > maxWidth) {
+                      const ratio = maxWidth / imgWidth;
+                      imgWidth = maxWidth;
+                      imgHeight = imgHeight * ratio;
+                    }
+                    if (imgHeight > maxHeight) {
+                      const ratio = maxHeight / imgHeight;
+                      imgHeight = maxHeight;
+                      imgWidth = imgWidth * ratio;
+                    }
+
+                    // Add attachment name
+                    doc.setFontSize(9);
+                    doc.setFont("helvetica", "normal");
+                    doc.setTextColor(60, 60, 60);
+                    doc.text(`📎 ${attachment.name}`, margin + 5, currentY);
+                    currentY += 5;
+
+                    // Add the image
+                    doc.addImage(img, "JPEG", margin + 5, currentY, imgWidth, imgHeight);
+                    currentY += imgHeight + 15;
+                  } catch (imgError) {
+                    // If image fails to load, just show the filename
+                    doc.setFontSize(9);
+                    doc.setFont("helvetica", "normal");
+                    doc.setTextColor(60, 60, 60);
+                    doc.text(`📎 ${attachment.name} (image could not be loaded)`, margin + 5, currentY);
+                    currentY += 10;
+                  }
+                } else {
+                  // Non-image attachment - just list the filename
+                  doc.setFontSize(9);
+                  doc.setFont("helvetica", "normal");
+                  doc.setTextColor(60, 60, 60);
+                  const fileSize = attachment.size < 1024 * 1024
+                    ? `${(attachment.size / 1024).toFixed(1)} KB`
+                    : `${(attachment.size / (1024 * 1024)).toFixed(1)} MB`;
+                  doc.text(`📄 ${attachment.name} (${fileSize})`, margin + 5, currentY);
+                  currentY += 10;
+                }
+              }
+            } catch (error) {
+              console.error("Error processing attachment:", error);
+              doc.setFontSize(9);
+              doc.setTextColor(150, 150, 150);
+              doc.text(`📎 ${attachment.name} (unavailable)`, margin + 5, currentY);
+              currentY += 10;
+            }
+          }
+
+          currentY += 10; // Space between expenses
         }
       }
 
@@ -734,15 +876,20 @@ export const EnhancedReportExport = ({
       ["Allocation Approval Rate", `${stats.allocations.approvalRate}%`],
       [],
       ["EXPENSE DETAILS"],
-      ["Date", "Justification", "Description", "Amount", "Status", "Fiscal Year"],
-      ...expenses.map((expense) => [
-        new Date(expense.created_at).toLocaleDateString(),
-        expense.title,
-        expense.description || "N/A",
-        expense.amount,
-        expense.status,
-        expense.fiscal_year?.name || "N/A",
-      ]),
+      ["Date", "Justification", "Description", "Amount", "Status", "Fiscal Year", "Attachments"],
+      ...expenses.map((expense) => {
+        const attachments = expense.attachments as unknown as AttachmentData[] | undefined;
+        const attachmentNames = attachments?.map(a => a.name).join("; ") || "None";
+        return [
+          new Date(expense.created_at).toLocaleDateString(),
+          expense.title,
+          expense.description || "N/A",
+          expense.amount,
+          expense.status,
+          expense.fiscal_year?.name || "N/A",
+          attachmentNames,
+        ];
+      }),
       [],
       ["ALLOCATION DETAILS"],
       [
@@ -1076,6 +1223,7 @@ export const EnhancedReportExport = ({
                   <th>Description</th>
                   <th class="text-right">Amount</th>
                   <th>Status</th>
+                  <th>Attachments</th>
                 </tr>
               </thead>
               <tbody>
@@ -1087,7 +1235,10 @@ export const EnhancedReportExport = ({
                   )
                   .slice(0, 15)
                   .map(
-                    (expense) => `
+                    (expense) => {
+                      const attachments = expense.attachments as unknown as AttachmentData[] | undefined;
+                      const attachmentCount = attachments?.length || 0;
+                      return `
                     <tr>
                       <td>${new Date(
                         expense.created_at
@@ -1112,8 +1263,10 @@ export const EnhancedReportExport = ({
                       }">${expense.status
                       .replace(/_/g, " ")
                       .replace(/\b\w/g, (l) => l.toUpperCase())}</span></td>
+                      <td>${attachmentCount > 0 ? `${attachmentCount} file${attachmentCount > 1 ? 's' : ''}` : '-'}</td>
                     </tr>
-                  `
+                  `;
+                    }
                   )
                   .join("")}
               </tbody>

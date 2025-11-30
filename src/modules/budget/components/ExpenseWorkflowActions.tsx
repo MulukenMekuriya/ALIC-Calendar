@@ -18,12 +18,14 @@ import { Label } from "@/shared/components/ui/label";
 import { Loader2, CheckCircle, XCircle, CreditCard } from "lucide-react";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useAuth } from "@/shared/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import {
   useLeaderApproveExpense,
   useLeaderDenyExpense,
   useTreasuryApproveExpense,
   useTreasuryDenyExpense,
   useFinanceProcessExpense,
+  useCancelExpense,
 } from "../hooks";
 import type { ExpenseRequestWithRelations } from "../types";
 import { ExpenseStatusBadge } from "./ExpenseStatusBadge";
@@ -61,7 +63,8 @@ export function LeaderApproveDialog({
   onSuccess,
 }: BaseActionDialogProps) {
   const { toast } = useToast();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  const { profile } = useUserProfile();
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -182,7 +185,8 @@ export function LeaderDenyDialog({
   onSuccess,
 }: BaseActionDialogProps) {
   const { toast } = useToast();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  const { profile } = useUserProfile();
   const [reason, setReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -308,7 +312,8 @@ export function TreasuryApproveDialog({
   onSuccess,
 }: BaseActionDialogProps) {
   const { toast } = useToast();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  const { profile } = useUserProfile();
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -429,7 +434,8 @@ export function TreasuryDenyDialog({
   onSuccess,
 }: BaseActionDialogProps) {
   const { toast } = useToast();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  const { profile } = useUserProfile();
   const [reason, setReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -554,7 +560,8 @@ export function FinanceProcessDialog({
   onSuccess,
 }: BaseActionDialogProps) {
   const { toast } = useToast();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  const { profile } = useUserProfile();
   const [paymentReference, setPaymentReference] = useState("");
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -684,6 +691,106 @@ export function FinanceProcessDialog({
               <CreditCard className="mr-2 h-4 w-4" />
             )}
             Complete Payment
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * Cancel Expense Dialog
+ */
+export function CancelExpenseDialog({
+  open,
+  onOpenChange,
+  expense,
+  onSuccess,
+}: BaseActionDialogProps) {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const { profile } = useUserProfile();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const cancelExpense = useCancelExpense();
+
+  const handleCancel = async () => {
+    if (!user || !profile) return;
+
+    setIsSubmitting(true);
+    try {
+      await cancelExpense.mutateAsync({
+        expenseId: expense.id,
+        actorId: user.id,
+        actorName: profile.full_name,
+        reason: "Cancelled by requester",
+      });
+
+      toast({
+        title: "Expense Cancelled",
+        description: "The expense request has been cancelled.",
+      });
+
+      onOpenChange(false);
+      onSuccess?.();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to cancel expense",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <XCircle className="h-5 w-5 text-orange-500" />
+            Cancel Expense Request
+          </DialogTitle>
+          <DialogDescription>
+            Are you sure you want to cancel this expense request? This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Request</span>
+              <span className="text-sm font-medium">{expense.title}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Amount</span>
+              <span className="text-sm font-medium">
+                ${Number(expense.amount).toFixed(2)}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Status</span>
+              <ExpenseStatusBadge status={expense.status} size="sm" />
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            Keep Request
+          </Button>
+          <Button
+            onClick={handleCancel}
+            disabled={isSubmitting}
+            className="bg-orange-600 hover:bg-orange-700"
+          >
+            {isSubmitting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <XCircle className="mr-2 h-4 w-4" />
+            )}
+            Cancel Request
           </Button>
         </DialogFooter>
       </DialogContent>

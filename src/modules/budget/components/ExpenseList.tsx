@@ -49,11 +49,13 @@ import {
   TreasuryApproveDialog,
   TreasuryDenyDialog,
   FinanceProcessDialog,
+  CancelExpenseDialog,
 } from "./ExpenseWorkflowActions";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useAuth } from "@/shared/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { useSearch } from "@/shared/contexts/SearchContext";
-import { useDeleteExpense, useSubmitExpenseForReview, useCancelExpense } from "../hooks";
+import { useDeleteExpense, useSubmitExpenseForReview } from "../hooks";
 import type { ExpenseRequestWithRelations, ExpenseStatus } from "../types";
 import { EXPENSE_STATUS_CONFIG } from "../types";
 
@@ -71,7 +73,8 @@ export function ExpenseList({
   onRefresh,
 }: ExpenseListProps) {
   const { toast } = useToast();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  const { profile } = useUserProfile();
   const { searchQuery } = useSearch();
 
   // State for dialogs
@@ -83,6 +86,7 @@ export function ExpenseList({
   const [isTreasuryApproveOpen, setIsTreasuryApproveOpen] = useState(false);
   const [isTreasuryDenyOpen, setIsTreasuryDenyOpen] = useState(false);
   const [isFinanceProcessOpen, setIsFinanceProcessOpen] = useState(false);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<ExpenseStatus | "all">("all");
@@ -90,7 +94,6 @@ export function ExpenseList({
   // Mutations
   const deleteExpense = useDeleteExpense();
   const submitForReview = useSubmitExpenseForReview();
-  const cancelExpense = useCancelExpense();
 
   // Filter expenses
   const filteredExpenses = expenses.filter((expense) => {
@@ -142,31 +145,6 @@ export function ExpenseList({
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to submit expense",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleCancel = async (expense: ExpenseRequestWithRelations) => {
-    if (!user || !profile) return;
-    if (!confirm("Are you sure you want to cancel this expense request?")) return;
-
-    try {
-      await cancelExpense.mutateAsync({
-        expenseId: expense.id,
-        actorId: user.id,
-        actorName: profile.full_name,
-        reason: "Cancelled by requester",
-      });
-      toast({
-        title: "Expense cancelled",
-        description: "The expense request has been cancelled.",
-      });
-      onRefresh?.();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to cancel expense",
         variant: "destructive",
       });
     }
@@ -313,7 +291,10 @@ export function ExpenseList({
                               <>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                  onClick={() => handleCancel(expense)}
+                                  onClick={() => {
+                                    setSelectedExpense(expense);
+                                    setIsCancelDialogOpen(true);
+                                  }}
                                   className="text-orange-600"
                                 >
                                   <XCircle className="mr-2 h-4 w-4" />
@@ -461,6 +442,12 @@ export function ExpenseList({
           <FinanceProcessDialog
             open={isFinanceProcessOpen}
             onOpenChange={setIsFinanceProcessOpen}
+            expense={selectedExpense}
+            onSuccess={onRefresh}
+          />
+          <CancelExpenseDialog
+            open={isCancelDialogOpen}
+            onOpenChange={setIsCancelDialogOpen}
             expense={selectedExpense}
             onSuccess={onRefresh}
           />
