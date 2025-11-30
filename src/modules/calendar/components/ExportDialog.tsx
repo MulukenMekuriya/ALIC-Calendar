@@ -67,9 +67,11 @@ const ExportDialog = ({
   // Filter events for preview counts
   const getFilteredEventCount = (filterScope: ExportScope): number => {
     return events.filter((event) => {
-      if (!isAdmin && userId && event.created_by !== userId && event.status !== "published") {
+      // For non-admin users, only show their own events
+      if (!isAdmin && userId && event.created_by !== userId) {
         return false;
       }
+
       switch (filterScope) {
         case "approved":
           return event.status === "approved";
@@ -143,7 +145,8 @@ const ExportDialog = ({
 
   // Get events available for Google Calendar export
   const googleCalendarEvents = events.filter((event) => {
-    if (!isAdmin && userId && event.created_by !== userId && event.status !== "published") {
+    // For non-admin users, only show their own events
+    if (!isAdmin && userId && event.created_by !== userId) {
       return false;
     }
     return event.status === "approved" || event.status === "published";
@@ -274,37 +277,52 @@ const ExportDialog = ({
                 onValueChange={(value) => setScope(value as ExportScope)}
                 className="space-y-2"
               >
-                {isAdmin && (
-                  <>
-                    <div className="flex items-center space-x-3">
-                      <RadioGroupItem value="both" id="scope-both" />
-                      <Label htmlFor="scope-both" className="flex items-center gap-2 cursor-pointer">
-                        Approved & Published
-                        <Badge variant="outline" className="text-xs">
-                          {getFilteredEventCount("both")} events
-                        </Badge>
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <RadioGroupItem value="approved" id="scope-approved" />
-                      <Label htmlFor="scope-approved" className="flex items-center gap-2 cursor-pointer">
-                        Approved Only
-                        <Badge variant="outline" className="text-xs">
-                          {getFilteredEventCount("approved")} events
-                        </Badge>
-                      </Label>
-                    </div>
-                  </>
+                {/* Both approved & published - available to all authenticated users */}
+                {userId && (
+                  <div className="flex items-center space-x-3">
+                    <RadioGroupItem value="both" id="scope-both" />
+                    <Label htmlFor="scope-both" className="flex items-center gap-2 cursor-pointer">
+                      {isAdmin ? "Approved & Published" : "My Approved & Published"}
+                      <Badge variant="outline" className="text-xs">
+                        {getFilteredEventCount("both")} events
+                      </Badge>
+                    </Label>
+                  </div>
                 )}
-                <div className="flex items-center space-x-3">
-                  <RadioGroupItem value="published" id="scope-published" />
-                  <Label htmlFor="scope-published" className="flex items-center gap-2 cursor-pointer">
-                    Published Only
-                    <Badge variant="outline" className="text-xs">
-                      {getFilteredEventCount("published")} events
-                    </Badge>
-                  </Label>
-                </div>
+                {/* Approved only - available to all authenticated users (contributors see only their own) */}
+                {userId && (
+                  <div className="flex items-center space-x-3">
+                    <RadioGroupItem value="approved" id="scope-approved" />
+                    <Label htmlFor="scope-approved" className="flex items-center gap-2 cursor-pointer">
+                      {isAdmin ? "Approved Only" : "My Approved Only"}
+                      <Badge variant="outline" className="text-xs">
+                        {getFilteredEventCount("approved")} events
+                      </Badge>
+                    </Label>
+                  </div>
+                )}
+                {userId && (
+                  <div className="flex items-center space-x-3">
+                    <RadioGroupItem value="published" id="scope-published" />
+                    <Label htmlFor="scope-published" className="flex items-center gap-2 cursor-pointer">
+                      {isAdmin ? "Published Only" : "My Published Only"}
+                      <Badge variant="outline" className="text-xs">
+                        {getFilteredEventCount("published")} events
+                      </Badge>
+                    </Label>
+                  </div>
+                )}
+                {!userId && (
+                  <div className="flex items-center space-x-3">
+                    <RadioGroupItem value="published" id="scope-published" />
+                    <Label htmlFor="scope-published" className="flex items-center gap-2 cursor-pointer">
+                      Published Only
+                      <Badge variant="outline" className="text-xs">
+                        {getFilteredEventCount("published")} events
+                      </Badge>
+                    </Label>
+                  </div>
+                )}
                 {isAdmin && (
                   <div className="flex items-center space-x-3">
                     <RadioGroupItem value="all" id="scope-all" />

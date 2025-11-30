@@ -100,8 +100,8 @@ const filterEventsByScope = (
   isAdmin?: boolean
 ): ExportableEvent[] => {
   return events.filter((event) => {
-    // For non-admin users, only show their own events plus published events
-    if (!isAdmin && userId && event.created_by !== userId && event.status !== "published") {
+    // For non-admin users, only show their own events
+    if (!isAdmin && userId && event.created_by !== userId) {
       return false;
     }
 
@@ -113,7 +113,7 @@ const filterEventsByScope = (
       case "both":
         return event.status === "approved" || event.status === "published";
       case "all":
-        // For admin: all statuses; for contributor: their own + published
+        // For admin: all statuses; for contributor: their own events only
         return true;
       default:
         return event.status === "published";
