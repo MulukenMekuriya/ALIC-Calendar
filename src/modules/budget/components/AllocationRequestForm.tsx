@@ -1,6 +1,6 @@
 /**
- * AllocationRequestForm - Form for ministry leaders to request budget allocations
- * Supports annual (single amount), quarterly (Q1-Q4 amounts), or monthly (Jan-Dec amounts)
+ * AllocationRequestForm - Premium Budget Allocation Request Form
+ * Clean, modern UI with elegant period-based amount inputs
  */
 
 import { useState, useEffect } from "react";
@@ -10,15 +10,12 @@ import { z } from "zod";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/shared/components/ui/dialog";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -27,21 +24,15 @@ import {
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { Button } from "@/shared/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
-import { Card, CardContent } from "@/shared/components/ui/card";
+import { Separator } from "@/shared/components/ui/separator";
 import {
   Loader2,
-  DollarSign,
   Send,
   Save,
   Plus,
   Trash2,
+  Calendar,
+  TrendingUp,
 } from "lucide-react";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useAuth } from "@/shared/contexts/AuthContext";
@@ -60,30 +51,29 @@ import type {
   BudgetBreakdownItem,
 } from "../types";
 import {
-  PERIOD_TYPE_LABELS,
   QUARTERLY_PERIODS,
   MONTHLY_PERIODS,
 } from "../types";
 
 // Form validation schema
 const breakdownItemSchema = z.object({
-  category: z.string().min(1, "Category is required"),
-  description: z.string().min(1, "Description is required"),
-  amount: z.coerce.number().positive("Amount must be greater than 0"),
+  category: z.string().min(1, "Required"),
+  description: z.string().min(1, "Required"),
+  amount: z.coerce.number().positive("Must be > 0"),
 });
 
-// Period amount for quarterly/monthly breakdown
 const periodAmountSchema = z.object({
   period: z.number(),
   label: z.string(),
-  amount: z.coerce.number().min(0, "Amount must be 0 or greater"),
+  shortLabel: z.string(),
+  amount: z.coerce.number().min(0),
 });
 
 const allocationRequestFormSchema = z.object({
   period_type: z.enum(["annual", "quarterly", "monthly"]),
-  annual_amount: z.coerce.number().min(0).optional(), // For annual only
-  period_amounts: z.array(periodAmountSchema).optional(), // For quarterly/monthly
-  justification: z.string().min(10, "Please provide a detailed justification (at least 10 characters)"),
+  annual_amount: z.coerce.number().min(0).optional(),
+  period_amounts: z.array(periodAmountSchema).optional(),
+  justification: z.string().min(10, "Please provide at least 10 characters"),
   budget_breakdown: z.array(breakdownItemSchema).optional(),
 });
 
@@ -96,12 +86,34 @@ interface AllocationRequestFormProps {
   onSuccess?: () => void;
 }
 
-// Helper to create initial period amounts
+// Short labels for compact display
+const QUARTERLY_SHORT = [
+  { value: 1, label: "Q1 (Jan-Mar)", shortLabel: "Q1" },
+  { value: 2, label: "Q2 (Apr-Jun)", shortLabel: "Q2" },
+  { value: 3, label: "Q3 (Jul-Sep)", shortLabel: "Q3" },
+  { value: 4, label: "Q4 (Oct-Dec)", shortLabel: "Q4" },
+];
+
+const MONTHLY_SHORT = [
+  { value: 1, label: "January", shortLabel: "Jan" },
+  { value: 2, label: "February", shortLabel: "Feb" },
+  { value: 3, label: "March", shortLabel: "Mar" },
+  { value: 4, label: "April", shortLabel: "Apr" },
+  { value: 5, label: "May", shortLabel: "May" },
+  { value: 6, label: "June", shortLabel: "Jun" },
+  { value: 7, label: "July", shortLabel: "Jul" },
+  { value: 8, label: "August", shortLabel: "Aug" },
+  { value: 9, label: "September", shortLabel: "Sep" },
+  { value: 10, label: "October", shortLabel: "Oct" },
+  { value: 11, label: "November", shortLabel: "Nov" },
+  { value: 12, label: "December", shortLabel: "Dec" },
+];
+
 const createQuarterlyAmounts = () =>
-  QUARTERLY_PERIODS.map((q) => ({ period: q.value, label: q.label, amount: 0 }));
+  QUARTERLY_SHORT.map((q) => ({ period: q.value, label: q.label, shortLabel: q.shortLabel, amount: 0 }));
 
 const createMonthlyAmounts = () =>
-  MONTHLY_PERIODS.map((m) => ({ period: m.value, label: m.label, amount: 0 }));
+  MONTHLY_SHORT.map((m) => ({ period: m.value, label: m.label, shortLabel: m.shortLabel, amount: 0 }));
 
 export function AllocationRequestForm({
   open,
@@ -146,16 +158,16 @@ export function AllocationRequestForm({
 
   const periodType = form.watch("period_type");
   const periodAmounts = form.watch("period_amounts") || [];
+  const annualAmount = form.watch("annual_amount") || 0;
 
-  // Get the user's ministry from their profile
   const userMinistry = ministries?.find(
     (m) => m.name.toLowerCase() === profile?.ministry_name?.toLowerCase()
   );
 
-  // Calculate total from period amounts
+  // Calculate totals
   const periodAmountsTotal = periodAmounts.reduce((sum, pa) => sum + Number(pa.amount || 0), 0);
+  const totalAmount = periodType === "annual" ? annualAmount : periodAmountsTotal;
 
-  // Calculate total from breakdown
   const breakdownTotal = breakdownFields.reduce((sum, _, index) => {
     const amount = form.watch(`budget_breakdown.${index}.amount`) || 0;
     return sum + Number(amount);
@@ -175,7 +187,6 @@ export function AllocationRequestForm({
   // Update form values when request changes (for editing)
   useEffect(() => {
     if (request) {
-      // Parse the budget_breakdown to extract period amounts if they exist
       const breakdown = request.budget_breakdown || [];
       const periodAmountsFromBreakdown = breakdown.filter(
         (item) => item.category === "__period_amount__"
@@ -191,9 +202,7 @@ export function AllocationRequestForm({
         });
       } else if (request.period_type === "quarterly") {
         const quarterAmounts = createQuarterlyAmounts().map((q) => {
-          const found = periodAmountsFromBreakdown.find(
-            (p) => p.description === q.label
-          );
+          const found = periodAmountsFromBreakdown.find((p) => p.description === q.label);
           return { ...q, amount: found?.amount || 0 };
         });
         form.reset({
@@ -205,9 +214,7 @@ export function AllocationRequestForm({
         });
       } else if (request.period_type === "monthly") {
         const monthAmounts = createMonthlyAmounts().map((m) => {
-          const found = periodAmountsFromBreakdown.find(
-            (p) => p.description === m.label
-          );
+          const found = periodAmountsFromBreakdown.find((p) => p.description === m.label);
           return { ...m, amount: found?.amount || 0 };
         });
         form.reset({
@@ -231,68 +238,43 @@ export function AllocationRequestForm({
 
   const handleSave = async (values: AllocationRequestFormValues, submit: boolean = false) => {
     if (!currentOrganization || !user || !activeFiscalYear) {
-      toast({
-        title: "Error",
-        description: "Missing required data. Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Missing required data.", variant: "destructive" });
       return;
     }
 
     if (!userMinistry) {
-      toast({
-        title: "Error",
-        description: "You are not assigned to a ministry. Please contact an administrator.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "You are not assigned to a ministry.", variant: "destructive" });
       return;
     }
 
-    // Calculate total requested amount based on period type
-    let totalAmount = 0;
+    let finalAmount = 0;
     if (values.period_type === "annual") {
-      totalAmount = values.annual_amount || 0;
+      finalAmount = values.annual_amount || 0;
     } else {
-      totalAmount = (values.period_amounts || []).reduce(
-        (sum, pa) => sum + Number(pa.amount || 0),
-        0
-      );
+      finalAmount = (values.period_amounts || []).reduce((sum, pa) => sum + Number(pa.amount || 0), 0);
     }
 
-    if (totalAmount <= 0) {
-      toast({
-        title: "Error",
-        description: "Total requested amount must be greater than 0.",
-        variant: "destructive",
-      });
+    if (finalAmount <= 0) {
+      toast({ title: "Error", description: "Total amount must be greater than 0.", variant: "destructive" });
       return;
     }
 
-    // Store period amounts in budget_breakdown with special category
     const periodAmountsAsBreakdown: BudgetBreakdownItem[] = (values.period_amounts || [])
       .filter((pa) => pa.amount > 0)
-      .map((pa) => ({
-        category: "__period_amount__",
-        description: pa.label,
-        amount: pa.amount,
-      }));
+      .map((pa) => ({ category: "__period_amount__", description: pa.label, amount: pa.amount }));
 
-    const combinedBreakdown = [
-      ...periodAmountsAsBreakdown,
-      ...(values.budget_breakdown as BudgetBreakdownItem[] || []),
-    ];
+    const combinedBreakdown = [...periodAmountsAsBreakdown, ...(values.budget_breakdown as BudgetBreakdownItem[] || [])];
 
     setIsSubmitting(true);
 
     try {
       if (isEditing && request) {
-        // Update existing request
         await updateRequest.mutateAsync({
           requestId: request.id,
           data: {
             period_type: values.period_type,
-            period_number: null, // No longer using single period number
-            requested_amount: totalAmount,
+            period_number: null,
+            requested_amount: finalAmount,
             justification: values.justification,
             budget_breakdown: combinedBreakdown,
           },
@@ -308,12 +290,9 @@ export function AllocationRequestForm({
 
         toast({
           title: submit ? "Request submitted" : "Request updated",
-          description: submit
-            ? "Your allocation request has been submitted for review."
-            : "Your allocation request has been saved as a draft.",
+          description: submit ? "Your request has been submitted for review." : "Your request has been saved.",
         });
       } else {
-        // Create new request
         const newRequest = await createRequest.mutateAsync({
           requestData: {
             organization_id: currentOrganization.id,
@@ -322,8 +301,8 @@ export function AllocationRequestForm({
             requester_id: user.id,
             requester_name: profile?.full_name || "Unknown",
             period_type: values.period_type,
-            period_number: null, // No longer using single period number
-            requested_amount: totalAmount,
+            period_number: null,
+            requested_amount: finalAmount,
             justification: values.justification,
             budget_breakdown: combinedBreakdown,
             status: "draft",
@@ -342,9 +321,7 @@ export function AllocationRequestForm({
 
         toast({
           title: submit ? "Request submitted" : "Request created",
-          description: submit
-            ? "Your allocation request has been submitted for review."
-            : "Your allocation request has been saved as a draft.",
+          description: submit ? "Your request has been submitted for review." : "Your request has been saved as draft.",
         });
       }
 
@@ -353,8 +330,7 @@ export function AllocationRequestForm({
     } catch (error) {
       toast({
         title: "Error",
-        description:
-          error instanceof Error ? error.message : "Failed to save allocation request",
+        description: error instanceof Error ? error.message : "Failed to save request",
         variant: "destructive",
       });
     } finally {
@@ -367,17 +343,14 @@ export function AllocationRequestForm({
   if (!activeFiscalYear && !fiscalYearLoading) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>No Active Fiscal Year</DialogTitle>
-            <DialogDescription>
-              There is no active fiscal year configured. Please contact an administrator
-              to set up a fiscal year before requesting budget allocations.
-            </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button onClick={() => onOpenChange(false)}>Close</Button>
-          </DialogFooter>
+          <p className="text-muted-foreground text-sm">
+            Please contact an administrator to set up a fiscal year.
+          </p>
+          <Button onClick={() => onOpenChange(false)} className="mt-4">Close</Button>
         </DialogContent>
       </Dialog>
     );
@@ -385,201 +358,190 @@ export function AllocationRequestForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
-            {isEditing ? "Edit Allocation Request" : "Request Budget Allocation"}
+      <DialogContent className="sm:max-w-[580px] max-h-[90vh] overflow-y-auto p-0">
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-5 text-white">
+          <DialogTitle className="text-xl font-semibold">
+            {isEditing ? "Edit Allocation Request" : "Budget Allocation Request"}
           </DialogTitle>
-          <DialogDescription>
-            {isEditing
-              ? "Update your budget allocation request."
-              : "Submit a request for budget allocation for your ministry."}
-            <span className="block mt-1 text-xs">
-              {activeFiscalYear && <>Fiscal Year: {activeFiscalYear.name}</>}
-              {activeFiscalYear && userMinistry && <> • </>}
-              {userMinistry && <>Ministry: {userMinistry.name}</>}
-            </span>
-          </DialogDescription>
-        </DialogHeader>
+          <div className="flex items-center gap-2 mt-2 text-violet-100 text-sm">
+            <Calendar className="h-4 w-4" />
+            <span>{activeFiscalYear?.name}</span>
+            <span className="opacity-50">•</span>
+            <span>{userMinistry?.name || "No Ministry"}</span>
+          </div>
+        </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-8">
+          <div className="flex items-center justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : !userMinistry ? (
-          <div className="py-8 text-center">
-            <p className="text-muted-foreground">
-              You are not assigned to a ministry. Please contact an administrator to be
-              assigned to a ministry before requesting budget allocations.
-            </p>
-            <Button className="mt-4" onClick={() => onOpenChange(false)}>
-              Close
-            </Button>
+          <div className="p-6 text-center">
+            <p className="text-muted-foreground">You are not assigned to a ministry.</p>
+            <Button className="mt-4" onClick={() => onOpenChange(false)}>Close</Button>
           </div>
         ) : (
           <Form {...form}>
-            <form className="space-y-6">
-              {/* Period Type Selection */}
-              <FormField
-                control={form.control}
-                name="period_type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Period Type *</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
+            <form className="p-6 space-y-6">
+              {/* Period Type Toggle */}
+              <div>
+                <FormLabel className="text-xs uppercase tracking-wide text-muted-foreground mb-3 block">
+                  Allocation Period
+                </FormLabel>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["annual", "quarterly", "monthly"] as const).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => form.setValue("period_type", type)}
+                      className={`
+                        py-3 px-4 rounded-lg border-2 text-sm font-medium transition-all
+                        ${periodType === type
+                          ? "border-violet-500 bg-violet-50 text-violet-700"
+                          : "border-gray-200 hover:border-gray-300 text-gray-600"
+                        }
+                      `}
                     >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select period type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {(Object.entries(PERIOD_TYPE_LABELS) as [AllocationPeriodType, string][]).map(
-                          ([value, label]) => (
-                            <SelectItem key={value} value={value}>
-                              {label}
-                            </SelectItem>
-                          )
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      {periodType === "annual" && "Request a single amount for the entire fiscal year."}
-                      {periodType === "quarterly" && "Request amounts for each quarter (Q1, Q2, Q3, Q4)."}
-                      {periodType === "monthly" && "Request amounts for each month (January - December)."}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Amount Section */}
+              <div className="bg-gradient-to-br from-slate-50 to-gray-100 rounded-2xl p-5 border border-slate-200/60">
+                {periodType === "annual" ? (
+                  <FormField
+                    control={form.control}
+                    name="annual_amount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-slate-600">Annual Budget Amount</FormLabel>
+                        <FormControl>
+                          <div className="relative mt-2">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl font-medium">$</span>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              placeholder="0.00"
+                              className="pl-10 h-14 text-2xl font-semibold border-slate-200 bg-white rounded-xl shadow-sm focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
+                              {...field}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : periodType === "quarterly" ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-slate-600">Quarterly Allocation</span>
+                      <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-sm">
+                        <span className="text-xs text-slate-500">Total:</span>
+                        <span className="text-sm font-bold text-violet-600">${periodAmountsTotal.toLocaleString()}</span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {periodAmounts.map((pa, index) => (
+                        <FormField
+                          key={pa.period}
+                          control={form.control}
+                          name={`period_amounts.${index}.amount`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm hover:shadow-md hover:border-violet-300 transition-all duration-200">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-xs font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-md">
+                                    {pa.shortLabel}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400 font-medium">
+                                    {pa.label.replace(/Q\d\s/, '')}
+                                  </span>
+                                </div>
+                                <FormControl>
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      min="0"
+                                      placeholder="0.00"
+                                      className="pl-7 h-11 text-right text-base font-semibold border-0 bg-slate-50 rounded-lg focus:bg-white focus:ring-2 focus:ring-violet-500/20"
+                                      {...field}
+                                    />
+                                  </div>
+                                </FormControl>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-slate-600">Monthly Allocation</span>
+                      <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-sm">
+                        <span className="text-xs text-slate-500">Total:</span>
+                        <span className="text-sm font-bold text-violet-600">${periodAmountsTotal.toLocaleString()}</span>
+                      </div>
+                    </div>
+                    {/* Clean 4x3 grid layout */}
+                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                      <div className="grid grid-cols-4 divide-x divide-slate-100">
+                        {periodAmounts.map((pa, index) => (
+                          <FormField
+                            key={pa.period}
+                            control={form.control}
+                            name={`period_amounts.${index}.amount`}
+                            render={({ field }) => (
+                              <FormItem className={`p-3 ${index >= 4 ? 'border-t border-slate-100' : ''}`}>
+                                <div className="text-center mb-2">
+                                  <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                                    {pa.shortLabel}
+                                  </span>
+                                </div>
+                                <FormControl>
+                                  <div className="relative">
+                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      min="0"
+                                      placeholder="0"
+                                      className="pl-6 h-10 text-center text-sm font-semibold border border-slate-200 bg-slate-50 rounded-lg focus:bg-white focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                      {...field}
+                                    />
+                                  </div>
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 )}
-              />
+              </div>
 
-              {/* Annual Amount - Only shown for annual period type */}
-              {periodType === "annual" && (
-                <FormField
-                  control={form.control}
-                  name="annual_amount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Annual Requested Amount (USD) *</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                            $
-                          </span>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            placeholder="0.00"
-                            className="pl-7"
-                            {...field}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              {/* Quarterly Amounts */}
-              {periodType === "quarterly" && (
-                <div className="space-y-3">
-                  <FormLabel>Quarterly Amounts (USD) *</FormLabel>
-                  <Card>
-                    <CardContent className="pt-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        {periodAmounts.map((pa, index) => (
-                          <FormField
-                            key={pa.period}
-                            control={form.control}
-                            name={`period_amounts.${index}.amount`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-sm font-medium">
-                                  {pa.label}
-                                </FormLabel>
-                                <FormControl>
-                                  <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-                                      $
-                                    </span>
-                                    <Input
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
-                                      placeholder="0.00"
-                                      className="pl-7"
-                                      {...field}
-                                    />
-                                  </div>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        ))}
-                      </div>
-                      <div className="flex justify-end pt-4 mt-4 border-t">
-                        <span className="text-sm font-medium">
-                          Total: ${periodAmountsTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
+              {/* Total Display */}
+              {totalAmount > 0 && (
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-green-600" />
+                    <span className="text-sm font-medium text-green-800">Total Request</span>
+                  </div>
+                  <span className="text-2xl font-bold text-green-700">
+                    ${totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                  </span>
                 </div>
               )}
 
-              {/* Monthly Amounts */}
-              {periodType === "monthly" && (
-                <div className="space-y-3">
-                  <FormLabel>Monthly Amounts (USD) *</FormLabel>
-                  <Card>
-                    <CardContent className="pt-4">
-                      <div className="grid grid-cols-3 gap-3">
-                        {periodAmounts.map((pa, index) => (
-                          <FormField
-                            key={pa.period}
-                            control={form.control}
-                            name={`period_amounts.${index}.amount`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-xs font-medium">
-                                  {pa.label}
-                                </FormLabel>
-                                <FormControl>
-                                  <div className="relative">
-                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
-                                      $
-                                    </span>
-                                    <Input
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
-                                      placeholder="0.00"
-                                      className="pl-5 text-sm"
-                                      {...field}
-                                    />
-                                  </div>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        ))}
-                      </div>
-                      <div className="flex justify-end pt-4 mt-4 border-t">
-                        <span className="text-sm font-medium">
-                          Total: ${periodAmountsTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
+              <Separator />
 
               {/* Justification */}
               <FormField
@@ -587,109 +549,86 @@ export function AllocationRequestForm({
                 name="justification"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Justification *</FormLabel>
+                    <FormLabel>Justification</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Explain why this budget allocation is needed, how it will be used, and the expected outcomes..."
-                        className="resize-none"
-                        rows={4}
+                        placeholder="Explain why this budget is needed and how it will be used..."
+                        className="resize-none min-h-[100px]"
                         {...field}
                       />
                     </FormControl>
-                    <FormDescription>
-                      Provide a clear explanation for this budget request.
-                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              {/* Budget Breakdown (Optional) */}
+              {/* Budget Breakdown (Collapsible) */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <FormLabel>Additional Budget Breakdown (Optional)</FormLabel>
+                  <span className="text-sm font-medium text-gray-700">Budget Categories</span>
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    onClick={() =>
-                      appendBreakdown({ category: "", description: "", amount: 0 })
-                    }
+                    className="text-violet-600 hover:text-violet-700 hover:bg-violet-50"
+                    onClick={() => appendBreakdown({ category: "", description: "", amount: 0 })}
                   >
                     <Plus className="h-4 w-4 mr-1" />
-                    Add Item
+                    Add Category
                   </Button>
                 </div>
 
                 {breakdownFields.length > 0 && (
-                  <Card>
-                    <CardContent className="pt-4 space-y-4">
-                      {breakdownFields.map((field, index) => (
-                        <div
-                          key={field.id}
-                          className="grid grid-cols-12 gap-2 items-start"
+                  <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
+                    {breakdownFields.map((field, index) => (
+                      <div key={field.id} className="flex items-center gap-2">
+                        <Input
+                          placeholder="Category"
+                          className="flex-[1] h-9 text-sm"
+                          {...form.register(`budget_breakdown.${index}.category`)}
+                        />
+                        <Input
+                          placeholder="Description"
+                          className="flex-[2] h-9 text-sm"
+                          {...form.register(`budget_breakdown.${index}.description`)}
+                        />
+                        <div className="relative flex-[1]">
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">$</span>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="0"
+                            className="pl-5 h-9 text-sm"
+                            {...form.register(`budget_breakdown.${index}.amount`)}
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-9 text-red-400 hover:text-red-600 hover:bg-red-50"
+                          onClick={() => removeBreakdown(index)}
                         >
-                          <div className="col-span-3">
-                            <Input
-                              placeholder="Category"
-                              {...form.register(`budget_breakdown.${index}.category`)}
-                            />
-                          </div>
-                          <div className="col-span-5">
-                            <Input
-                              placeholder="Description"
-                              {...form.register(`budget_breakdown.${index}.description`)}
-                            />
-                          </div>
-                          <div className="col-span-3">
-                            <div className="relative">
-                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-                                $
-                              </span>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                placeholder="0.00"
-                                className="pl-5"
-                                {...form.register(`budget_breakdown.${index}.amount`)}
-                              />
-                            </div>
-                          </div>
-                          <div className="col-span-1">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeBreakdown(index)}
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-
-                      {breakdownFields.length > 0 && (
-                        <div className="flex justify-end pt-2 border-t">
-                          <span className="text-sm font-medium">
-                            Breakdown Total: ${breakdownTotal.toFixed(2)}
-                          </span>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    {breakdownTotal > 0 && (
+                      <div className="text-right text-sm text-gray-500 pt-2 border-t">
+                        Category Total: <span className="font-medium">${breakdownTotal.toFixed(2)}</span>
+                      </div>
+                    )}
+                  </div>
                 )}
-
-                <p className="text-xs text-muted-foreground">
-                  Optionally add additional details about how the budget will be used.
-                </p>
               </div>
 
-              <DialogFooter className="flex-col sm:flex-row gap-2 pt-4">
+              {/* Actions */}
+              <div className="flex items-center gap-3 pt-4">
                 <Button
                   type="button"
                   variant="outline"
+                  className="flex-1"
                   onClick={() => onOpenChange(false)}
                   disabled={isSubmitting}
                 >
@@ -698,29 +637,23 @@ export function AllocationRequestForm({
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={form.handleSubmit((values) => handleSave(values, false))}
+                  className="flex-1"
+                  onClick={form.handleSubmit((v) => handleSave(v, false))}
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="mr-2 h-4 w-4" />
-                  )}
-                  Save as Draft
+                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                  Save Draft
                 </Button>
                 <Button
                   type="button"
-                  onClick={form.handleSubmit((values) => handleSave(values, true))}
+                  className="flex-1 bg-violet-600 hover:bg-violet-700"
+                  onClick={form.handleSubmit((v) => handleSave(v, true))}
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="mr-2 h-4 w-4" />
-                  )}
-                  Submit for Review
+                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+                  Submit
                 </Button>
-              </DialogFooter>
+              </div>
             </form>
           </Form>
         )}
