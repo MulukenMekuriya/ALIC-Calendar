@@ -658,6 +658,12 @@ export function FinanceProcessDialog({
                 <span className="text-sm font-medium">{expense.tin}</span>
               </div>
             )}
+            {expense.is_advance_payment && (
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Payment Type</span>
+                <span className="text-sm font-medium text-amber-600">Advance Payment</span>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">

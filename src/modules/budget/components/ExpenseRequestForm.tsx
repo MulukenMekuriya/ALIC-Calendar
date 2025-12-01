@@ -32,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { Switch } from "@/shared/components/ui/switch";
 import { Loader2, Send, Save, Paperclip, X, FileText, Image as ImageIcon, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { AttachmentData } from "../types";
@@ -51,6 +52,7 @@ const expenseFormSchema = z.object({
   amount: z.coerce.number().positive("Amount must be greater than 0").multipleOf(0.01, "Amount can have at most 2 decimal places"),
   reimbursement_type: z.enum(["zelle", "check", "ach", "admin_online_purchase"]),
   tin: z.string().optional(),
+  is_advance_payment: z.boolean().default(false),
 });
 
 // File upload security constants
@@ -128,6 +130,7 @@ export function ExpenseRequestForm({
       amount: 0,
       reimbursement_type: "check",
       tin: "",
+      is_advance_payment: false,
     },
   });
 
@@ -145,6 +148,7 @@ export function ExpenseRequestForm({
         amount: expense.amount,
         reimbursement_type: expense.reimbursement_type,
         tin: expense.tin || "",
+        is_advance_payment: expense.is_advance_payment || false,
       });
       // Load existing attachments with validation
       const existingAttachments = expense.attachments;
@@ -160,6 +164,7 @@ export function ExpenseRequestForm({
         amount: 0,
         reimbursement_type: "check",
         tin: "",
+        is_advance_payment: false,
       });
       setAttachments([]);
     }
@@ -329,6 +334,7 @@ export function ExpenseRequestForm({
             amount: values.amount,
             reimbursement_type: values.reimbursement_type,
             tin: values.tin || null,
+            is_advance_payment: values.is_advance_payment,
             requester_name: profile?.full_name || "Unknown",
             requester_phone: profile?.phone_number || null,
             requester_email: profile?.email || null,
@@ -362,6 +368,7 @@ export function ExpenseRequestForm({
             amount: values.amount,
             reimbursement_type: values.reimbursement_type,
             tin: values.tin || null,
+            is_advance_payment: values.is_advance_payment,
             requester_id: user.id,
             requester_name: profile?.full_name || "Unknown",
             requester_phone: profile?.phone_number || null,
@@ -574,6 +581,31 @@ export function ExpenseRequestForm({
                         />
                       </FormControl>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Advance Payment Toggle */}
+                <FormField
+                  control={form.control}
+                  name="is_advance_payment"
+                  render={({ field }) => (
+                    <FormItem className="mt-4 flex flex-row items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-sm font-medium text-slate-700 cursor-pointer">
+                          Advance Payment
+                        </FormLabel>
+                        <p className="text-xs text-slate-500">
+                          Request payment before expense is incurred
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-slate-300"
+                        />
+                      </FormControl>
                     </FormItem>
                   )}
                 />

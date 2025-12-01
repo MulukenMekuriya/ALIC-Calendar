@@ -287,6 +287,22 @@ export function ExpenseDetailDialog({
                   </div>
                 )}
 
+                {expense.is_advance_payment && (
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-amber-100 rounded-lg">
+                      <FileText className="h-5 w-5 text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        Payment Type
+                      </p>
+                      <p className="font-semibold text-amber-600 mt-1">
+                        Advance Payment
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-start gap-3">
                   <div className="p-2 bg-primary/10 rounded-lg">
                     <Clock className="h-5 w-5 text-primary" />
