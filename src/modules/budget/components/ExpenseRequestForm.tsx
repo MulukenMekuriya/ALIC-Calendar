@@ -53,6 +53,34 @@ const expenseFormSchema = z.object({
   reimbursement_type: z.enum(["zelle", "check", "ach", "admin_online_purchase"]),
   tin: z.string().optional(),
   is_advance_payment: z.boolean().default(false),
+  is_different_recipient: z.boolean().default(false),
+  recipient_name: z.string().optional(),
+  recipient_phone: z.string().optional(),
+  recipient_email: z.string().email("Invalid email address").optional().or(z.literal("")),
+}).refine((data) => {
+  if (data.is_different_recipient) {
+    return !!data.recipient_name && data.recipient_name.length >= 2;
+  }
+  return true;
+}, {
+  message: "Recipient name is required",
+  path: ["recipient_name"],
+}).refine((data) => {
+  if (data.is_different_recipient) {
+    return !!data.recipient_phone && data.recipient_phone.length >= 10;
+  }
+  return true;
+}, {
+  message: "Recipient phone is required",
+  path: ["recipient_phone"],
+}).refine((data) => {
+  if (data.is_different_recipient) {
+    return !!data.recipient_email && data.recipient_email.length > 0;
+  }
+  return true;
+}, {
+  message: "Recipient email is required",
+  path: ["recipient_email"],
 });
 
 // File upload security constants
@@ -131,8 +159,15 @@ export function ExpenseRequestForm({
       reimbursement_type: "check",
       tin: "",
       is_advance_payment: false,
+      is_different_recipient: false,
+      recipient_name: "",
+      recipient_phone: "",
+      recipient_email: "",
     },
   });
+
+  // Watch the is_different_recipient field to show/hide recipient fields
+  const isDifferentRecipient = form.watch("is_different_recipient");
 
   // Get the user's ministry from their profile
   const userMinistry = ministries?.find(
@@ -149,6 +184,10 @@ export function ExpenseRequestForm({
         reimbursement_type: expense.reimbursement_type,
         tin: expense.tin || "",
         is_advance_payment: expense.is_advance_payment || false,
+        is_different_recipient: expense.is_different_recipient || false,
+        recipient_name: expense.recipient_name || "",
+        recipient_phone: expense.recipient_phone || "",
+        recipient_email: expense.recipient_email || "",
       });
       // Load existing attachments with validation
       const existingAttachments = expense.attachments;
@@ -165,6 +204,10 @@ export function ExpenseRequestForm({
         reimbursement_type: "check",
         tin: "",
         is_advance_payment: false,
+        is_different_recipient: false,
+        recipient_name: "",
+        recipient_phone: "",
+        recipient_email: "",
       });
       setAttachments([]);
     }
@@ -335,6 +378,10 @@ export function ExpenseRequestForm({
             reimbursement_type: values.reimbursement_type,
             tin: values.tin || null,
             is_advance_payment: values.is_advance_payment,
+            is_different_recipient: values.is_different_recipient,
+            recipient_name: values.is_different_recipient ? values.recipient_name || null : null,
+            recipient_phone: values.is_different_recipient ? values.recipient_phone || null : null,
+            recipient_email: values.is_different_recipient ? values.recipient_email || null : null,
             requester_name: profile?.full_name || "Unknown",
             requester_phone: profile?.phone_number || null,
             requester_email: profile?.email || null,
@@ -369,6 +416,10 @@ export function ExpenseRequestForm({
             reimbursement_type: values.reimbursement_type,
             tin: values.tin || null,
             is_advance_payment: values.is_advance_payment,
+            is_different_recipient: values.is_different_recipient,
+            recipient_name: values.is_different_recipient ? values.recipient_name || null : null,
+            recipient_phone: values.is_different_recipient ? values.recipient_phone || null : null,
+            recipient_email: values.is_different_recipient ? values.recipient_email || null : null,
             requester_id: user.id,
             requester_name: profile?.full_name || "Unknown",
             requester_phone: profile?.phone_number || null,
@@ -609,6 +660,99 @@ export function ExpenseRequestForm({
                     </FormItem>
                   )}
                 />
+
+                {/* Different Recipient Toggle */}
+                <FormField
+                  control={form.control}
+                  name="is_different_recipient"
+                  render={({ field }) => (
+                    <FormItem className="mt-4 flex flex-row items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-sm font-medium text-slate-700 cursor-pointer">
+                          Different Payment Recipient
+                        </FormLabel>
+                        <p className="text-xs text-slate-500">
+                          Payment goes to someone other than the requester
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-slate-300"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                {/* Recipient Fields - shown when is_different_recipient is true */}
+                {isDifferentRecipient && (
+                  <div className="mt-4 space-y-4 rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
+                    <p className="text-sm font-medium text-emerald-700">Payment Recipient Information</p>
+
+                    <FormField
+                      control={form.control}
+                      name="recipient_name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-medium text-slate-600">
+                            Recipient Name <span className="text-red-500">*</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Full name of payment recipient"
+                              className="h-11 bg-white border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="recipient_phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-medium text-slate-600">
+                            Recipient Phone <span className="text-red-500">*</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="e.g., (555) 123-4567"
+                              className="h-11 bg-white border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="recipient_email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-medium text-slate-600">
+                            Recipient Email <span className="text-red-500">*</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              type="email"
+                              placeholder="recipient@example.com"
+                              className="h-11 bg-white border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Description */}

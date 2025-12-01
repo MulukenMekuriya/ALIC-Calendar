@@ -129,6 +129,10 @@ export type Database = {
           reimbursement_type: Database["budget"]["Enums"]["reimbursement_type"]
           tin: string | null
           is_advance_payment: boolean
+          is_different_recipient: boolean
+          recipient_name: string | null
+          recipient_phone: string | null
+          recipient_email: string | null
           requester_id: string
           requester_name: string
           requester_phone: string | null
@@ -160,6 +164,10 @@ export type Database = {
           reimbursement_type?: Database["budget"]["Enums"]["reimbursement_type"]
           tin?: string | null
           is_advance_payment?: boolean
+          is_different_recipient?: boolean
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          recipient_email?: string | null
           requester_id: string
           requester_name: string
           requester_phone?: string | null
@@ -191,6 +199,10 @@ export type Database = {
           reimbursement_type?: Database["budget"]["Enums"]["reimbursement_type"]
           tin?: string | null
           is_advance_payment?: boolean
+          is_different_recipient?: boolean
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          recipient_email?: string | null
           requester_id?: string
           requester_name?: string
           requester_phone?: string | null

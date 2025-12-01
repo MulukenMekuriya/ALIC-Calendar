@@ -336,6 +336,40 @@ export function ExpenseDetailDialog({
                   </div>
                 )}
               </div>
+
+              {/* Payment Recipient Section */}
+              {expense.is_different_recipient && expense.recipient_name && (
+                <div className="mt-6 pt-6 border-t border-dashed">
+                  <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-4 flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Payment Recipient (Different from Requester)
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Name</p>
+                      <p className="font-semibold text-foreground mt-0.5">
+                        {expense.recipient_name}
+                      </p>
+                    </div>
+                    {expense.recipient_phone && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Phone</p>
+                        <p className="font-semibold text-foreground mt-0.5">
+                          {expense.recipient_phone}
+                        </p>
+                      </div>
+                    )}
+                    {expense.recipient_email && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Email</p>
+                        <p className="font-semibold text-foreground mt-0.5">
+                          {expense.recipient_email}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

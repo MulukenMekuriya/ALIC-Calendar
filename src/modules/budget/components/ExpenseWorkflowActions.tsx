@@ -666,6 +666,31 @@ export function FinanceProcessDialog({
             )}
           </div>
 
+          {/* Payment Recipient Section */}
+          {expense.is_different_recipient && expense.recipient_name && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 space-y-2">
+              <p className="text-xs font-medium text-emerald-700 uppercase tracking-wide">
+                Payment Recipient (Different from Requester)
+              </p>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Name</span>
+                <span className="text-sm font-medium">{expense.recipient_name}</span>
+              </div>
+              {expense.recipient_phone && (
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Phone</span>
+                  <span className="text-sm font-medium">{expense.recipient_phone}</span>
+                </div>
+              )}
+              {expense.recipient_email && (
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Email</span>
+                  <span className="text-sm font-medium">{expense.recipient_email}</span>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="reference">Payment Reference *</Label>
             <Input
