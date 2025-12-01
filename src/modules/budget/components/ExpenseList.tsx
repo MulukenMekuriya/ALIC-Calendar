@@ -43,6 +43,8 @@ import {
   CreditCard,
   Loader2,
   FileText,
+  User,
+  Banknote,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ExpenseStatusBadge } from "./ExpenseStatusBadge";
@@ -62,7 +64,8 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { useSearch } from "@/shared/contexts/SearchContext";
 import { useDeleteExpense, useSubmitExpenseForReview } from "../hooks";
 import type { ExpenseRequestWithRelations, ExpenseStatus } from "../types";
-import { EXPENSE_STATUS_CONFIG } from "../types";
+import { EXPENSE_STATUS_CONFIG, REIMBURSEMENT_TYPE_LABELS } from "../types";
+import { Badge } from "@/shared/components/ui/badge";
 
 interface ExpenseListProps {
   expenses: ExpenseRequestWithRelations[];
@@ -278,6 +281,31 @@ export function ExpenseList({
                         {format(new Date(expense.created_at), "MMM d, yyyy")}
                       </p>
                     </div>
+
+                    {/* Additional Info Row */}
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      {expense.reimbursement_type && (
+                        <Badge variant="secondary" className="text-xs">
+                          {REIMBURSEMENT_TYPE_LABELS[expense.reimbursement_type]}
+                        </Badge>
+                      )}
+                      {expense.is_advance_payment && (
+                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                          <Banknote className="h-3 w-3 mr-1" />
+                          Advance
+                        </Badge>
+                      )}
+                      {expense.is_different_recipient && expense.recipient_name && (
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                          <User className="h-3 w-3 mr-1" />
+                          {expense.recipient_name}
+                        </Badge>
+                      )}
+                      {expense.tin && (
+                        <span className="text-muted-foreground">TIN: {expense.tin}</span>
+                      )}
+                    </div>
+
                     <div className="flex items-center gap-2 pt-2 border-t">
                       <Button
                         variant="outline"
@@ -422,6 +450,10 @@ export function ExpenseList({
                       <TableHead>Justification</TableHead>
                       <TableHead>Ministry</TableHead>
                       <TableHead>Amount</TableHead>
+                      <TableHead>Reimbursement</TableHead>
+                      <TableHead>TIN</TableHead>
+                      <TableHead>Advance</TableHead>
+                      <TableHead>Recipient</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead className="w-[80px]">View</TableHead>
@@ -441,6 +473,36 @@ export function ExpenseList({
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
                           })}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {expense.reimbursement_type
+                            ? REIMBURSEMENT_TYPE_LABELS[expense.reimbursement_type]
+                            : "-"}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {expense.tin || "-"}
+                        </TableCell>
+                        <TableCell>
+                          {expense.is_advance_payment ? (
+                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                              <Banknote className="h-3 w-3 mr-1" />
+                              Yes
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">No</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {expense.is_different_recipient && expense.recipient_name ? (
+                            <div className="flex items-center gap-1">
+                              <User className="h-3 w-3 text-blue-500" />
+                              <span className="text-sm truncate max-w-[100px]" title={expense.recipient_name}>
+                                {expense.recipient_name}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">Same</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           <ExpenseStatusBadge status={expense.status} />
