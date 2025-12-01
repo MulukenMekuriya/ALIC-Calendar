@@ -1064,8 +1064,9 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess, allE
               {eventId ? "Edit event details including title, description, room, and timing" : "Create a new event by filling in the details below"}
             </p>
 
-            <ScrollArea className="flex-1">
-              <form onSubmit={handleSubmit} className="p-6 space-y-5">
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <ScrollArea className="flex-1">
+                <div className="p-6 space-y-5">
                 {validationError && (
                   <Alert variant="destructive" className="rounded-xl">
                     <AlertCircle className="h-4 w-4" />
@@ -1196,10 +1197,13 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess, allE
                   onChange={setRecurrence}
                   startDate={formData.starts_at}
                 />
+                </div>
+              </ScrollArea>
 
-                {/* Action Buttons */}
+              {/* Fixed Action Buttons Footer */}
+              <div className="flex-shrink-0 border-t bg-slate-50 px-6 py-4 space-y-3">
                 {canEdit && (
-                  <div className="flex items-center gap-3 pt-4">
+                  <div className="flex items-center gap-3">
                     <Button
                       type="button"
                       variant="outline"
@@ -1236,7 +1240,7 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess, allE
                 )}
 
                 {isAdmin && event && event.status === "pending_review" && (
-                  <div className="flex gap-3 pt-4 border-t border-slate-200">
+                  <div className="flex gap-3">
                     <Button
                       type="button"
                       className="flex-1 bg-green-600 hover:bg-green-700"
@@ -1258,19 +1262,17 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess, allE
                 )}
 
                 {isAdmin && event && event.status === "approved" && (
-                  <div className="pt-4 border-t border-slate-200">
-                    <Button
-                      type="button"
-                      className="w-full bg-blue-600 hover:bg-blue-700"
-                      onClick={() => handleStatusChange("published")}
-                      disabled={loading}
-                    >
-                      Publish Event
-                    </Button>
-                  </div>
+                  <Button
+                    type="button"
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    onClick={() => handleStatusChange("published")}
+                    disabled={loading}
+                  >
+                    Publish Event
+                  </Button>
                 )}
-              </form>
-            </ScrollArea>
+              </div>
+            </form>
           </div>
 
           {/* Right side - Event Sidebar */}

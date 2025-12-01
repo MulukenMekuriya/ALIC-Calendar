@@ -478,9 +478,9 @@ export function AllocationRequestForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[580px] max-h-[90vh] overflow-y-auto p-0">
+      <DialogContent className="sm:max-w-[580px] max-h-[90vh] overflow-hidden p-0 flex flex-col">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-5 text-white">
+        <div className="flex-shrink-0 bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-5 text-white">
           <DialogTitle className="text-xl font-semibold">
             {isEditing
               ? "Edit Allocation Request"
@@ -523,7 +523,9 @@ export function AllocationRequestForm({
           </div>
         ) : (
           <Form {...form}>
-            <form className="p-6 space-y-6">
+            <form className="flex flex-col flex-1 overflow-hidden">
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {/* Period Type Toggle */}
               <div>
                 <FormLabel className="text-xs uppercase tracking-wide text-muted-foreground mb-3 block">
@@ -863,45 +865,48 @@ export function AllocationRequestForm({
                   </div>
                 )}
               </div>
+              </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-3 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => onOpenChange(false)}
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="flex-1"
-                  onClick={form.handleSubmit((v) => handleSave(v, false))}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4 mr-2" />
-                  )}
-                  Save Draft
-                </Button>
-                <Button
-                  type="button"
-                  className="flex-1 bg-violet-600 hover:bg-violet-700"
-                  onClick={form.handleSubmit((v) => handleSave(v, true))}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4 mr-2" />
-                  )}
-                  Submit
-                </Button>
+              {/* Fixed Actions Footer */}
+              <div className="flex-shrink-0 border-t bg-slate-50 px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => onOpenChange(false)}
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="flex-1"
+                    onClick={form.handleSubmit((v) => handleSave(v, false))}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    Save Draft
+                  </Button>
+                  <Button
+                    type="button"
+                    className="flex-1 bg-violet-600 hover:bg-violet-700"
+                    onClick={form.handleSubmit((v) => handleSave(v, true))}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4 mr-2" />
+                    )}
+                    Submit
+                  </Button>
+                </div>
               </div>
             </form>
           </Form>
