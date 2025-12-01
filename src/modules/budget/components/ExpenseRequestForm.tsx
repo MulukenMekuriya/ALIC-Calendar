@@ -480,7 +480,9 @@ export function ExpenseRequestForm({
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-medium text-slate-700">Justification</FormLabel>
+                    <FormLabel className="text-sm font-medium text-slate-700">
+                      Justification <span className="text-red-500">*</span>
+                    </FormLabel>
                     <FormControl>
                       <Input
                         placeholder="e.g., Youth Ministry Supplies"
@@ -501,7 +503,9 @@ export function ExpenseRequestForm({
                     name="amount"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-medium text-slate-600">Amount (USD)</FormLabel>
+                        <FormLabel className="text-sm font-medium text-slate-600">
+                          Amount (USD) <span className="text-red-500">*</span>
+                        </FormLabel>
                         <FormControl>
                           <div className="relative flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-400 transition-all">
                             <span className="pl-4 pr-1 text-slate-400 text-lg font-medium select-none">$</span>
@@ -525,7 +529,9 @@ export function ExpenseRequestForm({
                     name="reimbursement_type"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-medium text-slate-600">Reimbursement Type</FormLabel>
+                        <FormLabel className="text-sm font-medium text-slate-600">
+                          Reimbursement Type <span className="text-red-500">*</span>
+                        </FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger className="h-12 bg-white border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400">
@@ -556,10 +562,9 @@ export function ExpenseRequestForm({
                   control={form.control}
                   name="tin"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="mt-4">
                       <FormLabel className="text-sm font-medium text-slate-600">
                         Taxpayer Identification Number (TIN)
-                        <span className="text-slate-400 font-normal ml-1">(Optional)</span>
                       </FormLabel>
                       <FormControl>
                         <Input
