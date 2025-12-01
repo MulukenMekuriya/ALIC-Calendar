@@ -484,7 +484,7 @@ export function ExpenseRequestForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[580px] max-h-[90vh] overflow-y-auto p-0">
+      <DialogContent className="sm:max-w-[580px] max-h-[90vh] overflow-hidden p-0 flex flex-col">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-5 text-white">
           <DialogTitle className="text-xl font-semibold">
@@ -531,7 +531,9 @@ export function ExpenseRequestForm({
           </div>
         ) : (
           <Form {...form}>
-            <form className="p-6 space-y-5">
+            <form className="flex flex-col flex-1 overflow-hidden">
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-5">
               {/* Title */}
               <FormField
                 control={form.control}
@@ -848,37 +850,40 @@ export function ExpenseRequestForm({
                   </div>
                 )}
               </div>
+              </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-3 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => onOpenChange(false)}
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="flex-1"
-                  onClick={form.handleSubmit((values) => handleSave(values, false))}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                  Save Draft
-                </Button>
-                <Button
-                  type="button"
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-                  onClick={form.handleSubmit((values) => handleSave(values, true))}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-                  Submit
-                </Button>
+              {/* Fixed Actions Footer */}
+              <div className="flex-shrink-0 border-t bg-slate-50 px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => onOpenChange(false)}
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="flex-1"
+                    onClick={form.handleSubmit((values) => handleSave(values, false))}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                    Save Draft
+                  </Button>
+                  <Button
+                    type="button"
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                    onClick={form.handleSubmit((values) => handleSave(values, true))}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+                    Submit
+                  </Button>
+                </div>
               </div>
             </form>
           </Form>
