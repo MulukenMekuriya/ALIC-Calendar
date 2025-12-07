@@ -81,10 +81,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const contributorNavigation: NavItem[] = [
     {
       name: "Event Review",
-      href: "/admin",
+      href: "/event-reviews",
       icon: Settings,
       description: isAdmin ? "Approve events" : "View my requests",
-      module: "admin",
+      module: "event-reviews",
     },
   ];
 

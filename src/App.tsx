@@ -126,6 +126,16 @@ const App = () => (
                   }
                 />
 
+                {/* Event Review route - accessible to all authenticated users */}
+                <Route
+                  path="/event-reviews"
+                  element={
+                    <ProtectedRoute>
+                      <Admin />
+                    </ProtectedRoute>
+                  }
+                />
+
                 {/* Users module routes */}
                 <Route
                   path="/users"
