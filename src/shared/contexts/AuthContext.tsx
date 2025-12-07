@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const syncSessionWithPrimaryApp = async (currentSession: Session | null) => {
+  const syncSessionWithExternalApp = async (currentSession: Session | null) => {
     if (typeof window === "undefined") return;
 
     const hasTokens = currentSession?.access_token && currentSession.refresh_token;
@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
-      syncSessionWithPrimaryApp(currentSession);
+      syncSessionWithExternalApp(currentSession);
 
       if (currentSession?.user) {
         setTimeout(() => {
@@ -76,7 +76,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
-      syncSessionWithPrimaryApp(currentSession);
+      syncSessionWithExternalApp(currentSession);
 
       if (currentSession?.user) {
         checkRoleStatus(currentSession.user.id);
