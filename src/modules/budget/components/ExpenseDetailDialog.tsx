@@ -594,7 +594,7 @@ export function ExpenseDetailDialog({
           {/* Treasury Review Actions */}
           {(expense.status === "leader_approved" ||
             expense.status === "pending_treasury") &&
-            (userRole === "treasury" || userRole === "admin") && (
+            userRole === "treasury" && (
               <>
                 <Separator />
                 <div className="flex gap-3 pt-2">
@@ -626,7 +626,7 @@ export function ExpenseDetailDialog({
           {/* Finance Process Actions */}
           {(expense.status === "treasury_approved" ||
             expense.status === "pending_finance") &&
-            (userRole === "finance" || userRole === "admin") && (
+            userRole === "finance" && (
               <>
                 <Separator />
                 <div className="flex gap-3 pt-2">

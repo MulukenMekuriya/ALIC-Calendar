@@ -207,12 +207,12 @@ export function ExpenseList({
   const canTreasuryReview = (expense: ExpenseRequestWithRelations) =>
     (expense.status === "leader_approved" ||
       expense.status === "pending_treasury") &&
-    (userRole === "treasury" || userRole === "admin");
+    userRole === "treasury";
 
   const canFinanceProcess = (expense: ExpenseRequestWithRelations) =>
     (expense.status === "treasury_approved" ||
       expense.status === "pending_finance") &&
-    (userRole === "finance" || userRole === "admin");
+    userRole === "finance";
 
   // Helper to get recipient info
   const getRecipientInfo = (expense: ExpenseRequestWithRelations) => {
