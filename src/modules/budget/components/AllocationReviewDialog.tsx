@@ -188,19 +188,19 @@ export function AllocationReviewDialog({
             {action === "approve" ? (
               <>
                 <CheckCircle className="h-5 w-5 text-green-600" />
-                Approve Allocation Request
+                Approve Budget Request
               </>
             ) : (
               <>
                 <XCircle className="h-5 w-5 text-red-600" />
-                Deny Allocation Request
+                Deny Budget Request
               </>
             )}
           </DialogTitle>
           <DialogDescription>
             {action === "approve"
-              ? "Approve this budget allocation request. You can adjust the approved amount if needed."
-              : "Deny this budget allocation request. Please provide a reason."}
+              ? "Approve this budget request. You can adjust the approved amount if needed."
+              : "Deny this budget request. Please provide a reason."}
           </DialogDescription>
         </DialogHeader>
 

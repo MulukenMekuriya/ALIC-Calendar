@@ -269,7 +269,7 @@ const BudgetOverview = ({
                             <div>
                               <h3 className="text-base sm:text-xl font-semibold mb-3 sm:mb-4 flex items-center gap-2">
                                 <Wallet className="h-4 w-4 sm:h-5 sm:w-5" />
-                                All Allocation Requests
+                                All Budget Requests
                               </h3>
                               <AllocationRequestList
                                 requests={activeAllocations}

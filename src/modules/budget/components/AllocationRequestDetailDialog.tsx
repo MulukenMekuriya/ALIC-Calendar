@@ -88,10 +88,10 @@ export function AllocationRequestDetailDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <DollarSign className="h-6 w-6 text-primary" />
-            Allocation Request Details
+            Budget Request Details
           </DialogTitle>
           <DialogDescription>
-            View the complete details of this allocation request.
+            View the complete details of this budget request.
           </DialogDescription>
         </DialogHeader>
 

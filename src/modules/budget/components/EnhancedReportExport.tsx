@@ -716,7 +716,7 @@ export const EnhancedReportExport = ({
           doc.setFontSize(10);
           doc.setFont("helvetica", "bold");
           doc.setTextColor(109, 40, 217);
-          doc.text("Budget Allocation Requests", margin + 8, currentY + 7);
+          doc.text("Budget Requests", margin + 8, currentY + 7);
           currentY += 14;
 
           const recentAllocations = allocations
@@ -1736,7 +1736,7 @@ export const EnhancedReportExport = ({
             allocations.length > 0
               ? `
             <div class="section-header violet">
-              <h2>Budget Allocation Requests</h2>
+              <h2>Budget Requests</h2>
               <span class="count">${stats.allocations.count} requests  •  $${stats.allocations.total.toLocaleString()} total</span>
             </div>
             <div class="metrics-grid">

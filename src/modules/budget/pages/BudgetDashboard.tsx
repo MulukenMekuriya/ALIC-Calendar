@@ -255,7 +255,7 @@ const BudgetDashboard = () => {
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setIsAllocationFormOpen(true)}>
                     <Wallet className="mr-2 h-4 w-4" />
-                    Budget Allocation Request
+                    Budget Request
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

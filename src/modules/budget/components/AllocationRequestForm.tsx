@@ -493,11 +493,11 @@ export function AllocationRequestForm({
         <div className="flex-shrink-0 bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-5 text-white">
           <DialogTitle className="text-xl font-semibold">
             {isEditing
-              ? "Edit Allocation Request"
-              : "Budget Allocation Request"}
+              ? "Edit Budget Request"
+              : "Budget Request"}
           </DialogTitle>
           <DialogDescription className="sr-only">
-            {isEditing ? "Edit an existing budget allocation request" : "Create a new budget allocation request for your ministry"}
+            {isEditing ? "Edit an existing budget request" : "Create a new budget request for your ministry"}
           </DialogDescription>
           <div className="flex items-center gap-2 mt-2 text-violet-100 text-sm">
             <Calendar className="h-4 w-4" />
@@ -565,23 +565,29 @@ export function AllocationRequestForm({
                   Allocation Period
                 </FormLabel>
                 <div className="grid grid-cols-3 gap-2">
-                  {(["annual", "quarterly", "monthly"] as const).map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => form.setValue("period_type", type)}
-                      className={`
-                        py-3 px-4 rounded-lg border-2 text-sm font-medium transition-all
-                        ${
-                          periodType === type
-                            ? "border-violet-500 bg-violet-50 text-violet-700"
-                            : "border-gray-200 hover:border-gray-300 text-gray-600"
-                        }
-                      `}
-                    >
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
-                    </button>
-                  ))}
+                  {(["annual", "quarterly", "monthly"] as const).map((type) => {
+                    const isDisabled = type !== "annual";
+                    return (
+                      <button
+                        key={type}
+                        type="button"
+                        disabled={isDisabled}
+                        onClick={() => form.setValue("period_type", type)}
+                        className={`
+                          py-3 px-4 rounded-lg border-2 text-sm font-medium transition-all
+                          ${
+                            isDisabled
+                              ? "border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed"
+                              : periodType === type
+                                ? "border-violet-500 bg-violet-50 text-violet-700"
+                                : "border-gray-200 hover:border-gray-300 text-gray-600"
+                          }
+                        `}
+                      >
+                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

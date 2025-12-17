@@ -12,7 +12,10 @@
       "Bash(lsof:*)",
       "Bash(cat:*)",
       "Bash(timeout 60 npx tsc:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(supabase functions deploy:*)",
+      "Bash(supabase projects:*)",
+      "Bash(supabase link:*)"
     ],
     "deny": [],
     "ask": []

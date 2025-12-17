@@ -67,8 +67,8 @@ const MINISTRY_COLORS = [
 
 const AllocationOverviewCharts = ({
   allocations,
-  title = "Budget Allocation Requests",
-  description = "Overview of budget allocation requests and their status",
+  title = "Budget Requests",
+  description = "Overview of budget requests and their status",
 }: AllocationOverviewChartsProps) => {
   // Calculate totals
   const totalRequested = allocations.reduce(
@@ -256,10 +256,10 @@ const AllocationOverviewCharts = ({
             <CardHeader className="p-3 sm:p-6">
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                 <DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />
-                Allocation Requests by Status
+                Budget Requests by Status
               </CardTitle>
               <CardDescription className="text-xs sm:text-sm">
-                Distribution of allocation requests
+                Distribution of budget requests
               </CardDescription>
             </CardHeader>
             <CardContent className="p-3 sm:p-6 pt-0">
@@ -515,9 +515,9 @@ const AllocationOverviewCharts = ({
       {/* Detailed Table */}
       <Card>
         <CardHeader className="p-3 sm:p-6">
-          <CardTitle className="text-base sm:text-lg">Allocation Request Summary</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Budget Request Summary</CardTitle>
           <CardDescription className="text-xs sm:text-sm">
-            Detailed breakdown of all allocation requests by ministry
+            Detailed breakdown of all budget requests by ministry
           </CardDescription>
         </CardHeader>
         <CardContent className="p-3 sm:p-6 pt-0">

@@ -156,9 +156,9 @@ const getNotificationContent = (
 
     case "allocation_submitted":
       return {
-        subject: `New Budget Allocation Request: ${ministryName}`,
-        heading: "New Budget Allocation Request",
-        message: `${requesterName} from ${ministryName} has submitted a budget allocation request for ${amountStr}. This request requires your review.`,
+        subject: `New Budget Request: ${ministryName}`,
+        heading: "New Budget Request",
+        message: `${requesterName} from ${ministryName} has submitted a budget request for ${amountStr}. This request requires your review.`,
         statusColor: "#8b5cf6",
         statusBadge: "PENDING REVIEW",
         showActionButton: true,
