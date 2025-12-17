@@ -71,6 +71,7 @@ const periodAmountSchema = z.object({
 });
 
 const allocationRequestFormSchema = z.object({
+  ministry_id: z.string().min(1, "Ministry is required"),
   period_type: z.enum(["annual", "quarterly", "monthly"]),
   annual_amount: z.coerce.number().min(0).optional(),
   period_amounts: z.array(periodAmountSchema).optional(),
@@ -201,6 +202,7 @@ export function AllocationRequestForm({
   const form = useForm<AllocationRequestFormValues>({
     resolver: zodResolver(allocationRequestFormSchema),
     defaultValues: {
+      ministry_id: "",
       period_type: "annual",
       annual_amount: 0,
       period_amounts: [],
@@ -238,6 +240,13 @@ export function AllocationRequestForm({
     const amount = form.watch(`budget_breakdown.${index}.amount`) || 0;
     return sum + Number(amount);
   }, 0);
+
+  // Set default ministry when user's ministry is available
+  useEffect(() => {
+    if (userMinistry && !form.getValues("ministry_id")) {
+      form.setValue("ministry_id", userMinistry.id);
+    }
+  }, [userMinistry, form]);
 
   // Update period amounts when period type changes
   useEffect(() => {
@@ -325,10 +334,10 @@ export function AllocationRequestForm({
       return;
     }
 
-    if (!userMinistry) {
+    if (!values.ministry_id) {
       toast({
         title: "Error",
-        description: "You are not assigned to a ministry.",
+        description: "Please select a ministry.",
         variant: "destructive",
       });
       return;
@@ -411,7 +420,7 @@ export function AllocationRequestForm({
           requestData: {
             organization_id: currentOrganization.id,
             fiscal_year_id: selectedFiscalYear.id,
-            ministry_id: userMinistry.id,
+            ministry_id: values.ministry_id,
             requester_id: user.id,
             requester_name: profile?.full_name || "Unknown",
             period_type: values.period_type,
@@ -503,8 +512,6 @@ export function AllocationRequestForm({
                 ))}
               </SelectContent>
             </Select>
-            <span className="opacity-50">•</span>
-            <span>{userMinistry?.name || "No Ministry"}</span>
           </div>
         </div>
 
@@ -512,20 +519,42 @@ export function AllocationRequestForm({
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
-        ) : !userMinistry ? (
-          <div className="p-6 text-center">
-            <p className="text-muted-foreground">
-              You are not assigned to a ministry.
-            </p>
-            <Button className="mt-4" onClick={() => onOpenChange(false)}>
-              Close
-            </Button>
-          </div>
         ) : (
           <Form {...form}>
             <form className="flex flex-col flex-1 overflow-hidden">
               {/* Scrollable Content */}
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Ministry Selection */}
+              <FormField
+                control={form.control}
+                name="ministry_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Ministry
+                    </FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a ministry" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {ministries?.map((ministry) => (
+                          <SelectItem key={ministry.id} value={ministry.id}>
+                            {ministry.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               {/* Period Type Toggle */}
               <div>
                 <FormLabel className="text-xs uppercase tracking-wide text-muted-foreground mb-3 block">
