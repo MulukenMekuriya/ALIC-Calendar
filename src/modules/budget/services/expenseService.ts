@@ -80,21 +80,12 @@ export const expenseService = {
   },
 
   /**
-   * Get expense requests pending leader review for a user's ministries
+   * Get expense requests pending admin review (leader approval stage)
+   * Only ADMIN role can approve/deny at this stage
    */
-  async listPendingForLeader(
-    userId: string
+  async listPendingForAdmin(
+    organizationId: string
   ): Promise<ExpenseRequestWithRelations[]> {
-    // First get ministries led by this user from budget schema
-    const { data: ministries } = await budgetSchema()
-      .from("ministries")
-      .select("id")
-      .eq("leader_id", userId);
-
-    if (!ministries || ministries.length === 0) return [];
-
-    const ministryIds = ministries.map((m) => m.id);
-
     const { data, error } = await budgetSchema()
       .from("expense_requests")
       .select(
@@ -104,7 +95,7 @@ export const expenseService = {
         fiscal_years(id, name, year)
       `
       )
-      .in("ministry_id", ministryIds)
+      .eq("organization_id", organizationId)
       .eq("status", "pending_leader")
       .order("created_at", { ascending: true });
 
@@ -387,7 +378,7 @@ export const expenseService = {
       new_status: "leader_approved",
       actor_id: reviewerId,
       actor_name: reviewerName,
-      notes: notes || "Approved by ministry leader",
+      notes: notes || "Approved by admin",
     });
 
     return data;

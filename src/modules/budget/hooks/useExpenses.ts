@@ -15,8 +15,8 @@ export const expenseKeys = {
     [...expenseKeys.lists(), orgId, filters] as const,
   details: () => [...expenseKeys.all, "detail"] as const,
   detail: (id: string) => [...expenseKeys.details(), id] as const,
-  pendingLeader: (userId: string) =>
-    [...expenseKeys.all, "pending-leader", userId] as const,
+  pendingAdmin: (orgId: string) =>
+    [...expenseKeys.all, "pending-admin", orgId] as const,
   pendingTreasury: (orgId: string) =>
     [...expenseKeys.all, "pending-treasury", orgId] as const,
   pendingFinance: (orgId: string) =>
@@ -52,13 +52,14 @@ export function useExpense(expenseId: string | undefined) {
 }
 
 /**
- * Hook to fetch expenses pending leader review
+ * Hook to fetch expenses pending admin review (leader approval stage)
+ * Only ADMIN role can approve/deny at this stage
  */
-export function useExpensesPendingLeader(userId: string | undefined) {
+export function useExpensesPendingAdmin(organizationId: string | undefined) {
   return useQuery({
-    queryKey: expenseKeys.pendingLeader(userId || ""),
-    queryFn: () => expenseService.listPendingForLeader(userId!),
-    enabled: !!userId,
+    queryKey: expenseKeys.pendingAdmin(organizationId || ""),
+    queryFn: () => expenseService.listPendingForAdmin(organizationId!),
+    enabled: !!organizationId,
   });
 }
 
@@ -196,7 +197,7 @@ export function useSubmitExpenseForReview() {
 }
 
 /**
- * Hook for leader to approve expense
+ * Hook for admin to approve expense (leader approval stage)
  */
 export function useLeaderApproveExpense() {
   const queryClient = useQueryClient();
@@ -218,14 +219,18 @@ export function useLeaderApproveExpense() {
       queryClient.invalidateQueries({ queryKey: expenseKeys.detail(data.id) });
       queryClient.invalidateQueries({ queryKey: expenseKeys.history(data.id) });
       queryClient.invalidateQueries({
-        queryKey: expenseKeys.pendingLeader(data.leader_reviewer_id || ""),
+        queryKey: expenseKeys.pendingAdmin(data.organization_id),
+      });
+      // Also invalidate treasury queue since item moves there after approval
+      queryClient.invalidateQueries({
+        queryKey: expenseKeys.pendingTreasury(data.organization_id),
       });
     },
   });
 }
 
 /**
- * Hook for leader to deny expense
+ * Hook for admin to deny expense (leader approval stage)
  */
 export function useLeaderDenyExpense() {
   const queryClient = useQueryClient();
@@ -246,6 +251,9 @@ export function useLeaderDenyExpense() {
       queryClient.invalidateQueries({ queryKey: expenseKeys.lists() });
       queryClient.invalidateQueries({ queryKey: expenseKeys.detail(data.id) });
       queryClient.invalidateQueries({ queryKey: expenseKeys.history(data.id) });
+      queryClient.invalidateQueries({
+        queryKey: expenseKeys.pendingAdmin(data.organization_id),
+      });
     },
   });
 }

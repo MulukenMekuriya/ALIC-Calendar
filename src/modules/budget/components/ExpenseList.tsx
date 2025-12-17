@@ -202,8 +202,7 @@ export function ExpenseList({
     (expense.requester_id === user?.id || userRole === "admin");
 
   const canLeaderReview = (expense: ExpenseRequestWithRelations) =>
-    expense.status === "pending_leader" &&
-    (userRole === "leader" || userRole === "admin");
+    expense.status === "pending_leader" && userRole === "admin";
 
   const canTreasuryReview = (expense: ExpenseRequestWithRelations) =>
     (expense.status === "leader_approved" ||

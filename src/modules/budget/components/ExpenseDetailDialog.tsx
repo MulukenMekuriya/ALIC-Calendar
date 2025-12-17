@@ -561,9 +561,8 @@ export function ExpenseDetailDialog({
           )}
 
           {/* Action Buttons based on status and user role */}
-          {/* Leader Review Actions */}
-          {expense.status === "pending_leader" &&
-            (userRole === "leader" || userRole === "admin") && (
+          {/* Admin Review Actions (Leader approval stage) */}
+          {expense.status === "pending_leader" && userRole === "admin" && (
               <>
                 <Separator />
                 <div className="flex gap-3 pt-2">
