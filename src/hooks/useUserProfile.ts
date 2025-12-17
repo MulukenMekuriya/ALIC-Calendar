@@ -41,6 +41,7 @@ export const useUserProfile = () => {
             ministry_name: null,
           });
         } else {
+          console.log("Current user ministry from DB:", data.ministry_name);
           setProfile(data);
         }
       } catch (error) {

@@ -48,6 +48,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useOrganization } from "@/shared/contexts/OrganizationContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { useFiscalYears, useActiveFiscalYear } from "../hooks";
 import { useExpenses, useExpenseStatistics } from "../hooks";
 import { useOrganizationBudgetSummary } from "../hooks";
@@ -65,6 +66,7 @@ import { AllocationRequestList } from "../components/AllocationRequestList";
 const BudgetDashboard = () => {
   const { user, isAdmin, isTreasury, isFinance } = useAuth();
   const { currentOrganization } = useOrganization();
+  const { profile } = useUserProfile();
 
   // State
   const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
@@ -137,8 +139,9 @@ const BudgetDashboard = () => {
   const activeAllocationRequests =
     allocationRequests?.filter((r) => r.status !== "cancelled") || [];
 
-  // Extract ministry name from user's expenses or allocations
+  // Get ministry name from user's profile (from DB)
   const userMinistryName =
+    profile?.ministry_name ||
     myExpenses[0]?.ministry?.name ||
     myAllocationRequests[0]?.ministry?.name ||
     "Ministries";
