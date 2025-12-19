@@ -422,7 +422,7 @@ const BudgetDashboard = () => {
                 {isContributor && myExpenses && myExpenses.length > 0 && (
                   <>
                     <BudgetOverview
-                      expenses={expenses}
+                      expenses={myExpenses}
                       allocations={myAllocationRequests}
                       title={`${userMinistryName} Budget Overview`}
                       description={`${userMinistryName} expense requests and budget allocations`}
