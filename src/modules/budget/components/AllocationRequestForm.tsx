@@ -417,7 +417,16 @@ export function AllocationRequestForm({
     let finalAmount = 0;
     if (values.period_type === "annual") {
       finalAmount = values.annual_amount || 0;
+    } else if (values.period_type === "monthly") {
+      // Calculate total from monthly items (sum of all month values)
+      finalAmount = (values.monthly_items || []).reduce((sum, item) => {
+        const itemTotal = MONTH_KEYS.reduce((monthSum, month) => {
+          return monthSum + Number(item[month] || 0);
+        }, 0);
+        return sum + itemTotal;
+      }, 0);
     } else {
+      // Quarterly
       finalAmount = (values.period_amounts || []).reduce(
         (sum, pa) => sum + Number(pa.amount || 0),
         0
@@ -433,7 +442,7 @@ export function AllocationRequestForm({
       return;
     }
 
-    // Prepare period amounts for quarterly/monthly requests
+    // Prepare period amounts for quarterly requests
     const periodAmountsData = (values.period_amounts || [])
       .filter((pa) => pa.amount > 0)
       .map((pa) => ({
@@ -453,10 +462,47 @@ export function AllocationRequestForm({
         amount: pa.amount,
       }));
 
+    // For monthly, convert monthly_items to budget_breakdown format
+    const monthlyItemsAsBreakdown = values.period_type === "monthly"
+      ? (values.monthly_items || []).map((item) => {
+          const itemTotal = MONTH_KEYS.reduce((sum, month) => sum + Number(item[month] || 0), 0);
+          const justification = item.justification_category === OTHER_JUSTIFICATION_VALUE
+            ? item.custom_justification
+            : item.justification_category;
+          return {
+            category: "monthly_budget_item",
+            description: justification || "",
+            amount: itemTotal,
+            // Store full monthly item data for detailed view
+            monthly_data: {
+              chart_of_accounts: item.chart_of_accounts,
+              description: item.description,
+              jan: item.jan, feb: item.feb, mar: item.mar, apr: item.apr,
+              may: item.may, jun: item.jun, jul: item.jul, aug: item.aug,
+              sep: item.sep, oct: item.oct, nov: item.nov, dec: item.dec,
+            },
+          };
+        })
+      : [];
+
     const combinedBreakdown = [
       ...periodAmountsAsBreakdown,
+      ...monthlyItemsAsBreakdown,
       ...((values.budget_breakdown as BudgetBreakdownItem[]) || []),
     ];
+
+    // For monthly requests, create a summary justification from the items
+    const finalJustification = values.period_type === "monthly"
+      ? (values.monthly_items || [])
+          .map((item) => {
+            const justification = item.justification_category === OTHER_JUSTIFICATION_VALUE
+              ? item.custom_justification
+              : item.justification_category;
+            const itemTotal = MONTH_KEYS.reduce((sum, month) => sum + Number(item[month] || 0), 0);
+            return `${justification}: $${itemTotal.toLocaleString()}`;
+          })
+          .join("; ") || "Monthly budget request"
+      : values.justification || "";
 
     setIsSubmitting(true);
 
@@ -467,7 +513,7 @@ export function AllocationRequestForm({
           data: {
             period_type: values.period_type,
             requested_amount: finalAmount,
-            justification: values.justification,
+            justification: finalJustification,
             budget_breakdown: combinedBreakdown,
           },
         });
@@ -496,7 +542,7 @@ export function AllocationRequestForm({
             requester_name: profile?.full_name || "Unknown",
             period_type: values.period_type,
             requested_amount: finalAmount,
-            justification: values.justification,
+            justification: finalJustification,
             budget_breakdown: combinedBreakdown,
             status: "draft",
           },
