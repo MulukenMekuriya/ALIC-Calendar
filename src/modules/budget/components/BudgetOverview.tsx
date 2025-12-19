@@ -28,6 +28,8 @@ interface BudgetOverviewProps {
   defaultView?: "expenses" | "allocations" | "combined";
   // Props for detailed lists
   showDetailedLists?: boolean;
+  // Hide ministry breakdown for contributors (they only see their own ministry)
+  showMinistryBreakdown?: boolean;
   expenseListProps?: {
     isLoading?: boolean;
     userRole?: "admin" | "treasury" | "finance" | "requester";
@@ -47,6 +49,7 @@ const BudgetOverview = ({
   description = "Comprehensive view of your financial requests and allocations",
   defaultView = "combined",
   showDetailedLists = false,
+  showMinistryBreakdown = true,
   expenseListProps = {},
   allocationListProps = {},
 }: BudgetOverviewProps) => {
@@ -231,6 +234,7 @@ const BudgetOverview = ({
                             type="expenses"
                             data={activeExpenses}
                             showHeader={false}
+                            showMinistryBreakdown={showMinistryBreakdown}
                           />
 
                           {/* Detailed Expense List */}
@@ -262,6 +266,7 @@ const BudgetOverview = ({
                             type="allocations"
                             data={activeAllocations}
                             showHeader={false}
+                            showMinistryBreakdown={showMinistryBreakdown}
                           />
 
                           {/* Detailed Allocation List */}

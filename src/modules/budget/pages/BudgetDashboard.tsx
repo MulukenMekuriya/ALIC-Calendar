@@ -427,6 +427,7 @@ const BudgetDashboard = () => {
                       title={`${userMinistryName} Budget Overview`}
                       description={`${userMinistryName} expense requests and budget allocations`}
                       showDetailedLists={true}
+                      showMinistryBreakdown={false}
                       expenseListProps={{
                         isLoading: expensesLoading,
                         userRole: "requester",
@@ -452,6 +453,7 @@ const BudgetDashboard = () => {
                         title={`${userMinistryName} Budget Overview`}
                         description={`${userMinistryName} budget allocations`}
                         showDetailedLists={true}
+                        showMinistryBreakdown={false}
                         expenseListProps={{
                           isLoading: expensesLoading,
                           userRole: "requester",
