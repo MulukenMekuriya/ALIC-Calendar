@@ -56,6 +56,11 @@ import {
 } from "../hooks";
 import type { AllocationRequest, BudgetBreakdownItem } from "../types";
 import { PERIOD_AMOUNT_CATEGORY } from "../types";
+import {
+  getJustificationsForMinistry,
+  OTHER_JUSTIFICATION_VALUE,
+  OTHER_JUSTIFICATION_LABEL,
+} from "../constants/ministryJustifications";
 
 // Form validation schema
 const breakdownItemSchema = z.object({
@@ -71,11 +76,35 @@ const periodAmountSchema = z.object({
   amount: z.coerce.number().min(0),
 });
 
+// Monthly item schema with justification and month-by-month allocation
+const monthlyItemSchema = z.object({
+  justification_category: z.string().min(1, "Justification is required"),
+  custom_justification: z.string().optional(),
+  budget_amount: z.coerce.number().min(0, "Budget amount required"),
+  jan: z.coerce.number().min(0).optional(),
+  feb: z.coerce.number().min(0).optional(),
+  mar: z.coerce.number().min(0).optional(),
+  apr: z.coerce.number().min(0).optional(),
+  may: z.coerce.number().min(0).optional(),
+  jun: z.coerce.number().min(0).optional(),
+  jul: z.coerce.number().min(0).optional(),
+  aug: z.coerce.number().min(0).optional(),
+  sep: z.coerce.number().min(0).optional(),
+  oct: z.coerce.number().min(0).optional(),
+  nov: z.coerce.number().min(0).optional(),
+  dec: z.coerce.number().min(0).optional(),
+});
+
+// Month keys for iteration
+const MONTH_KEYS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"] as const;
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
 const allocationRequestFormSchema = z.object({
   ministry_id: z.string().min(1, "Ministry is required"),
   period_type: z.enum(["annual", "quarterly", "monthly"]),
   annual_amount: z.coerce.number().min(0).optional(),
   period_amounts: z.array(periodAmountSchema).optional(),
+  monthly_items: z.array(monthlyItemSchema).optional(),
   justification: z.string().min(10, "Please provide at least 10 characters"),
   budget_breakdown: z.array(breakdownItemSchema).optional(),
 });
@@ -207,6 +236,7 @@ export function AllocationRequestForm({
       period_type: "annual",
       annual_amount: 0,
       period_amounts: [],
+      monthly_items: [{ justification_category: "", custom_justification: "", budget_amount: 0, jan: 0, feb: 0, mar: 0, apr: 0, may: 0, jun: 0, jul: 0, aug: 0, sep: 0, oct: 0, nov: 0, dec: 0 }],
       justification: "",
       budget_breakdown: [],
     },
@@ -221,21 +251,47 @@ export function AllocationRequestForm({
     name: "budget_breakdown",
   });
 
+  const {
+    fields: monthlyItemFields,
+    append: appendMonthlyItem,
+    remove: removeMonthlyItem,
+  } = useFieldArray({
+    control: form.control,
+    name: "monthly_items",
+  });
+
   const periodType = form.watch("period_type");
   const periodAmounts = form.watch("period_amounts") || [];
+  const monthlyItems = form.watch("monthly_items") || [];
   const annualAmount = form.watch("annual_amount") || 0;
 
   const userMinistry = ministries?.find(
     (m) => m.name.toLowerCase() === profile?.ministry_name?.toLowerCase()
   );
 
+  const selectedMinistryId = form.watch("ministry_id");
+  const selectedMinistry = ministries?.find((m) => m.id === selectedMinistryId);
+
+  // Get justification options for the selected ministry
+  const justificationOptions = selectedMinistry
+    ? getJustificationsForMinistry(selectedMinistry.name)
+    : [];
+
   // Calculate totals
   const periodAmountsTotal = periodAmounts.reduce(
     (sum, pa) => sum + Number(pa.amount || 0),
     0
   );
+  const monthlyItemsTotal = monthlyItems.reduce(
+    (sum, item) => sum + Number(item.budget_amount || 0),
+    0
+  );
   const totalAmount =
-    periodType === "annual" ? annualAmount : periodAmountsTotal;
+    periodType === "annual"
+      ? annualAmount
+      : periodType === "monthly"
+        ? monthlyItemsTotal
+        : periodAmountsTotal;
 
   const breakdownTotal = breakdownFields.reduce((sum, _, index) => {
     const amount = form.watch(`budget_breakdown.${index}.amount`) || 0;
@@ -488,7 +544,7 @@ export function AllocationRequestForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[580px] max-h-[90vh] overflow-hidden p-0 flex flex-col">
+      <DialogContent className="sm:max-w-[95vw] lg:max-w-[1200px] max-h-[90vh] overflow-hidden p-0 flex flex-col">
         {/* Header */}
         <div className="flex-shrink-0 bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-5 text-white">
           <DialogTitle className="text-xl font-semibold">
@@ -696,90 +752,188 @@ export function AllocationRequestForm({
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    <span className="text-sm font-medium text-slate-600">
-                      Monthly Allocation
-                    </span>
-                    {/* Clean 3-column layout with rows */}
-                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                      {[0, 1, 2, 3].map((rowIndex) => (
-                        <div
-                          key={rowIndex}
-                          className={`grid grid-cols-3 ${
-                            rowIndex > 0 ? "border-t border-slate-100" : ""
-                          }`}
-                        >
-                          {periodAmounts
-                            .slice(rowIndex * 3, rowIndex * 3 + 3)
-                            .map((pa, colIndex) => {
-                              const actualIndex = rowIndex * 3 + colIndex;
-                              const isPast = selectedFiscalYear
-                                ? isPeriodInPast(selectedFiscalYear.year, "monthly", pa.period)
-                                : false;
-                              return (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-slate-600">
+                        Monthly Budget Breakdown
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs border-violet-200 text-violet-600 hover:bg-violet-50"
+                        onClick={() =>
+                          appendMonthlyItem({
+                            justification_category: "",
+                            custom_justification: "",
+                            budget_amount: 0,
+                            jan: 0, feb: 0, mar: 0, apr: 0, may: 0, jun: 0,
+                            jul: 0, aug: 0, sep: 0, oct: 0, nov: 0, dec: 0,
+                          })
+                        }
+                      >
+                        <Plus className="h-3.5 w-3.5 mr-1" />
+                        Add Item
+                      </Button>
+                    </div>
+
+                    {/* Monthly items - spreadsheet style */}
+                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                      {/* Header row */}
+                      <div className="bg-slate-50 border-b border-slate-200 px-3 py-2 grid grid-cols-[1fr,100px,repeat(12,50px),40px] gap-1 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                        <div>Task</div>
+                        <div className="text-right">Budget</div>
+                        {MONTH_LABELS.map((month) => (
+                          <div key={month} className="text-center">{month}</div>
+                        ))}
+                        <div></div>
+                      </div>
+
+                      {/* Data rows */}
+                      {monthlyItemFields.map((field, index) => {
+                        const selectedCategory = form.watch(`monthly_items.${index}.justification_category`);
+                        const isOther = selectedCategory === OTHER_JUSTIFICATION_VALUE;
+
+                        // Calculate row total from month values
+                        const rowMonthTotal = MONTH_KEYS.reduce((sum, month) => {
+                          const val = form.watch(`monthly_items.${index}.${month}`) || 0;
+                          return sum + Number(val);
+                        }, 0);
+
+                        return (
+                          <div key={field.id} className="border-b border-slate-100 last:border-b-0">
+                            <div className="px-3 py-2 grid grid-cols-[1fr,100px,repeat(12,50px),40px] gap-1 items-center">
+                              {/* Task/Justification */}
+                              <div>
                                 <FormField
-                                  key={pa.period}
                                   control={form.control}
-                                  name={`period_amounts.${actualIndex}.amount`}
+                                  name={`monthly_items.${index}.justification_category`}
                                   render={({ field }) => (
-                                    <FormItem
-                                      className={`p-3 ${
-                                        colIndex > 0
-                                          ? "border-l border-slate-100"
-                                          : ""
-                                      } ${isPast ? "bg-slate-50 opacity-60" : ""}`}
+                                    <Select
+                                      onValueChange={field.onChange}
+                                      value={field.value}
+                                      disabled={!selectedMinistryId}
                                     >
-                                      <div className="flex items-center justify-between mb-1.5">
-                                        <span
-                                          className={`text-[11px] font-semibold uppercase tracking-wider ${
-                                            isPast ? "text-slate-400" : "text-slate-500"
-                                          }`}
-                                        >
-                                          {pa.shortLabel}
-                                        </span>
-                                      </div>
-                                      <FormControl>
-                                        <div
-                                          className={`relative flex items-center border rounded-lg overflow-hidden transition-all ${
-                                            isPast
-                                              ? "bg-slate-100 border-slate-200 cursor-not-allowed"
-                                              : "bg-white border-slate-200 focus-within:ring-2 focus-within:ring-violet-500/20 focus-within:border-violet-400"
-                                          }`}
-                                        >
-                                          <span className="pl-3 pr-1 text-slate-400 text-sm font-medium select-none">
-                                            $
-                                          </span>
-                                          <Input
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
-                                            placeholder="0.00"
-                                            disabled={isPast}
-                                            className={`h-10 pl-0 pr-3 text-right text-sm font-semibold border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                                              isPast ? "text-slate-400 cursor-not-allowed" : ""
-                                            }`}
-                                            {...field}
-                                          />
-                                        </div>
-                                      </FormControl>
-                                    </FormItem>
+                                      <SelectTrigger className="h-8 text-xs border-slate-200">
+                                        <SelectValue placeholder="Select task" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {justificationOptions.map((option) => (
+                                          <SelectItem key={option} value={option} className="text-xs">
+                                            {option}
+                                          </SelectItem>
+                                        ))}
+                                        <SelectItem value={OTHER_JUSTIFICATION_VALUE} className="text-xs">
+                                          {OTHER_JUSTIFICATION_LABEL}
+                                        </SelectItem>
+                                      </SelectContent>
+                                    </Select>
                                   )}
                                 />
-                              );
-                            })}
-                        </div>
-                      ))}
+                              </div>
+
+                              {/* Budget Amount */}
+                              <div>
+                                <FormField
+                                  control={form.control}
+                                  name={`monthly_items.${index}.budget_amount`}
+                                  render={({ field }) => (
+                                    <div className="relative">
+                                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">$</span>
+                                      <Input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        placeholder="0"
+                                        className="h-8 pl-5 pr-1 text-xs text-right border-slate-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                        {...field}
+                                      />
+                                    </div>
+                                  )}
+                                />
+                              </div>
+
+                              {/* Month columns */}
+                              {MONTH_KEYS.map((month) => (
+                                <div key={month}>
+                                  <FormField
+                                    control={form.control}
+                                    name={`monthly_items.${index}.${month}`}
+                                    render={({ field }) => (
+                                      <Input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        placeholder=""
+                                        className="h-8 px-1 text-[10px] text-center border-slate-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                        {...field}
+                                        value={field.value || ""}
+                                      />
+                                    )}
+                                  />
+                                </div>
+                              ))}
+
+                              {/* Delete button */}
+                              <div className="flex justify-center">
+                                {monthlyItemFields.length > 1 && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-red-400 hover:text-red-600 hover:bg-red-50"
+                                    onClick={() => removeMonthlyItem(index)}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Custom justification row when "Other" is selected */}
+                            {isOther && (
+                              <div className="px-3 pb-2">
+                                <FormField
+                                  control={form.control}
+                                  name={`monthly_items.${index}.custom_justification`}
+                                  render={({ field }) => (
+                                    <Input
+                                      placeholder="Specify task/justification..."
+                                      className="h-8 text-xs border-slate-200"
+                                      {...field}
+                                    />
+                                  )}
+                                />
+                              </div>
+                            )}
+
+                            {/* Row total indicator */}
+                            {rowMonthTotal > 0 && (
+                              <div className="px-3 pb-2 text-[10px] text-slate-500">
+                                Month allocations: ${rowMonthTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+
                       {/* Total row */}
-                      <div className="border-t-2 border-slate-200 bg-gradient-to-r from-violet-50 to-indigo-50 px-4 py-3 flex items-center justify-between">
-                        <span className="text-sm font-medium text-slate-600">
-                          Total Annual Budget
-                        </span>
-                        <span className="text-lg font-bold text-violet-700">
-                          $
-                          {periodAmountsTotal.toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                          })}
-                        </span>
+                      <div className="bg-gradient-to-r from-violet-50 to-indigo-50 border-t-2 border-violet-200 px-3 py-3 grid grid-cols-[1fr,100px,repeat(12,50px),40px] gap-1 items-center">
+                        <div className="text-sm font-semibold text-slate-700">Total</div>
+                        <div className="text-right text-sm font-bold text-violet-700">
+                          ${monthlyItemsTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        </div>
+                        {MONTH_KEYS.map((month) => {
+                          const monthTotal = monthlyItems.reduce((sum, item) => {
+                            return sum + Number(item[month] || 0);
+                          }, 0);
+                          return (
+                            <div key={month} className="text-center text-[10px] font-medium text-slate-600">
+                              {monthTotal > 0 ? `$${monthTotal.toLocaleString()}` : ""}
+                            </div>
+                          );
+                        })}
+                        <div></div>
                       </div>
                     </div>
                   </div>
