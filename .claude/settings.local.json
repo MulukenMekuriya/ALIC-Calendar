@@ -15,7 +15,8 @@
       "Bash(grep:*)",
       "Bash(supabase functions deploy:*)",
       "Bash(supabase projects:*)",
-      "Bash(supabase link:*)"
+      "Bash(supabase link:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
