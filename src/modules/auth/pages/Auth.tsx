@@ -141,27 +141,8 @@ const Auth = () => {
       }
 
       if (authData.user) {
-        // Create profile
-        const { error: profileError } = await supabase.from("profiles").insert({
-          id: authData.user.id,
-          full_name: validated.fullName || "",
-          email: validated.email,
-        });
-
-        if (profileError) {
-          console.error("Profile creation error:", profileError);
-        }
-
-        // Assign contributor role by default
-        const { error: roleError } = await supabase.from("user_roles").insert({
-          user_id: authData.user.id,
-          role: "contributor",
-        });
-
-        if (roleError) {
-          console.error("Role assignment error:", roleError);
-        }
-
+        // Profile and organization assignment are handled automatically by database trigger
+        // See: handle_new_user() function in migrations
         toast({
           title: "Account created",
           description: "Please check your email to confirm your account.",
