@@ -42,6 +42,7 @@ import { useCreateExpense, useUpdateExpense, useSubmitExpenseForReview } from ".
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useOrganization } from "@/shared/contexts/OrganizationContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { Label } from "@/shared/components/ui/label";
 import type { ExpenseRequest, ReimbursementType } from "../types";
 import { REIMBURSEMENT_TYPE_LABELS } from "../types";
 import {
@@ -136,7 +137,7 @@ export function ExpenseRequestForm({
   const { toast } = useToast();
   const { user } = useAuth();
   const { profile } = useUserProfile();
-  const { currentOrganization } = useOrganization();
+  const { currentOrganization, userOrganizations } = useOrganization();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [attachments, setAttachments] = useState<AttachmentData[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -207,6 +208,14 @@ export function ExpenseRequestForm({
 
   // Check if "Other" is selected
   const isOtherJustification = selectedJustificationCategory === OTHER_JUSTIFICATION_VALUE;
+
+  // Get the user's role for the current organization
+  const currentUserOrgRole = userOrganizations.find(
+    (uo) => uo.organization_id === currentOrganization?.id
+  )?.role;
+
+  // Determine if user is a contributor (not admin, treasury, or finance)
+  const isContributor = currentUserOrgRole === "contributor";
 
   // Update form values when expense changes (for editing) or set defaults for new expense
   useEffect(() => {
@@ -599,33 +608,51 @@ export function ExpenseRequestForm({
             <form className="flex flex-col flex-1 overflow-hidden">
               {/* Scrollable Content */}
               <div className="flex-1 overflow-y-auto p-6 space-y-5">
-              {/* Ministry Selection */}
-              <FormField
-                control={form.control}
-                name="ministry_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium text-slate-700">
-                      Ministry <span className="text-red-500">*</span>
-                    </FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="h-11 border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400">
-                          <SelectValue placeholder="Select ministry" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {ministries?.map((ministry) => (
-                          <SelectItem key={ministry.id} value={ministry.id}>
-                            {ministry.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Ministry Selection - Show dropdown for admins, auto-assign for contributors */}
+              {isContributor ? (
+                // Contributors see their ministry displayed (read-only)
+                <div>
+                  <Label className="text-sm font-medium text-slate-700">
+                    Ministry <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="mt-2 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700">
+                    {userMinistry?.name || profile?.ministry_name || "No ministry assigned"}
+                  </div>
+                  {!userMinistry && (
+                    <p className="text-xs text-red-500 mt-1">
+                      Your ministry is not set up in the budget system. Please contact an administrator.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                // Admins get the full dropdown to select any ministry
+                <FormField
+                  control={form.control}
+                  name="ministry_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium text-slate-700">
+                        Ministry <span className="text-red-500">*</span>
+                      </FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="h-11 border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400">
+                            <SelectValue placeholder="Select ministry" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {ministries?.map((ministry) => (
+                            <SelectItem key={ministry.id} value={ministry.id}>
+                              {ministry.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               {/* Justification Category Dropdown */}
               <FormField
