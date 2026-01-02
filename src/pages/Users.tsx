@@ -174,7 +174,7 @@ const Users = () => {
       // The profile is only deleted if this was their only organization
 
       toast({ title: "User removed from organization successfully" });
-      refetchUsers();
+      await refetchUsers();
     } catch (error) {
       toast({
         title: "Error",

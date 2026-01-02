@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/shared/components/layout/DashboardLayout";
 import { Button } from "@/shared/components/ui/button";
@@ -162,20 +162,25 @@ const Users = () => {
 
     try {
       // Remove user from this organization
-      const { error: orgError } = await supabase
+      const { data, error: orgError, count } = await supabase
         .from("user_organizations")
         .delete()
         .eq("user_id", userId)
-        .eq("organization_id", currentOrganization.id);
+        .eq("organization_id", currentOrganization.id)
+        .select();
+
+      console.log("Delete result:", { data, orgError, count, userId, orgId: currentOrganization.id });
 
       if (orgError) throw orgError;
 
-      // Note: We don't delete the profile or auth user since they may belong to other organizations
-      // The profile is only deleted if this was their only organization
+      if (!data || data.length === 0) {
+        throw new Error("Failed to remove user. You may not have permission to perform this action.");
+      }
 
       toast({ title: "User removed from organization successfully" });
-      refetchUsers();
+      await refetchUsers();
     } catch (error) {
+      console.error("Delete user error:", error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "An error occurred",
