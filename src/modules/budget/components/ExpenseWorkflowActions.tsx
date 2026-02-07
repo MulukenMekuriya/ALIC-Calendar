@@ -15,13 +15,14 @@ import { Button } from "@/shared/components/ui/button";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
-import { Loader2, CheckCircle, XCircle, CreditCard } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, CreditCard, ArrowRightCircle } from "lucide-react";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import {
   useLeaderApproveExpense,
   useLeaderDenyExpense,
+  useTransferToTreasury,
   useTreasuryApproveExpense,
   useTreasuryDenyExpense,
   useFinanceProcessExpense,
@@ -296,6 +297,133 @@ export function LeaderDenyDialog({
               <XCircle className="mr-2 h-4 w-4" />
             )}
             Deny Request
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * Transfer to Treasury Dialog
+ * Allows admin to bypass leader approval and send directly to treasury
+ */
+export function TransferToTreasuryDialog({
+  open,
+  onOpenChange,
+  expense,
+  onSuccess,
+}: BaseActionDialogProps) {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const { profile } = useUserProfile();
+  const [notes, setNotes] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const transferToTreasury = useTransferToTreasury();
+
+  const handleTransfer = async () => {
+    if (!user || !profile) return;
+    if (!notes.trim()) {
+      toast({
+        title: "Notes Required",
+        description: "Please explain why you are transferring this to treasury.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await transferToTreasury.mutateAsync({
+        expenseId: expense.id,
+        reviewerId: user.id,
+        reviewerName: profile.full_name,
+        notes,
+      });
+
+      toast({
+        title: "Transferred to Treasury",
+        description: "The expense request has been sent to treasury for review.",
+      });
+
+      onOpenChange(false);
+      onSuccess?.();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to transfer expense",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ArrowRightCircle className="h-5 w-5 text-purple-500" />
+            Transfer to Treasury
+          </DialogTitle>
+          <DialogDescription>
+            Transfer this expense request to the treasury team for their review and decision.
+            Use this when you prefer not to approve but want treasury to make the final call.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Request</span>
+              <span className="text-sm font-medium">{expense.title}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Amount</span>
+              <span className="text-sm font-medium">
+                ${Number(expense.amount).toFixed(2)}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Ministry</span>
+              <span className="text-sm font-medium">{expense.ministry?.name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Requester</span>
+              <span className="text-sm font-medium">{expense.requester_name}</span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="transfer-notes">Reason for Transfer *</Label>
+            <Textarea
+              id="transfer-notes"
+              placeholder="Explain why you are transferring this to treasury instead of approving..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              required
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleTransfer}
+            disabled={isSubmitting || !notes.trim()}
+            className="bg-purple-600 hover:bg-purple-700"
+          >
+            {isSubmitting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <ArrowRightCircle className="mr-2 h-4 w-4" />
+            )}
+            Transfer to Treasury
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -60,6 +60,7 @@ import {
   Receipt,
   UserCheck,
   Hash,
+  ArrowRightCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ExpenseStatusBadge } from "./ExpenseStatusBadge";
@@ -68,6 +69,7 @@ import { ExpenseDetailDialog } from "./ExpenseDetailDialog";
 import {
   LeaderApproveDialog,
   LeaderDenyDialog,
+  TransferToTreasuryDialog,
   TreasuryApproveDialog,
   TreasuryDenyDialog,
   FinanceProcessDialog,
@@ -107,6 +109,7 @@ export function ExpenseList({
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isLeaderApproveOpen, setIsLeaderApproveOpen] = useState(false);
   const [isLeaderDenyOpen, setIsLeaderDenyOpen] = useState(false);
+  const [isTransferToTreasuryOpen, setIsTransferToTreasuryOpen] = useState(false);
   const [isTreasuryApproveOpen, setIsTreasuryApproveOpen] = useState(false);
   const [isTreasuryDenyOpen, setIsTreasuryDenyOpen] = useState(false);
   const [isFinanceProcessOpen, setIsFinanceProcessOpen] = useState(false);
@@ -449,6 +452,16 @@ export function ExpenseList({
                                   <DropdownMenuItem
                                     onClick={() => {
                                       setSelectedExpense(expense);
+                                      setIsTransferToTreasuryOpen(true);
+                                    }}
+                                    className="text-purple-600"
+                                  >
+                                    <ArrowRightCircle className="mr-2 h-4 w-4" />
+                                    Transfer to Treasury
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedExpense(expense);
                                       setIsLeaderDenyOpen(true);
                                     }}
                                     className="text-red-600"
@@ -752,6 +765,16 @@ export function ExpenseList({
                                         <DropdownMenuItem
                                           onClick={() => {
                                             setSelectedExpense(expense);
+                                            setIsTransferToTreasuryOpen(true);
+                                          }}
+                                          className="text-purple-600"
+                                        >
+                                          <ArrowRightCircle className="mr-2 h-4 w-4" />
+                                          Transfer to Treasury
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setSelectedExpense(expense);
                                             setIsLeaderDenyOpen(true);
                                           }}
                                           className="text-red-600"
@@ -843,6 +866,9 @@ export function ExpenseList({
           onLeaderDeny={() => {
             setIsLeaderDenyOpen(true);
           }}
+          onTransferToTreasury={() => {
+            setIsTransferToTreasuryOpen(true);
+          }}
           onTreasuryApprove={() => {
             setIsTreasuryApproveOpen(true);
           }}
@@ -876,6 +902,12 @@ export function ExpenseList({
             <LeaderDenyDialog
               open={isLeaderDenyOpen}
               onOpenChange={setIsLeaderDenyOpen}
+              expense={selectedExpense}
+              onSuccess={onRefresh}
+            />
+            <TransferToTreasuryDialog
+              open={isTransferToTreasuryOpen}
+              onOpenChange={setIsTransferToTreasuryOpen}
               expense={selectedExpense}
               onSuccess={onRefresh}
             />

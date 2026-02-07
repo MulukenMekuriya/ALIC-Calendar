@@ -385,6 +385,52 @@ export const expenseService = {
   },
 
   /**
+   * Admin transfers expense to treasury (bypasses leader approval)
+   * Used when admin feels they shouldn't approve but wants treasury to decide
+   */
+  async transferToTreasury(
+    expenseId: string,
+    reviewerId: string,
+    reviewerName: string,
+    notes: string
+  ): Promise<ExpenseRequest> {
+    const { data: current } = await budgetSchema()
+      .from("expense_requests")
+      .select("status")
+      .eq("id", expenseId)
+      .single();
+
+    const previousStatus = current?.status as ExpenseStatus;
+
+    const { data, error } = await budgetSchema()
+      .from("expense_requests")
+      .update({
+        status: "leader_approved",
+        leader_reviewer_id: reviewerId,
+        leader_reviewed_at: new Date().toISOString(),
+        leader_notes: notes,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", expenseId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    await this.addHistory({
+      expense_request_id: expenseId,
+      action: "transferred_to_treasury",
+      previous_status: previousStatus,
+      new_status: "leader_approved",
+      actor_id: reviewerId,
+      actor_name: reviewerName,
+      notes: `Transferred to treasury: ${notes}`,
+    });
+
+    return data;
+  },
+
+  /**
    * Leader denies expense request
    */
   async leaderDeny(

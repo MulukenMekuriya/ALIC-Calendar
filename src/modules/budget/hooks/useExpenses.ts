@@ -230,6 +230,38 @@ export function useLeaderApproveExpense() {
 }
 
 /**
+ * Hook for admin to transfer expense to treasury (bypasses leader approval)
+ */
+export function useTransferToTreasury() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      expenseId,
+      reviewerId,
+      reviewerName,
+      notes,
+    }: {
+      expenseId: string;
+      reviewerId: string;
+      reviewerName: string;
+      notes: string;
+    }) => expenseService.transferToTreasury(expenseId, reviewerId, reviewerName, notes),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: expenseKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: expenseKeys.detail(data.id) });
+      queryClient.invalidateQueries({ queryKey: expenseKeys.history(data.id) });
+      queryClient.invalidateQueries({
+        queryKey: expenseKeys.pendingAdmin(data.organization_id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: expenseKeys.pendingTreasury(data.organization_id),
+      });
+    },
+  });
+}
+
+/**
  * Hook for admin to deny expense (leader approval stage)
  */
 export function useLeaderDenyExpense() {
