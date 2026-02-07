@@ -16,7 +16,9 @@
       "Bash(supabase functions deploy:*)",
       "Bash(supabase projects:*)",
       "Bash(supabase link:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []

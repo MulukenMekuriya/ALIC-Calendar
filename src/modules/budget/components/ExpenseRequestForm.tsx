@@ -155,13 +155,23 @@ export function ExpenseRequestForm({
     currentOrganization?.id
   );
 
-  // Selected fiscal year state - defaults to active fiscal year
+  // Selected fiscal year state - defaults to current year
   const [selectedFiscalYearId, setSelectedFiscalYearId] = useState<string | null>(null);
 
-  // Get the effective fiscal year (selected or active)
+  // Get the current year's fiscal year, or fallback to active if it's not a past year
+  const currentYear = new Date().getFullYear();
+  const currentYearFiscal = fiscalYears?.find((fy) => fy.year === currentYear);
+  const effectiveFiscalYearId =
+    selectedFiscalYearId ||
+    currentYearFiscal?.id ||
+    (activeFiscalYear && activeFiscalYear.year >= currentYear
+      ? activeFiscalYear.id
+      : undefined);
+
+  // Get the effective fiscal year object
   const selectedFiscalYear = fiscalYears?.find(
-    (fy) => fy.id === (selectedFiscalYearId || activeFiscalYear?.id)
-  ) || activeFiscalYear;
+    (fy) => fy.id === effectiveFiscalYearId
+  ) || currentYearFiscal || activeFiscalYear;
 
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
@@ -574,26 +584,28 @@ export function ExpenseRequestForm({
           <div className="flex items-center gap-2 mt-2 text-emerald-100 text-sm">
             <Calendar className="h-4 w-4" />
             <Select
-              value={selectedFiscalYearId || activeFiscalYear?.id || ""}
+              value={effectiveFiscalYearId || ""}
               onValueChange={setSelectedFiscalYearId}
             >
               <SelectTrigger className="h-7 w-auto gap-1 border-emerald-400/50 bg-emerald-500/30 text-white hover:bg-emerald-500/50 focus:ring-emerald-300 [&>svg]:text-white">
                 <SelectValue placeholder="Select year" />
               </SelectTrigger>
               <SelectContent>
-                {fiscalYears?.map((fy) => {
-                  const isFuture = fy.year > new Date().getFullYear();
-                  return (
-                    <SelectItem
-                      key={fy.id}
-                      value={fy.id}
-                      disabled={isFuture}
-                      className={isFuture ? "text-muted-foreground opacity-50" : ""}
-                    >
-                      {fy.name} {fy.is_active && "(Active)"} {isFuture && "(Future)"}
-                    </SelectItem>
-                  );
-                })}
+                {fiscalYears
+                  ?.filter((fy) => fy.year >= currentYear)
+                  .map((fy) => {
+                    const isFuture = fy.year > currentYear;
+                    return (
+                      <SelectItem
+                        key={fy.id}
+                        value={fy.id}
+                        disabled={isFuture}
+                        className={isFuture ? "text-muted-foreground opacity-50" : ""}
+                      >
+                        {fy.name} {fy.is_active && "(Active)"} {isFuture && "(Future)"}
+                      </SelectItem>
+                    );
+                  })}
               </SelectContent>
             </Select>
           </div>

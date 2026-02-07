@@ -90,8 +90,15 @@ const BudgetDashboard = () => {
     currentOrganization?.id
   );
 
-  // Use active fiscal year if none selected
-  const effectiveFiscalYearId = selectedFiscalYearId || activeFiscalYear?.id;
+  // Get current year's fiscal year, or fallback to active fiscal year if it's not a past year
+  const currentYear = new Date().getFullYear();
+  const currentYearFiscal = fiscalYears?.find((fy) => fy.year === currentYear);
+  const effectiveFiscalYearId =
+    selectedFiscalYearId ||
+    currentYearFiscal?.id ||
+    (activeFiscalYear && activeFiscalYear.year >= currentYear
+      ? activeFiscalYear.id
+      : undefined);
 
   // Fetch expenses - filter by requester for contributors
   const expenseFilters = effectiveFiscalYearId
@@ -196,11 +203,13 @@ const BudgetDashboard = () => {
                 <SelectValue placeholder="Select fiscal year" />
               </SelectTrigger>
               <SelectContent>
-                {fiscalYears?.map((fy) => (
-                  <SelectItem key={fy.id} value={fy.id}>
-                    {fy.name} {fy.is_active && "(Active)"}
-                  </SelectItem>
-                ))}
+                {fiscalYears
+                  ?.filter((fy) => fy.year >= new Date().getFullYear())
+                  .map((fy) => (
+                    <SelectItem key={fy.id} value={fy.id}>
+                      {fy.name} {fy.is_active && "(Active)"}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
 
