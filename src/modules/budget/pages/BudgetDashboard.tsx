@@ -204,10 +204,10 @@ const BudgetDashboard = () => {
               </SelectTrigger>
               <SelectContent>
                 {fiscalYears
-                  ?.filter((fy) => fy.year >= new Date().getFullYear())
+                  ?.filter((fy) => fy.year >= currentYear - 5)
                   .map((fy) => (
                     <SelectItem key={fy.id} value={fy.id}>
-                      {fy.name} {fy.is_active && "(Active)"}
+                      {fy.name} {fy.is_active && fy.year >= currentYear && "(Active)"}
                     </SelectItem>
                   ))}
               </SelectContent>
