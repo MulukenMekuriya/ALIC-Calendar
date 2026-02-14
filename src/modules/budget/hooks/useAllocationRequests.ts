@@ -537,6 +537,116 @@ export function useDenyAllocationRequest() {
 }
 
 /**
+ * Recall an approved allocation request (admin action)
+ * Reverts status to "pending" and reverses the budget allocation
+ */
+export function useRecallAllocationApproval() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      requestId,
+      adminNotes,
+      actorId,
+      actorName,
+    }: {
+      requestId: string;
+      adminNotes: string;
+      actorId: string;
+      actorName: string;
+    }) => {
+      // Get current request to know the approved amount and ministry/fiscal year
+      const { data: current, error: fetchError } = await supabase
+        .schema("budget")
+        .from("allocation_requests")
+        .select("*")
+        .eq("id", requestId)
+        .single();
+
+      if (fetchError) throw fetchError;
+      if (!current) throw new Error("Allocation request not found");
+
+      const request = current as unknown as AllocationRequest;
+
+      // Reverse the budget allocation if there was an approved amount
+      if (request.approved_amount) {
+        const { data: existingAllocation } = await supabase
+          .schema("budget")
+          .from("budget_allocations")
+          .select("id, allocated_amount")
+          .eq("ministry_id", request.ministry_id)
+          .eq("fiscal_year_id", request.fiscal_year_id)
+          .single();
+
+        if (existingAllocation) {
+          const newAmount =
+            Number(existingAllocation.allocated_amount) - Number(request.approved_amount);
+
+          if (newAmount <= 0) {
+            // Delete the allocation if amount goes to zero or below
+            await supabase
+              .schema("budget")
+              .from("budget_allocations")
+              .delete()
+              .eq("id", existingAllocation.id);
+          } else {
+            // Subtract the approved amount
+            await supabase
+              .schema("budget")
+              .from("budget_allocations")
+              .update({
+                allocated_amount: newAmount,
+                notes: `Recalled $${Number(request.approved_amount).toFixed(2)} from allocation request`,
+              })
+              .eq("id", existingAllocation.id);
+          }
+        }
+      }
+
+      // Update request back to pending
+      const { data: updated, error: updateError } = await supabase
+        .schema("budget")
+        .from("allocation_requests")
+        .update({
+          status: "pending",
+          approved_amount: null,
+          admin_notes: null,
+          reviewed_by: null,
+          reviewed_at: null,
+        })
+        .eq("id", requestId)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+
+      // Add history entry
+      const { error: historyError } = await supabase
+        .schema("budget")
+        .from("allocation_request_history")
+        .insert({
+          request_id: requestId,
+          action: "approval_recalled",
+          actor_id: actorId,
+          actor_name: actorName,
+          old_status: request.status,
+          new_status: "pending",
+          notes: `Approval recalled: ${adminNotes}`,
+        });
+
+      if (historyError) console.error("History insert error:", historyError);
+
+      return updated as AllocationRequest;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ALLOCATION_REQUESTS_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["budget-allocations"] });
+      queryClient.invalidateQueries({ queryKey: ["budget-summary"] });
+    },
+  });
+}
+
+/**
  * Cancel an allocation request
  */
 export function useCancelAllocationRequest() {

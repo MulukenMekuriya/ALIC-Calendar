@@ -34,6 +34,7 @@ import {
   DollarSign,
   Building2,
   Calendar,
+  Undo2,
 } from "lucide-react";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useAuth } from "@/shared/contexts/AuthContext";
@@ -41,6 +42,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import {
   useApproveAllocationRequest,
   useDenyAllocationRequest,
+  useRecallAllocationApproval,
 } from "../hooks";
 import type { AllocationRequestWithRelations } from "../types";
 import { getPeriodLabel } from "../types";
@@ -366,6 +368,148 @@ export function AllocationReviewDialog({
             </form>
           </Form>
         )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * RecallAllocationDialog - Admin dialog to recall an approved allocation request
+ */
+interface RecallAllocationDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  request: AllocationRequestWithRelations | null;
+  onSuccess?: () => void;
+}
+
+export function RecallAllocationDialog({
+  open,
+  onOpenChange,
+  request,
+  onSuccess,
+}: RecallAllocationDialogProps) {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const { profile } = useUserProfile();
+  const [notes, setNotes] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const recallApproval = useRecallAllocationApproval();
+
+  if (!request) return null;
+
+  const handleRecall = async () => {
+    if (!user || !profile) return;
+    if (!notes.trim()) {
+      toast({
+        title: "Reason Required",
+        description: "Please provide a reason for recalling the approval.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await recallApproval.mutateAsync({
+        requestId: request.id,
+        adminNotes: notes,
+        actorId: user.id,
+        actorName: profile.full_name,
+      });
+
+      toast({
+        title: "Approval Recalled",
+        description: "The budget request has been reverted to pending review.",
+      });
+
+      onOpenChange(false);
+      setNotes("");
+      onSuccess?.();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to recall approval",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Undo2 className="h-5 w-5 text-orange-500" />
+            Recall Approval
+          </DialogTitle>
+          <DialogDescription>
+            Recall your approval and revert this budget request back to pending review.
+            The approved budget allocation will be reversed.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Ministry</span>
+              <span className="text-sm font-medium">{request.ministry?.name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Period</span>
+              <span className="text-sm font-medium">{getPeriodLabel(request.period_type)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Requested</span>
+              <span className="text-sm font-medium">
+                ${Number(request.requested_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+            {request.approved_amount && (
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Approved</span>
+                <span className="text-sm font-medium text-green-600">
+                  ${Number(request.approved_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="recall-allocation-notes" className="text-sm font-medium">
+              Reason for Recall *
+            </label>
+            <Textarea
+              id="recall-allocation-notes"
+              placeholder="Explain why you are recalling this approval..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              required
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleRecall}
+            disabled={isSubmitting || !notes.trim()}
+            className="bg-orange-600 hover:bg-orange-700"
+          >
+            {isSubmitting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Undo2 className="mr-2 h-4 w-4" />
+            )}
+            Recall Approval
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

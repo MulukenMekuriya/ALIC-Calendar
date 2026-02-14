@@ -29,6 +29,7 @@ import {
   TrendingUp,
   CalendarDays,
   XCircle,
+  Undo2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { AllocationRequestStatusBadge } from "./AllocationRequestStatusBadge";
@@ -69,6 +70,7 @@ interface AllocationRequestDetailDialogProps {
   userRole?: "admin" | "treasury" | "finance" | "requester";
   onApprove?: () => void;
   onDeny?: () => void;
+  onRecallApproval?: () => void;
 }
 
 export function AllocationRequestDetailDialog({
@@ -78,6 +80,7 @@ export function AllocationRequestDetailDialog({
   userRole = "requester",
   onApprove,
   onDeny,
+  onRecallApproval,
 }: AllocationRequestDetailDialogProps) {
   if (!request) return null;
 
@@ -503,6 +506,26 @@ export function AllocationRequestDetailDialog({
               </div>
             </>
           )}
+
+          {/* Recall Approval Action */}
+          {(request.status === "approved" || request.status === "partially_approved") &&
+            (userRole === "admin" || userRole === "treasury" || userRole === "finance") && (
+              <>
+                <Separator />
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    className="flex-1 bg-orange-600 hover:bg-orange-700"
+                    onClick={() => {
+                      onOpenChange(false);
+                      onRecallApproval?.();
+                    }}
+                  >
+                    <Undo2 className="mr-2 h-4 w-4" />
+                    Recall Approval
+                  </Button>
+                </div>
+              </>
+            )}
         </div>
       </DialogContent>
     </Dialog>

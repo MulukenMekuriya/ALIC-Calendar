@@ -17,6 +17,7 @@ type NotificationType =
   | "allocation_submitted"
   | "allocation_approved"
   | "allocation_denied"
+  | "allocation_approval_recalled"
   | "budget_alert";
 
 interface NotificationPayload {
@@ -285,6 +286,24 @@ export const notifyAllocationDenied = async (
     to: context.requesterEmail,
     recipientName: context.requesterName,
     notificationType: "allocation_denied",
+    expenseAmount: context.requestedAmount,
+    ministryName: context.ministryName,
+    requesterName: context.requesterName,
+    reviewerNotes,
+  });
+};
+
+/**
+ * Notify requester that their allocation approval was recalled
+ */
+export const notifyAllocationApprovalRecalled = async (
+  context: AllocationNotificationContext,
+  reviewerNotes: string
+): Promise<NotificationResult> => {
+  return sendBudgetNotification({
+    to: context.requesterEmail,
+    recipientName: context.requesterName,
+    notificationType: "allocation_approval_recalled",
     expenseAmount: context.requestedAmount,
     ministryName: context.ministryName,
     requesterName: context.requesterName,

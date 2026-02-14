@@ -42,12 +42,13 @@ import {
   Wallet,
   CheckCircle,
   XCircle,
+  Undo2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { AllocationRequestStatusBadge } from "./AllocationRequestStatusBadge";
 import { AllocationRequestForm } from "./AllocationRequestForm";
 import { AllocationRequestDetailDialog } from "./AllocationRequestDetailDialog";
-import { AllocationReviewDialog } from "./AllocationReviewDialog";
+import { AllocationReviewDialog, RecallAllocationDialog } from "./AllocationReviewDialog";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useSearch } from "@/shared/contexts/SearchContext";
@@ -86,6 +87,7 @@ export function AllocationRequestList({
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
+  const [isRecallDialogOpen, setIsRecallDialogOpen] = useState(false);
   const [reviewAction, setReviewAction] = useState<"approve" | "deny">(
     "approve"
   );
@@ -214,6 +216,10 @@ export function AllocationRequestList({
 
   const canReview = (request: AllocationRequestWithRelations) =>
     request.status === "pending" && isReviewer;
+
+  const canRecallApproval = (request: AllocationRequestWithRelations) =>
+    (request.status === "approved" || request.status === "partially_approved") &&
+    isReviewer;
 
   if (isLoading) {
     return (
@@ -368,6 +374,21 @@ export function AllocationRequestList({
                               >
                                 <XCircle className="mr-2 h-4 w-4" />
                                 Deny
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          {canRecallApproval(request) && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedRequest(request);
+                                  setIsRecallDialogOpen(true);
+                                }}
+                                className="text-orange-600"
+                              >
+                                <Undo2 className="mr-2 h-4 w-4" />
+                                Recall Approval
                               </DropdownMenuItem>
                             </>
                           )}
@@ -540,6 +561,22 @@ export function AllocationRequestList({
                                 </>
                               )}
 
+                              {canRecallApproval(request) && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedRequest(request);
+                                      setIsRecallDialogOpen(true);
+                                    }}
+                                    className="text-orange-600"
+                                  >
+                                    <Undo2 className="mr-2 h-4 w-4" />
+                                    Recall Approval
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+
                               {canCancel(request) && (
                                 <>
                                   <DropdownMenuSeparator />
@@ -592,6 +629,9 @@ export function AllocationRequestList({
           setReviewAction("deny");
           setIsReviewDialogOpen(true);
         }}
+        onRecallApproval={() => {
+          setIsRecallDialogOpen(true);
+        }}
       />
 
       {/* Edit Dialog */}
@@ -611,6 +651,16 @@ export function AllocationRequestList({
           onOpenChange={setIsReviewDialogOpen}
           request={selectedRequest}
           action={reviewAction}
+          onSuccess={onRefresh}
+        />
+      )}
+
+      {/* Recall Approval Dialog */}
+      {selectedRequest && (
+        <RecallAllocationDialog
+          open={isRecallDialogOpen}
+          onOpenChange={setIsRecallDialogOpen}
+          request={selectedRequest}
           onSuccess={onRefresh}
         />
       )}
