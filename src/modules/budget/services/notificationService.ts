@@ -9,6 +9,7 @@ type NotificationType =
   | "expense_submitted"
   | "expense_leader_approved"
   | "expense_leader_denied"
+  | "expense_approval_recalled"
   | "expense_treasury_approved"
   | "expense_treasury_denied"
   | "expense_completed"
@@ -109,6 +110,27 @@ export const notifyExpenseLeaderDenied = async (
     to: context.requesterEmail,
     recipientName: context.requesterName,
     notificationType: "expense_leader_denied",
+    expenseTitle: context.expenseTitle,
+    expenseAmount: context.expenseAmount,
+    ministryName: context.ministryName,
+    requesterName: context.requesterName,
+    reviewerName,
+    reviewerNotes,
+  });
+};
+
+/**
+ * Notify requester that their expense approval was recalled by admin
+ */
+export const notifyExpenseApprovalRecalled = async (
+  context: ExpenseNotificationContext,
+  reviewerName: string,
+  reviewerNotes: string
+): Promise<NotificationResult> => {
+  return sendBudgetNotification({
+    to: context.requesterEmail,
+    recipientName: context.requesterName,
+    notificationType: "expense_approval_recalled",
     expenseTitle: context.expenseTitle,
     expenseAmount: context.expenseAmount,
     ministryName: context.ministryName,

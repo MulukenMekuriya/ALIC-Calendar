@@ -15,7 +15,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
-import { Loader2, CheckCircle, XCircle, CreditCard, ArrowRightCircle } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, CreditCard, ArrowRightCircle, Undo2 } from "lucide-react";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -23,6 +23,7 @@ import {
   useLeaderApproveExpense,
   useLeaderDenyExpense,
   useTransferToTreasury,
+  useRecallLeaderApproval,
   useTreasuryApproveExpense,
   useTreasuryDenyExpense,
   useFinanceProcessExpense,
@@ -34,6 +35,7 @@ import { ExpenseStatusBadge } from "./ExpenseStatusBadge";
 import {
   notifyExpenseLeaderApproved,
   notifyExpenseLeaderDenied,
+  notifyExpenseApprovalRecalled,
   notifyExpenseTreasuryApproved,
   notifyExpenseTreasuryDenied,
   notifyExpenseCompleted,
@@ -857,6 +859,140 @@ export function FinanceProcessDialog({
               <CreditCard className="mr-2 h-4 w-4" />
             )}
             Complete Payment
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * Recall Approval Dialog
+ * Allows admin to recall their leader approval and revert to pending_leader
+ */
+export function RecallApprovalDialog({
+  open,
+  onOpenChange,
+  expense,
+  onSuccess,
+}: BaseActionDialogProps) {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const { profile } = useUserProfile();
+  const [notes, setNotes] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const recallApproval = useRecallLeaderApproval();
+
+  const handleRecall = async () => {
+    if (!user || !profile) return;
+    if (!notes.trim()) {
+      toast({
+        title: "Reason Required",
+        description: "Please provide a reason for recalling the approval.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await recallApproval.mutateAsync({
+        expenseId: expense.id,
+        reviewerId: user.id,
+        reviewerName: profile.full_name,
+        notes,
+      });
+
+      // Notify requester
+      const context = getExpenseNotificationContext(expense);
+      notifyExpenseApprovalRecalled(context, profile.full_name, notes).catch(
+        console.error
+      );
+
+      toast({
+        title: "Approval Recalled",
+        description: "The expense has been reverted to pending leader review.",
+      });
+
+      onOpenChange(false);
+      setNotes("");
+      onSuccess?.();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to recall approval",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Undo2 className="h-5 w-5 text-orange-500" />
+            Recall Approval
+          </DialogTitle>
+          <DialogDescription>
+            Recall your approval and revert this expense back to pending review.
+            The requester will be notified.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Request</span>
+              <span className="text-sm font-medium">{expense.title}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Amount</span>
+              <span className="text-sm font-medium">
+                ${Number(expense.amount).toFixed(2)}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Ministry</span>
+              <span className="text-sm font-medium">{expense.ministry?.name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Requester</span>
+              <span className="text-sm font-medium">{expense.requester_name}</span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="recall-notes">Reason for Recall *</Label>
+            <Textarea
+              id="recall-notes"
+              placeholder="Explain why you are recalling this approval..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              required
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleRecall}
+            disabled={isSubmitting || !notes.trim()}
+            className="bg-orange-600 hover:bg-orange-700"
+          >
+            {isSubmitting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Undo2 className="mr-2 h-4 w-4" />
+            )}
+            Recall Approval
           </Button>
         </DialogFooter>
       </DialogContent>

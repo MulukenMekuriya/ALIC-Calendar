@@ -431,6 +431,52 @@ export const expenseService = {
   },
 
   /**
+   * Admin recalls their leader approval (reverts to pending_leader)
+   * Available only when status is leader_approved and before treasury acts
+   */
+  async recallLeaderApproval(
+    expenseId: string,
+    reviewerId: string,
+    reviewerName: string,
+    notes: string
+  ): Promise<ExpenseRequest> {
+    const { data: current } = await budgetSchema()
+      .from("expense_requests")
+      .select("status")
+      .eq("id", expenseId)
+      .single();
+
+    const previousStatus = current?.status as ExpenseStatus;
+
+    const { data, error } = await budgetSchema()
+      .from("expense_requests")
+      .update({
+        status: "pending_leader",
+        leader_reviewer_id: null,
+        leader_reviewed_at: null,
+        leader_notes: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", expenseId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    await this.addHistory({
+      expense_request_id: expenseId,
+      action: "approval_recalled",
+      previous_status: previousStatus,
+      new_status: "pending_leader",
+      actor_id: reviewerId,
+      actor_name: reviewerName,
+      notes: `Approval recalled: ${notes}`,
+    });
+
+    return data;
+  },
+
+  /**
    * Leader denies expense request
    */
   async leaderDeny(

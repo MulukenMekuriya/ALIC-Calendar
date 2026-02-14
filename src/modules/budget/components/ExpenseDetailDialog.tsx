@@ -32,6 +32,7 @@ import {
   CheckCircle,
   XCircle,
   ArrowRightCircle,
+  Undo2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +48,7 @@ interface ExpenseDetailDialogProps {
   onLeaderApprove?: () => void;
   onLeaderDeny?: () => void;
   onTransferToTreasury?: () => void;
+  onRecallApproval?: () => void;
   onTreasuryApprove?: () => void;
   onTreasuryDeny?: () => void;
   onFinanceProcess?: () => void;
@@ -65,6 +67,7 @@ export function ExpenseDetailDialog({
   onLeaderApprove,
   onLeaderDeny,
   onTransferToTreasury,
+  onRecallApproval,
   onTreasuryApprove,
   onTreasuryDeny,
   onFinanceProcess,
@@ -599,6 +602,25 @@ export function ExpenseDetailDialog({
                   >
                     <XCircle className="mr-2 h-4 w-4" />
                     Deny
+                  </Button>
+                </div>
+              </>
+            )}
+
+          {/* Recall Approval Action (admin only, leader_approved status) */}
+          {expense.status === "leader_approved" && userRole === "admin" && (
+              <>
+                <Separator />
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    className="flex-1 bg-orange-600 hover:bg-orange-700"
+                    onClick={() => {
+                      onOpenChange(false);
+                      onRecallApproval?.();
+                    }}
+                  >
+                    <Undo2 className="mr-2 h-4 w-4" />
+                    Recall Approval
                   </Button>
                 </div>
               </>

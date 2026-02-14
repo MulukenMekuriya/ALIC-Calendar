@@ -61,6 +61,7 @@ import {
   UserCheck,
   Hash,
   ArrowRightCircle,
+  Undo2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ExpenseStatusBadge } from "./ExpenseStatusBadge";
@@ -70,6 +71,7 @@ import {
   LeaderApproveDialog,
   LeaderDenyDialog,
   TransferToTreasuryDialog,
+  RecallApprovalDialog,
   TreasuryApproveDialog,
   TreasuryDenyDialog,
   FinanceProcessDialog,
@@ -114,6 +116,7 @@ export function ExpenseList({
   const [isTreasuryDenyOpen, setIsTreasuryDenyOpen] = useState(false);
   const [isFinanceProcessOpen, setIsFinanceProcessOpen] = useState(false);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [isRecallApprovalOpen, setIsRecallApprovalOpen] = useState(false);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<ExpenseStatus | "all">(
@@ -206,6 +209,9 @@ export function ExpenseList({
 
   const canLeaderReview = (expense: ExpenseRequestWithRelations) =>
     expense.status === "pending_leader" && userRole === "admin";
+
+  const canRecallApproval = (expense: ExpenseRequestWithRelations) =>
+    expense.status === "leader_approved" && userRole === "admin";
 
   const canTreasuryReview = (expense: ExpenseRequestWithRelations) =>
     (expense.status === "leader_approved" ||
@@ -468,6 +474,21 @@ export function ExpenseList({
                                   >
                                     <XCircle className="mr-2 h-4 w-4" />
                                     Deny
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {canRecallApproval(expense) && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedExpense(expense);
+                                      setIsRecallApprovalOpen(true);
+                                    }}
+                                    className="text-orange-600"
+                                  >
+                                    <Undo2 className="mr-2 h-4 w-4" />
+                                    Recall Approval
                                   </DropdownMenuItem>
                                 </>
                               )}
@@ -785,6 +806,22 @@ export function ExpenseList({
                                       </>
                                     )}
 
+                                    {canRecallApproval(expense) && (
+                                      <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setSelectedExpense(expense);
+                                            setIsRecallApprovalOpen(true);
+                                          }}
+                                          className="text-orange-600"
+                                        >
+                                          <Undo2 className="mr-2 h-4 w-4" />
+                                          Recall Approval
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
+
                                     {canTreasuryReview(expense) && (
                                       <>
                                         <DropdownMenuSeparator />
@@ -869,6 +906,9 @@ export function ExpenseList({
           onTransferToTreasury={() => {
             setIsTransferToTreasuryOpen(true);
           }}
+          onRecallApproval={() => {
+            setIsRecallApprovalOpen(true);
+          }}
           onTreasuryApprove={() => {
             setIsTreasuryApproveOpen(true);
           }}
@@ -908,6 +948,12 @@ export function ExpenseList({
             <TransferToTreasuryDialog
               open={isTransferToTreasuryOpen}
               onOpenChange={setIsTransferToTreasuryOpen}
+              expense={selectedExpense}
+              onSuccess={onRefresh}
+            />
+            <RecallApprovalDialog
+              open={isRecallApprovalOpen}
+              onOpenChange={setIsRecallApprovalOpen}
               expense={selectedExpense}
               onSuccess={onRefresh}
             />
