@@ -142,13 +142,10 @@ export const MINISTRY_JUSTIFICATIONS: Record<string, string[]> = {
 
   // 13. MD Worship B
   "Alic MD Worship B (Aroma)": [
-    "Teaching",
-    "Vocal training",
-    "Retreat support",
-    "Worship team get together",
-    "Clothes",
-    "Music Band",
-    "10th Year Anniversary",
+    "Fasting & Prayer",
+    "Training & Workshop",
+    "Fellowship",
+    "Clothing",
   ],
 
   // MD Worship (using Worship B justifications until confirmed by team)
@@ -454,10 +451,7 @@ export const MINISTRY_JUSTIFICATIONS: Record<string, string[]> = {
     "Conference",
   ],
 
-  "ALIC VA Media": [
-    "Post-production",
-    "Media Equipment",
-  ],
+  "ALIC VA Media": ["Post-production", "Media Equipment"],
 
   "ALIC VA Men": [
     "Men's Special Workshop (Invited Guest)",
