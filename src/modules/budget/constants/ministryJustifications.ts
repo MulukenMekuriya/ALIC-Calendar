@@ -151,6 +151,17 @@ export const MINISTRY_JUSTIFICATIONS: Record<string, string[]> = {
     "10th Year Anniversary",
   ],
 
+  // MD Worship (using Worship B justifications until confirmed by team)
+  "Alic MD Worship": [
+    "Teaching",
+    "Vocal training",
+    "Retreat support",
+    "Worship team get together",
+    "Clothes",
+    "Music Band",
+    "10th Year Anniversary",
+  ],
+
   // 14. MD Children
   "Alic MD Children": [
     "Parents Training",
