@@ -661,6 +661,73 @@ export const expenseService = {
   },
 
   /**
+   * Admin edit - allows admin to correct minor errors on non-completed/cancelled requests
+   * Logs a history entry with the changes made
+   */
+  async adminEdit(
+    expenseId: string,
+    expenseData: ExpenseRequestUpdate,
+    adminId: string,
+    adminName: string
+  ): Promise<ExpenseRequest> {
+    // Get current state for history
+    const { data: current } = await budgetSchema()
+      .from("expense_requests")
+      .select("status, title, description, amount, ministry_id")
+      .eq("id", expenseId)
+      .single();
+
+    if (!current) throw new Error("Expense request not found");
+
+    const terminalStatuses: ExpenseStatus[] = ["completed", "cancelled"];
+    if (terminalStatuses.includes(current.status as ExpenseStatus)) {
+      throw new Error("Cannot edit completed or cancelled requests");
+    }
+
+    // Build a summary of what changed
+    const changes: string[] = [];
+    if (expenseData.title !== undefined && expenseData.title !== current.title) {
+      changes.push(`title: "${current.title}" → "${expenseData.title}"`);
+    }
+    if (expenseData.description !== undefined && expenseData.description !== current.description) {
+      changes.push("description updated");
+    }
+    if (expenseData.amount !== undefined && Number(expenseData.amount) !== Number(current.amount)) {
+      changes.push(`amount: $${Number(current.amount).toFixed(2)} → $${Number(expenseData.amount).toFixed(2)}`);
+    }
+    if (expenseData.ministry_id !== undefined && expenseData.ministry_id !== current.ministry_id) {
+      changes.push("ministry changed");
+    }
+
+    const { data, error } = await budgetSchema()
+      .from("expense_requests")
+      .update({
+        ...expenseData,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", expenseId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Log the admin edit in history
+    await this.addHistory({
+      expense_request_id: expenseId,
+      action: "admin_edited",
+      previous_status: current.status as ExpenseStatus,
+      new_status: current.status as ExpenseStatus,
+      actor_id: adminId,
+      actor_name: adminName,
+      notes: changes.length > 0
+        ? `Admin correction: ${changes.join("; ")}`
+        : "Admin edited request (no field changes detected)",
+    });
+
+    return data;
+  },
+
+  /**
    * Cancel an expense request
    */
   async cancel(

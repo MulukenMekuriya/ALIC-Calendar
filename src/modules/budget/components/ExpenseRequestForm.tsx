@@ -38,7 +38,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { AttachmentData } from "../types";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useMinistries, useFiscalYears, useActiveFiscalYear } from "../hooks";
-import { useCreateExpense, useUpdateExpense, useSubmitExpenseForReview } from "../hooks";
+import { useCreateExpense, useUpdateExpense, useSubmitExpenseForReview, useAdminEditExpense } from "../hooks";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useOrganization } from "@/shared/contexts/OrganizationContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -126,6 +126,7 @@ interface ExpenseRequestFormProps {
   onOpenChange: (open: boolean) => void;
   expense?: ExpenseRequest | null;
   onSuccess?: () => void;
+  isAdminEdit?: boolean;
 }
 
 export function ExpenseRequestForm({
@@ -133,6 +134,7 @@ export function ExpenseRequestForm({
   onOpenChange,
   expense,
   onSuccess,
+  isAdminEdit = false,
 }: ExpenseRequestFormProps) {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -176,6 +178,7 @@ export function ExpenseRequestForm({
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
   const submitForReview = useSubmitExpenseForReview();
+  const adminEditExpense = useAdminEditExpense();
 
   const isEditing = !!expense;
 
@@ -454,8 +457,34 @@ export function ExpenseRequestForm({
       : values.justification_category;
 
     try {
-      if (isEditing && expense) {
-        // Update existing expense
+      if (isAdminEdit && expense) {
+        // Admin correction - update without changing status
+        await adminEditExpense.mutateAsync({
+          expenseId: expense.id,
+          data: {
+            ministry_id: values.ministry_id,
+            title: finalTitle,
+            description: values.description || null,
+            amount: values.amount,
+            reimbursement_type: values.reimbursement_type,
+            tin: values.tin || null,
+            is_advance_payment: values.is_advance_payment,
+            is_different_recipient: values.is_different_recipient,
+            recipient_name: values.is_different_recipient ? values.recipient_name || null : null,
+            recipient_phone: values.is_different_recipient ? values.recipient_phone || null : null,
+            recipient_email: values.is_different_recipient ? values.recipient_email || null : null,
+            attachments: attachments as unknown as Record<string, unknown>[],
+          },
+          adminId: user.id,
+          adminName: profile?.full_name || "Unknown",
+        });
+
+        toast({
+          title: "Expense updated",
+          description: "The expense request has been corrected. Changes are logged in the history.",
+        });
+      } else if (isEditing && expense) {
+        // Update existing expense (draft editing by requester)
         await updateExpense.mutateAsync({
           expenseId: expense.id,
           data: {
@@ -576,10 +605,10 @@ export function ExpenseRequestForm({
         {/* Header */}
         <div className="sticky top-0 z-10 bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-5 text-white">
           <DialogTitle className="text-xl font-semibold">
-            {isEditing ? "Edit Expense Request" : "Expense Request"}
+            {isAdminEdit ? "Admin Edit - Correct Expense" : isEditing ? "Edit Expense Request" : "Expense Request"}
           </DialogTitle>
           <DialogDescription className="sr-only">
-            {isEditing ? "Edit an existing expense request" : "Create a new expense request for reimbursement"}
+            {isAdminEdit ? "Admin correction of an expense request" : isEditing ? "Edit an existing expense request" : "Create a new expense request for reimbursement"}
           </DialogDescription>
           <div className="flex items-center gap-2 mt-2 text-emerald-100 text-sm">
             <Calendar className="h-4 w-4" />
@@ -1033,25 +1062,39 @@ export function ExpenseRequestForm({
                   >
                     Cancel
                   </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="flex-1"
-                    onClick={form.handleSubmit((values) => handleSave(values, false))}
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                    Save Draft
-                  </Button>
-                  <Button
-                    type="button"
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-                    onClick={form.handleSubmit((values) => handleSave(values, true))}
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-                    Submit
-                  </Button>
+                  {isAdminEdit ? (
+                    <Button
+                      type="button"
+                      className="flex-1 bg-blue-600 hover:bg-blue-700"
+                      onClick={form.handleSubmit((values) => handleSave(values, false))}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                      Save Correction
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="flex-1"
+                        onClick={form.handleSubmit((values) => handleSave(values, false))}
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                        Save Draft
+                      </Button>
+                      <Button
+                        type="button"
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                        onClick={form.handleSubmit((values) => handleSave(values, true))}
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+                        Submit
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </form>

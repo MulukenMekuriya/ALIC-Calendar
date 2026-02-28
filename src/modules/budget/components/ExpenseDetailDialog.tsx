@@ -33,6 +33,7 @@ import {
   XCircle,
   ArrowRightCircle,
   Undo2,
+  Pencil,
 } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,6 +53,7 @@ interface ExpenseDetailDialogProps {
   onTreasuryApprove?: () => void;
   onTreasuryDeny?: () => void;
   onFinanceProcess?: () => void;
+  onAdminEdit?: () => void;
 }
 
 interface AttachmentWithSignedUrl extends AttachmentData {
@@ -71,6 +73,7 @@ export function ExpenseDetailDialog({
   onTreasuryApprove,
   onTreasuryDeny,
   onFinanceProcess,
+  onAdminEdit,
 }: ExpenseDetailDialogProps) {
   const [attachmentsWithUrls, setAttachmentsWithUrls] = useState<
     AttachmentWithSignedUrl[]
@@ -188,6 +191,25 @@ export function ExpenseDetailDialog({
               </div>
             </CardContent>
           </Card>
+
+          {/* Admin Edit Button */}
+          {userRole === "admin" &&
+            expense.status !== "draft" &&
+            expense.status !== "completed" &&
+            expense.status !== "cancelled" &&
+            onAdminEdit && (
+              <Button
+                variant="outline"
+                className="w-full border-blue-200 text-blue-700 hover:bg-blue-50"
+                onClick={() => {
+                  onOpenChange(false);
+                  onAdminEdit();
+                }}
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                Admin Edit - Correct Request
+              </Button>
+            )}
 
           {/* Title and Description - Enhanced */}
           <Card>

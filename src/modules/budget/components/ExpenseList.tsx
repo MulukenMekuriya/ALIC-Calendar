@@ -117,6 +117,7 @@ export function ExpenseList({
   const [isFinanceProcessOpen, setIsFinanceProcessOpen] = useState(false);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [isRecallApprovalOpen, setIsRecallApprovalOpen] = useState(false);
+  const [isAdminEditDialogOpen, setIsAdminEditDialogOpen] = useState(false);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<ExpenseStatus | "all">(
@@ -195,6 +196,12 @@ export function ExpenseList({
   const canEdit = (expense: ExpenseRequestWithRelations) =>
     expense.status === "draft" &&
     (expense.requester_id === user?.id || userRole === "admin");
+
+  const canAdminEdit = (expense: ExpenseRequestWithRelations) =>
+    userRole === "admin" &&
+    expense.status !== "draft" &&
+    expense.status !== "completed" &&
+    expense.status !== "cancelled";
 
   const canDelete = (expense: ExpenseRequestWithRelations) =>
     expense.status === "draft" &&
@@ -419,6 +426,18 @@ export function ExpenseList({
                                 >
                                   <Edit className="mr-2 h-4 w-4" />
                                   Edit
+                                </DropdownMenuItem>
+                              )}
+                              {canAdminEdit(expense) && (
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedExpense(expense);
+                                    setIsAdminEditDialogOpen(true);
+                                  }}
+                                  className="text-blue-600"
+                                >
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Admin Edit
                                 </DropdownMenuItem>
                               )}
                               {canSubmit(expense) && (
@@ -918,15 +937,29 @@ export function ExpenseList({
           onFinanceProcess={() => {
             setIsFinanceProcessOpen(true);
           }}
+          onAdminEdit={() => {
+            setIsAdminEditDialogOpen(true);
+          }}
         />
 
-        {/* Edit Dialog */}
+        {/* Edit Dialog (draft editing by requester) */}
         {selectedExpense && (
           <ExpenseRequestForm
             open={isEditDialogOpen}
             onOpenChange={setIsEditDialogOpen}
             expense={selectedExpense}
             onSuccess={onRefresh}
+          />
+        )}
+
+        {/* Admin Edit Dialog (correct minor errors on non-draft requests) */}
+        {selectedExpense && (
+          <ExpenseRequestForm
+            open={isAdminEditDialogOpen}
+            onOpenChange={setIsAdminEditDialogOpen}
+            expense={selectedExpense}
+            onSuccess={onRefresh}
+            isAdminEdit
           />
         )}
 

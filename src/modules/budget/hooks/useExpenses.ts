@@ -429,6 +429,35 @@ export function useFinanceProcessExpense() {
 }
 
 /**
+ * Hook for admin to edit expense request (correct minor errors)
+ */
+export function useAdminEditExpense() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      expenseId,
+      data,
+      adminId,
+      adminName,
+    }: {
+      expenseId: string;
+      data: ExpenseRequestUpdate;
+      adminId: string;
+      adminName: string;
+    }) => expenseService.adminEdit(expenseId, data, adminId, adminName),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: expenseKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: expenseKeys.detail(data.id) });
+      queryClient.invalidateQueries({ queryKey: expenseKeys.history(data.id) });
+      queryClient.invalidateQueries({
+        queryKey: expenseKeys.statistics(data.organization_id),
+      });
+    },
+  });
+}
+
+/**
  * Hook to cancel an expense request
  */
 export function useCancelExpense() {
