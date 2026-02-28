@@ -19,10 +19,7 @@ export const MINISTRY_JUSTIFICATIONS: Record<string, string[]> = {
   ],
 
   // 3. MD Media
-  "Alic MD Media": ["Keyboard", "Monitor", "Drum sub", "Drum set accessories"],
-
-  // 4. MD Music
-  "Alic MD Music": [
+  "Alic MD Media": [
     "Camera lens",
     "SD Cards(x2)",
     "Gimbals",
@@ -31,6 +28,9 @@ export const MINISTRY_JUSTIFICATIONS: Record<string, string[]> = {
     "Tripods(3x)",
     "Back lights(2x)",
   ],
+
+  // 4. MD Music
+  "Alic MD Music": ["Keyboard", "Monitor", "Drum sub", "Drum set accessories"],
 
   // 5. MD Young Adult
   "Alic MD Young Adult": [
