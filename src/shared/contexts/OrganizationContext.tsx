@@ -172,7 +172,10 @@ export const OrganizationProvider = ({ children }: { children: React.ReactNode }
     if (!authLoading) {
       fetchUserOrganizations();
     }
-  }, [user, authLoading]);
+    // Depend on user?.id (stable string) instead of the user object reference
+    // to avoid re-fetching when Supabase refreshes the token on tab focus.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, authLoading]);
 
   const refetchOrganization = async () => {
     await fetchUserOrganizations();

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -25,6 +25,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isFinance, setIsFinance] = useState(false);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  // Track the current user ID so we can skip redundant state updates
+  // (e.g. TOKEN_REFRESHED events that fire on tab focus).
+  const currentUserIdRef = useRef<string | null>(null);
 
   const syncSessionWithExternalApp = async (currentSession: Session | null) => {
     if (typeof window === "undefined") return;
@@ -57,8 +60,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      const newUserId = currentSession?.user?.id ?? null;
+
+      // On TOKEN_REFRESHED / other events where the user hasn't changed,
+      // only update the session (silently) — don't cascade state updates
+      // that would re-render the entire tree and close open dialogs/forms.
+      if (event === "TOKEN_REFRESHED" && newUserId === currentUserIdRef.current) {
+        // Silently update session reference without touching user/roles
+        setSession(currentSession);
+        return;
+      }
+
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
+      currentUserIdRef.current = newUserId;
       syncSessionWithExternalApp(currentSession);
 
       if (currentSession?.user) {
@@ -76,6 +91,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
+      currentUserIdRef.current = currentSession?.user?.id ?? null;
       syncSessionWithExternalApp(currentSession);
 
       if (currentSession?.user) {
@@ -125,7 +141,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setIsAdmin(false);
     setIsTreasury(false);
     setIsFinance(false);
-    syncSessionWithPrimaryApp(null);
+    syncSessionWithExternalApp(null);
     navigate("/auth");
   };
 

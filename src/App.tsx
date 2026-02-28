@@ -23,7 +23,16 @@ import { BudgetDashboard } from "@/modules/budget";
 import { MembersDashboard } from "@/modules/members";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Prevent background refetches on window focus / reconnect from
+      // triggering re-renders that unmount open dialogs & forms.
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+    },
+  },
+});
 
 const ProtectedRoute = ({
   children,
