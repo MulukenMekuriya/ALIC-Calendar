@@ -18,7 +18,7 @@ import {
 } from "@/shared/components/ui/popover";
 import { Input } from "@/shared/components/ui/input";
 import { useSearch } from "@/shared/contexts/SearchContext";
-import { CHURCH_BRANDING, getLogoSrc } from "@/shared/constants/branding";
+import { getLogoSrc } from "@/shared/constants/branding";
 import {
   LogOut,
   Users,
@@ -26,6 +26,7 @@ import {
   DoorOpen,
   Menu,
   ChevronRight,
+  ChevronDown,
   Home,
   Bell,
   Search,
@@ -34,7 +35,10 @@ import {
   UserCheck,
   Building,
   X,
-  BookOpen,
+  LayoutDashboard,
+  ClipboardCheck,
+  ArrowRightLeft,
+  Trash2,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/shared/lib/utils";
@@ -47,9 +51,15 @@ interface NavItem {
   name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  description: string;
+  description?: string;
   comingSoon?: boolean;
-  module: string;
+  adminOnly?: boolean;
+  external?: boolean; // For cross-app navigation
+}
+
+interface NavSection {
+  title: string;
+  items: NavItem[];
 }
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
@@ -66,94 +76,161 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Main navigation items
-  const mainNavigation: NavItem[] = [
-    {
-      name: "Dashboard",
-      href: "/dashboard",
-      icon: Home,
-      description: "Calendar overview",
-      module: "calendar",
-    },
-  ];
+  // State for collapsible sections - all collapsed by default
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(
+    new Set()
+  );
 
-  // Navigation items accessible to both admins and contributors
-  const contributorNavigation: NavItem[] = [
-    {
-      name: "Event Review",
-      href: "/event-reviews",
-      icon: Settings,
-      description: isAdmin ? "Approve events" : "View my requests",
-      module: "event-reviews",
-    },
-  ];
+  // Toggle section expansion
+  const toggleSection = (title: string) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(title)) {
+        next.delete(title);
+      } else {
+        next.add(title);
+      }
+      return next;
+    });
+  };
 
-  // Admin-only navigation items
-  const adminNavigation: NavItem[] = isAdmin
-    ? [
+  // Dashboard link (standalone, not in a collapsible group)
+  const dashboardItem: NavItem = {
+    name: "Dashboard",
+    href: "/dashboard",
+    icon: Home,
+    description: "Calendar overview",
+  };
+
+  // Navigation configuration - Unified across Calendar and Inventory apps
+  const navigationSections: NavSection[] = [
+    {
+      title: "Calendar",
+      items: [
         {
-          name: "Users",
-          href: "/users",
-          icon: Users,
-          description: "Manage users",
-          module: "users",
+          name: "Event Review",
+          href: "/event-reviews",
+          icon: Settings,
+          description: isAdmin ? "Approve events" : "View my requests",
+        },
+        ...(isAdmin
+          ? [
+              {
+                name: "Rooms",
+                href: "/rooms",
+                icon: DoorOpen,
+                description: "Manage rooms",
+                adminOnly: true,
+              },
+            ]
+          : []),
+      ],
+    },
+    {
+      title: "Financial",
+      items: [
+        {
+          name: "Budget",
+          href: "/budget",
+          icon: DollarSign,
+          description: isAdmin ? "Financial management" : "My expenses",
+        },
+      ],
+    },
+    {
+      title: "Inventory",
+      items: [
+        {
+          name: "Asset Overview",
+          href: "/inventory",
+          icon: LayoutDashboard,
+          description: "Inventory dashboard",
+          external: true,
         },
         {
-          name: "Rooms",
-          href: "/rooms",
-          icon: DoorOpen,
-          description: "Manage rooms",
-          module: "rooms",
+          name: "Assets",
+          href: "/inventory/assets",
+          icon: Package,
+          description: "Manage assets",
+          external: true,
         },
-      ]
-    : [];
-
-  // Budget module (now available)
-  const budgetNavigation: NavItem[] = [
-    {
-      name: "Budget",
-      href: "/budget",
-      icon: DollarSign,
-      description: isAdmin ? "Financial management" : "My expenses",
-      comingSoon: false,
-      module: "budget",
-    },
-  ];
-
-  // Future modules (accessible to both admins and contributors)
-  const futureNavigation: NavItem[] = [
-    {
-      name: "Inventory",
-      href: "/inventory",
-      icon: Package,
-      description: isAdmin ? "Asset tracking" : "My requests",
-      comingSoon: true,
-      module: "inventory",
-    },
-  ];
-
-  // Admin-only future modules
-  const adminFutureNavigation: NavItem[] = isAdmin
-    ? [
         {
-          name: "Members",
-          href: "/members",
-          icon: UserCheck,
-          description: "Church membership",
-          comingSoon: true,
-          module: "members",
+          name: "Verifications",
+          href: "/inventory/verification",
+          icon: ClipboardCheck,
+          description: "Verify inventory",
+          external: true,
         },
-      ]
-    : [];
-
-  const allNavigation = [
-    ...mainNavigation,
-    ...contributorNavigation,
-    ...adminNavigation,
-    ...budgetNavigation,
-    ...futureNavigation,
-    ...adminFutureNavigation,
+        {
+          name: "Transfers",
+          href: "/inventory/transfers",
+          icon: ArrowRightLeft,
+          description: "Asset transfers",
+          external: true,
+        },
+        {
+          name: "Disposals",
+          href: "/inventory/disposals",
+          icon: Trash2,
+          description: "Disposed assets",
+          external: true,
+        },
+      ],
+    },
+    ...(isAdmin
+      ? [
+          {
+            title: "Administration",
+            items: [
+              {
+                name: "Users & Roles",
+                href: "/admin/users",
+                icon: Users,
+                description: "Manage users",
+                adminOnly: true,
+                external: true,
+              },
+              {
+                name: "Branches",
+                href: "/admin/branches",
+                icon: Building,
+                description: "Manage branches",
+                adminOnly: true,
+                external: true,
+              },
+              {
+                name: "Ministries",
+                href: "/admin/ministries",
+                icon: UserCheck,
+                description: "Manage ministries",
+                adminOnly: true,
+                external: true,
+              },
+            ],
+          },
+        ]
+      : []),
+    ...(isAdmin
+      ? [
+          {
+            title: "Coming Soon",
+            items: [
+              {
+                name: "Members",
+                href: "/members",
+                icon: UserCheck,
+                description: "Church membership",
+                comingSoon: true,
+                adminOnly: true,
+              },
+            ],
+          },
+        ]
+      : []),
   ];
+
+  // Flatten all navigation items for page title lookup
+  const allNavItems = navigationSections.flatMap((section) => section.items);
 
   // Get user initials for avatar
   const getUserInitials = (name?: string) => {
@@ -168,10 +245,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   // Get page title based on current route
   const getPageTitle = () => {
-    const currentNav = allNavigation.find(
+    const currentNav = allNavItems.find(
       (nav) => nav.href === location.pathname
     );
-    return currentNav?.name || "Church Management";
+    return currentNav?.name || "ALIC Management";
   };
 
   // Close sidebar and clear search on route change
@@ -188,9 +265,69 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     }
   }, [isSearchOpen]);
 
+  // Auto-expand section containing the current route
+  useEffect(() => {
+    const matchingSection = navigationSections.find((section) =>
+      section.items.some((item) => {
+        if (item.href === "/dashboard") {
+          return location.pathname === item.href;
+        }
+        return (
+          location.pathname === item.href ||
+          location.pathname.startsWith(item.href + "/")
+        );
+      })
+    );
+    if (matchingSection) {
+      setExpandedSections((prev) => {
+        if (prev.has(matchingSection.title)) return prev;
+        return new Set([...prev, matchingSection.title]);
+      });
+    }
+  }, [location.pathname, isAdmin]); // Re-run when isAdmin changes (auth loads)
+
+  // Check if a path is active (exact match or starts with for nested routes)
+  const isPathActive = (href: string) => {
+    if (href === "/dashboard") {
+      return location.pathname === href;
+    }
+    return (
+      location.pathname === href || location.pathname.startsWith(href + "/")
+    );
+  };
+
   const renderNavItem = (item: NavItem) => {
     const Icon = item.icon;
-    const isActive = location.pathname === item.href;
+    const isActive = isPathActive(item.href);
+
+    // Handle external navigation (cross-app)
+    if (item.external) {
+      return (
+        <button
+          key={item.name}
+          type="button"
+          onClick={() => {
+            window.location.href = item.href;
+          }}
+          className={cn(
+            "flex w-full items-center gap-3 px-3 py-2.5 rounded-lg transition-all group",
+            "text-muted-foreground hover:text-foreground hover:bg-secondary"
+          )}
+        >
+          <Icon className="h-5 w-5" />
+          <div className="flex-1 text-left">
+            <div className="font-medium text-sm flex items-center gap-2">
+              {item.name}
+            </div>
+            {item.description && (
+              <div className="text-xs text-muted-foreground">
+                {item.description}
+              </div>
+            )}
+          </div>
+        </button>
+      );
+    }
 
     return (
       <Link
@@ -214,14 +351,18 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               </Badge>
             )}
           </div>
-          <div
-            className={cn(
-              "text-xs",
-              isActive ? "text-primary-foreground/80" : "text-muted-foreground"
-            )}
-          >
-            {item.description}
-          </div>
+          {item.description && (
+            <div
+              className={cn(
+                "text-xs",
+                isActive
+                  ? "text-primary-foreground/80"
+                  : "text-muted-foreground"
+              )}
+            >
+              {item.description}
+            </div>
+          )}
         </div>
         {isActive && <ChevronRight className="h-4 w-4" />}
       </Link>
@@ -241,7 +382,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 bg-card border-r transform transition-transform duration-200 ease-in-out lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 w-[280px] bg-card border-r transform transition-transform duration-200 ease-in-out lg:translate-x-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -252,59 +393,58 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <div className="bg-white dark:bg-slate-800 p-2 rounded-xl border shadow-sm">
                 <img
                   src={getLogoSrc(currentOrganization?.logo_url)}
-                  alt={currentOrganization?.name || CHURCH_BRANDING.name}
+                  alt="ALIC"
                   className="h-10 w-10 object-contain"
                   onError={(e) => {
-                    // Fallback to building icon if image fails to load
                     const target = e.target as HTMLImageElement;
                     target.style.display = "none";
                   }}
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <h1 className="font-bold text-lg truncate">
-                  {currentOrganization?.name || CHURCH_BRANDING.shortName}
-                </h1>
+                <h1 className="font-bold text-lg truncate">ALIC</h1>
                 <p className="text-xs text-muted-foreground truncate">
-                  {CHURCH_BRANDING.app.title}
+                  Management System
                 </p>
               </div>
             </Link>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
-            {/* Main Navigation */}
-            <div className="space-y-2">{mainNavigation.map(renderNavItem)}</div>
+          <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+            {/* Standalone Dashboard link */}
+            <div className="mb-2">{renderNavItem(dashboardItem)}</div>
 
-            {/* Administration Section - includes contributor items + admin-only items */}
-            <div className="space-y-2">
-              <div className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Administration
-              </div>
-              {contributorNavigation.map(renderNavItem)}
-              {adminNavigation.map(renderNavItem)}
-            </div>
-
-            {/* Financial Section */}
-            <div className="space-y-2">
-              <div className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Financial
-              </div>
-              {budgetNavigation.map(renderNavItem)}
-            </div>
-
-            {/* Future Modules Section */}
-            {(futureNavigation.length > 0 ||
-              adminFutureNavigation.length > 0) && (
-              <div className="space-y-2">
-                <div className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Coming Soon
+            {/* Collapsible sections */}
+            {navigationSections.map((section) => {
+              const isExpanded = expandedSections.has(section.title);
+              return (
+                <div key={section.title} className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => toggleSection(section.title)}
+                    className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
+                  >
+                    <span>{section.title}</span>
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </button>
+                  <div
+                    className={cn(
+                      "space-y-1 overflow-hidden transition-all duration-200",
+                      isExpanded
+                        ? "max-h-[500px] opacity-100"
+                        : "max-h-0 opacity-0"
+                    )}
+                  >
+                    {section.items.map(renderNavItem)}
+                  </div>
                 </div>
-                {futureNavigation.map(renderNavItem)}
-                {adminFutureNavigation.map(renderNavItem)}
-              </div>
-            )}
+              );
+            })}
           </nav>
 
           {/* User Profile Section */}
@@ -354,7 +494,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       </aside>
 
       {/* Main Content */}
-      <div className="lg:ml-72">
+      <div className="lg:ml-[280px]">
         {/* Top Header */}
         <header className="sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
           <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 h-16">
@@ -388,7 +528,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[calc(100vw-2rem)] sm:w-80 p-3" align="end">
+                <PopoverContent
+                  className="w-[calc(100vw-2rem)] sm:w-80 p-3"
+                  align="end"
+                >
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -421,11 +564,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   </div>
                 </PopoverContent>
               </Popover>
-              <Button variant="ghost" size="sm" asChild>
-                <a href="/ALIC_User_Guide.docx" download title="Download User Guide">
-                  <BookOpen className="h-4 w-4" />
-                </a>
-              </Button>
               <Button variant="ghost" size="sm" className="relative">
                 <Bell className="h-4 w-4" />
                 <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs">
