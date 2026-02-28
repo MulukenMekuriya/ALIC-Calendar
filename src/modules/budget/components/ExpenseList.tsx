@@ -204,8 +204,11 @@ export function ExpenseList({
     expense.status !== "cancelled";
 
   const canDelete = (expense: ExpenseRequestWithRelations) =>
-    expense.status === "draft" &&
-    (expense.requester_id === user?.id || userRole === "admin");
+    (expense.status === "draft" &&
+      (expense.requester_id === user?.id || userRole === "admin")) ||
+    (userRole === "admin" &&
+      (expense.status === "leader_denied" ||
+        expense.status === "treasury_denied"));
 
   const canSubmit = (expense: ExpenseRequestWithRelations) =>
     expense.status === "draft" && expense.requester_id === user?.id;

@@ -204,8 +204,9 @@ export function AllocationRequestList({
     (request.requester_id === user?.id || isReviewer);
 
   const canDelete = (request: AllocationRequestWithRelations) =>
-    request.status === "draft" &&
-    (request.requester_id === user?.id || isReviewer);
+    (request.status === "draft" &&
+      (request.requester_id === user?.id || isReviewer)) ||
+    (userRole === "admin" && request.status === "denied");
 
   const canSubmit = (request: AllocationRequestWithRelations) =>
     request.status === "draft" && request.requester_id === user?.id;
