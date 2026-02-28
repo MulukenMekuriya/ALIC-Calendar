@@ -4,8 +4,8 @@
  * Server-side edge function triggered by PostgreSQL triggers on status changes.
  * Determines who to notify (requester + next reviewer) and sends emails via Resend.
  *
- * NOTE: The notification logic is duplicated in notification-logic.ts for unit testing.
- * If you change the logic here, update notification-logic.ts to match.
+ * NOTE: The notification logic is duplicated in notification-logic.test.ts for unit testing.
+ * If you change the logic here, update the test file to match.
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -183,23 +183,42 @@ async function getUsersByRole(
   organizationId: string,
   role: string
 ): Promise<EmailRecipient[]> {
-  const { data, error } = await supabase
+  // Step 1: Get user IDs with the target role in this organization
+  const { data: orgUsers, error: orgError } = await supabase
     .from("user_organizations")
-    .select("user_id, profiles(email, full_name)")
+    .select("user_id")
     .eq("organization_id", organizationId)
     .eq("role", role);
 
-  if (error || !data) {
-    console.error(`Failed to fetch ${role} users:`, error);
+  if (orgError || !orgUsers || orgUsers.length === 0) {
+    if (orgError) console.error(`Failed to fetch ${role} users:`, orgError);
+    else console.log(`No ${role} users found in org ${organizationId}`);
     return [];
   }
 
-  return data
-    .filter((row: any) => row.profiles?.email)
-    .map((row: any) => ({
-      email: row.profiles.email,
-      name: row.profiles.full_name || "Team Member",
+  const userIds = orgUsers.map((row: any) => row.user_id);
+  console.log(`Found ${userIds.length} ${role} user(s) in org ${organizationId}:`, userIds);
+
+  // Step 2: Get profiles for those users
+  const { data: profiles, error: profileError } = await supabase
+    .from("profiles")
+    .select("id, email, full_name")
+    .in("id", userIds);
+
+  if (profileError || !profiles) {
+    console.error(`Failed to fetch profiles for ${role} users:`, profileError);
+    return [];
+  }
+
+  const recipients = profiles
+    .filter((p: any) => p.email)
+    .map((p: any) => ({
+      email: p.email,
+      name: p.full_name || "Team Member",
     }));
+
+  console.log(`Resolved ${recipients.length} ${role} recipient(s):`, recipients.map(r => r.email));
+  return recipients;
 }
 
 // ─── Notification Content ────────────────────────────────────────────────────
@@ -660,44 +679,59 @@ function buildEmailHtml(
 
 // ─── Email Sending ───────────────────────────────────────────────────────────
 
-async function sendEmail(
-  to: string,
-  subject: string,
-  html: string
-): Promise<boolean> {
+interface PendingEmail {
+  to: string;
+  subject: string;
+  html: string;
+}
+
+async function sendAllEmails(
+  emails: PendingEmail[]
+): Promise<{ sent: string[]; failed: string[] }> {
+  const sent: string[] = [];
+  const failed: string[] = [];
+
   if (!RESEND_API_KEY) {
     console.error("RESEND_API_KEY is not configured");
-    return false;
+    emails.forEach(e => failed.push(e.to));
+    return { sent, failed };
   }
 
+  if (emails.length === 0) return { sent, failed };
+
+  // Use Resend Batch API — single request, no rate limit issues
   try {
-    const res = await fetch("https://api.resend.com/emails", {
+    const res = await fetch("https://api.resend.com/emails/batch", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
-      body: JSON.stringify({
-        from: RESEND_FROM_EMAIL,
-        to: [to],
-        subject,
-        html,
-      }),
+      body: JSON.stringify(
+        emails.map(e => ({
+          from: RESEND_FROM_EMAIL,
+          to: [e.to],
+          subject: e.subject,
+          html: e.html,
+        }))
+      ),
     });
 
     const data = await res.json();
 
     if (res.ok) {
-      console.log(`Email sent successfully to ${to}: ${subject}`);
-      return true;
+      console.log(`Batch sent ${emails.length} email(s) successfully`);
+      emails.forEach(e => sent.push(e.to));
     } else {
-      console.error(`Failed to send email to ${to}:`, data);
-      return false;
+      console.error("Batch send failed:", data);
+      emails.forEach(e => failed.push(e.to));
     }
   } catch (error) {
-    console.error(`Error sending email to ${to}:`, error);
-    return false;
+    console.error("Error sending batch emails:", error);
+    emails.forEach(e => failed.push(e.to));
   }
+
+  return { sent, failed };
 }
 
 // ─── Main Handler ────────────────────────────────────────────────────────────
@@ -729,8 +763,7 @@ serve(async (req) => {
     }
 
     const supabase = createAdminClient();
-    const emailsSent: string[] = [];
-    const emailsFailed: string[] = [];
+    const pendingEmails: PendingEmail[] = [];
 
     if (table === "expense_requests") {
       const record = await getExpenseRecord(supabase, record_id);
@@ -744,22 +777,25 @@ serve(async (req) => {
       const { requesterContent, reviewerContent, reviewerRole } =
         getExpenseNotificationContent(old_status, new_status, record);
 
-      // Send to requester
+      // Queue requester email
       if (requesterContent && record.requesterEmail) {
-        const html = buildEmailHtml(record.requesterName, requesterContent);
-        const sent = await sendEmail(record.requesterEmail, requesterContent.subject, html);
-        (sent ? emailsSent : emailsFailed).push(record.requesterEmail);
+        pendingEmails.push({
+          to: record.requesterEmail,
+          subject: requesterContent.subject,
+          html: buildEmailHtml(record.requesterName, requesterContent),
+        });
       }
 
-      // Send to next reviewers
+      // Queue reviewer emails
       if (reviewerContent && reviewerRole) {
         const reviewers = await getUsersByRole(supabase, record.organizationId, reviewerRole);
         for (const reviewer of reviewers) {
-          // Don't notify the requester again if they happen to be a reviewer
           if (reviewer.email === record.requesterEmail) continue;
-          const html = buildEmailHtml(reviewer.name, reviewerContent);
-          const sent = await sendEmail(reviewer.email, reviewerContent.subject, html);
-          (sent ? emailsSent : emailsFailed).push(reviewer.email);
+          pendingEmails.push({
+            to: reviewer.email,
+            subject: reviewerContent.subject,
+            html: buildEmailHtml(reviewer.name, reviewerContent),
+          });
         }
       }
     } else if (table === "allocation_requests") {
@@ -774,24 +810,31 @@ serve(async (req) => {
       const { requesterContent, reviewerContent, reviewerRole } =
         getAllocationNotificationContent(old_status, new_status, record);
 
-      // Send to requester
+      // Queue requester email
       if (requesterContent && record.requesterEmail) {
-        const html = buildEmailHtml(record.requesterName, requesterContent);
-        const sent = await sendEmail(record.requesterEmail, requesterContent.subject, html);
-        (sent ? emailsSent : emailsFailed).push(record.requesterEmail);
+        pendingEmails.push({
+          to: record.requesterEmail,
+          subject: requesterContent.subject,
+          html: buildEmailHtml(record.requesterName, requesterContent),
+        });
       }
 
-      // Send to reviewers
+      // Queue reviewer emails
       if (reviewerContent && reviewerRole) {
         const reviewers = await getUsersByRole(supabase, record.organizationId, reviewerRole);
         for (const reviewer of reviewers) {
           if (reviewer.email === record.requesterEmail) continue;
-          const html = buildEmailHtml(reviewer.name, reviewerContent);
-          const sent = await sendEmail(reviewer.email, reviewerContent.subject, html);
-          (sent ? emailsSent : emailsFailed).push(reviewer.email);
+          pendingEmails.push({
+            to: reviewer.email,
+            subject: reviewerContent.subject,
+            html: buildEmailHtml(reviewer.name, reviewerContent),
+          });
         }
       }
     }
+
+    // Send all emails in a single batch request
+    const { sent: emailsSent, failed: emailsFailed } = await sendAllEmails(pendingEmails);
 
     console.log(`Notification complete: ${emailsSent.length} sent, ${emailsFailed.length} failed`);
 
