@@ -34,6 +34,7 @@ import {
   UserCheck,
   Building,
   X,
+  BookOpen,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/shared/lib/utils";
@@ -420,6 +421,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   </div>
                 </PopoverContent>
               </Popover>
+              <Button variant="ghost" size="sm" asChild>
+                <a href="/ALIC_User_Guide.docx" download title="Download User Guide">
+                  <BookOpen className="h-4 w-4" />
+                </a>
+              </Button>
               <Button variant="ghost" size="sm" className="relative">
                 <Bell className="h-4 w-4" />
                 <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs">
