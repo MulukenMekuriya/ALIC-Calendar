@@ -192,6 +192,13 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 external: true,
               },
               {
+                name: "Users & Roles - OLD",
+                href: "/users",
+                icon: Users,
+                description: "Manage users",
+                adminOnly: true,
+              },
+              {
                 name: "Branches",
                 href: "/admin/branches",
                 icon: Building,
