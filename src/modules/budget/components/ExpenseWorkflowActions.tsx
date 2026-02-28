@@ -32,14 +32,6 @@ import {
 import type { ExpenseRequestWithRelations } from "../types";
 import { REIMBURSEMENT_TYPE_LABELS } from "../types";
 import { ExpenseStatusBadge } from "./ExpenseStatusBadge";
-import {
-  notifyExpenseLeaderApproved,
-  notifyExpenseLeaderDenied,
-  notifyExpenseApprovalRecalled,
-  notifyExpenseTreasuryApproved,
-  notifyExpenseTreasuryDenied,
-  notifyExpenseCompleted,
-} from "../services/notificationService";
 
 interface BaseActionDialogProps {
   open: boolean;
@@ -47,15 +39,6 @@ interface BaseActionDialogProps {
   expense: ExpenseRequestWithRelations;
   onSuccess?: () => void;
 }
-
-// Helper to build notification context from expense
-const getExpenseNotificationContext = (expense: ExpenseRequestWithRelations) => ({
-  expenseTitle: expense.title,
-  expenseAmount: expense.amount,
-  ministryName: expense.ministry?.name || "Unknown Ministry",
-  requesterName: expense.requester_name,
-  requesterEmail: expense.requester_email || "",
-});
 
 /**
  * Leader Approve Dialog
@@ -85,15 +68,6 @@ export function LeaderApproveDialog({
         reviewerName: profile.full_name,
         notes: notes || undefined,
       });
-
-      // Send email notification to requester (fire and forget)
-      if (expense.requester_email) {
-        notifyExpenseLeaderApproved(
-          getExpenseNotificationContext(expense),
-          profile.full_name,
-          notes || undefined
-        ).catch(console.error);
-      }
 
       toast({
         title: "Expense Approved",
@@ -215,15 +189,6 @@ export function LeaderDenyDialog({
         reviewerName: profile.full_name,
         notes: reason,
       });
-
-      // Send email notification to requester (fire and forget)
-      if (expense.requester_email) {
-        notifyExpenseLeaderDenied(
-          getExpenseNotificationContext(expense),
-          profile.full_name,
-          reason
-        ).catch(console.error);
-      }
 
       toast({
         title: "Expense Denied",
@@ -462,15 +427,6 @@ export function TreasuryApproveDialog({
         notes: notes || undefined,
       });
 
-      // Send email notification to requester (fire and forget)
-      if (expense.requester_email) {
-        notifyExpenseTreasuryApproved(
-          getExpenseNotificationContext(expense),
-          profile.full_name,
-          notes || undefined
-        ).catch(console.error);
-      }
-
       toast({
         title: "Payment Approved",
         description: "The payment has been approved and sent to finance for processing.",
@@ -592,15 +548,6 @@ export function TreasuryDenyDialog({
         notes: reason,
       });
 
-      // Send email notification to requester (fire and forget)
-      if (expense.requester_email) {
-        notifyExpenseTreasuryDenied(
-          getExpenseNotificationContext(expense),
-          profile.full_name,
-          reason
-        ).catch(console.error);
-      }
-
       toast({
         title: "Payment Denied",
         description: "The payment has been denied.",
@@ -719,15 +666,6 @@ export function FinanceProcessDialog({
         paymentReference: paymentReference,
         notes: notes || undefined,
       });
-
-      // Send email notification to requester (fire and forget)
-      if (expense.requester_email) {
-        notifyExpenseCompleted(
-          getExpenseNotificationContext(expense),
-          paymentReference,
-          notes || undefined
-        ).catch(console.error);
-      }
 
       toast({
         title: "Payment Processed",
@@ -903,12 +841,6 @@ export function RecallApprovalDialog({
         reviewerName: profile.full_name,
         notes,
       });
-
-      // Notify requester
-      const context = getExpenseNotificationContext(expense);
-      notifyExpenseApprovalRecalled(context, profile.full_name, notes).catch(
-        console.error
-      );
 
       toast({
         title: "Approval Recalled",

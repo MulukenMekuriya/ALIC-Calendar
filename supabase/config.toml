@@ -72,3 +72,9 @@ verify_jwt = false
 
 [functions.send-event-notification]
 verify_jwt = false
+
+[functions.send-budget-notification]
+verify_jwt = false
+
+[functions.handle-workflow-notification]
+verify_jwt = false
