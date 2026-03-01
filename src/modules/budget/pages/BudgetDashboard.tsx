@@ -45,6 +45,7 @@ import {
   ChevronDown,
   ChevronRight,
   BarChart3,
+  ShieldAlert,
 } from "lucide-react";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useOrganization } from "@/shared/contexts/OrganizationContext";
@@ -53,6 +54,7 @@ import { useFiscalYears, useActiveFiscalYear } from "../hooks";
 import { useExpenses, useExpenseStatistics } from "../hooks";
 import { useOrganizationBudgetSummary } from "../hooks";
 import { useAllocationRequests } from "../hooks";
+import { useMinistryFlags } from "../hooks";
 import {
   ExpenseRequestForm,
   ExpenseList,
@@ -64,6 +66,8 @@ import {
 import { AllocationRequestForm } from "../components/AllocationRequestForm";
 import { AllocationRequestList } from "../components/AllocationRequestList";
 import { MonthlyBudgetSummary } from "../components/MonthlyBudgetSummary";
+import { MinistryFlagBadge } from "../components/MinistryFlagBadge";
+import { format, parseISO } from "date-fns";
 
 const BudgetDashboard = () => {
   const { user, isAdmin, isTreasury, isFinance } = useAuth();
@@ -141,6 +145,28 @@ const BudgetDashboard = () => {
     allocationRequests?.filter(
       (r) => r.requester_id === user?.id && r.status !== "cancelled"
     ) || [];
+
+  // Get contributor's ministry IDs from their expenses/allocations
+  const contributorMinistryIds = isContributor
+    ? [
+        ...new Set([
+          ...myExpenses.map((e) => e.ministry_id),
+          ...myAllocationRequests.map((r) => r.ministry_id),
+        ]),
+      ]
+    : [];
+
+  // Fetch unresolved flags for contributor's ministries
+  const { data: allUnresolvedFlags = [] } = useMinistryFlags(
+    isContributor && contributorMinistryIds.length > 0
+      ? currentOrganization?.id
+      : undefined,
+    { unresolvedOnly: true }
+  );
+
+  const myMinistryFlags = allUnresolvedFlags.filter((f) =>
+    contributorMinistryIds.includes(f.ministry_id)
+  );
 
   // Filtered data for admin views - EXCLUDE cancelled
   const activeExpenses =
@@ -437,6 +463,57 @@ const BudgetDashboard = () => {
                       description="Consolidated view of all ministry monthly budget requests"
                     />
                   </>
+                )}
+
+                {/* Contributor Flag Notification */}
+                {isContributor && myMinistryFlags.length > 0 && (
+                  <Card className="border-red-200 bg-red-50/30">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center gap-2">
+                        <ShieldAlert className="h-5 w-5 text-red-500" />
+                        <CardTitle className="text-lg text-red-700">
+                          Ministry Flagged
+                        </CardTitle>
+                      </div>
+                      <CardDescription className="text-red-600/70">
+                        Your ministry has been flagged. New expense submissions
+                        are blocked until the issue is resolved.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {myMinistryFlags.map((flag) => (
+                          <div
+                            key={flag.id}
+                            className="p-3 bg-white rounded-lg border border-red-100 space-y-1.5"
+                          >
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-medium text-sm">
+                                {flag.ministry?.name || "Your Ministry"}
+                              </span>
+                              <MinistryFlagBadge flagType={flag.flag_type} />
+                            </div>
+                            {flag.notes && (
+                              <p className="text-xs text-muted-foreground">
+                                {flag.notes}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                              <span>
+                                Flagged{" "}
+                                {format(parseISO(flag.created_at), "MMM d, yyyy")}
+                              </span>
+                              <span>by {flag.created_by_name}</span>
+                            </div>
+                            <p className="text-xs text-red-600 font-medium">
+                              Please submit the required documents to the finance
+                              team to resolve this flag.
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
 
                 {/* Contributor View - Personal budget overview */}
