@@ -41,12 +41,21 @@ interface OrganizationContextType {
   refetchOrganization: () => Promise<void>;
 }
 
-const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined);
+const OrganizationContext = createContext<OrganizationContextType | undefined>(
+  undefined,
+);
 
-export const OrganizationProvider = ({ children }: { children: React.ReactNode }) => {
+export const OrganizationProvider = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
   const { user, loading: authLoading } = useAuth();
-  const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
-  const [userOrganizations, setUserOrganizations] = useState<UserOrganization[]>([]);
+  const [currentOrganization, setCurrentOrganization] =
+    useState<Organization | null>(null);
+  const [userOrganizations, setUserOrganizations] = useState<
+    UserOrganization[]
+  >([]);
   const [isOrgAdmin, setIsOrgAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +83,8 @@ export const OrganizationProvider = ({ children }: { children: React.ReactNode }
       // Get user's organization memberships with organization details
       const { data: memberships, error: membershipError } = await supabase
         .from("user_organizations")
-        .select(`
+        .select(
+          `
           id,
           user_id,
           organization_id,
@@ -100,7 +110,8 @@ export const OrganizationProvider = ({ children }: { children: React.ReactNode }
             created_at,
             updated_at
           )
-        `)
+        `,
+        )
         .eq("user_id", user.id);
 
       if (membershipError) {
@@ -120,16 +131,18 @@ export const OrganizationProvider = ({ children }: { children: React.ReactNode }
       }
 
       // Transform the data
-      const transformedMemberships: UserOrganization[] = memberships.map((m: any) => ({
-        id: m.id,
-        user_id: m.user_id,
-        organization_id: m.organization_id,
-        role: m.role,
-        is_primary: m.is_primary,
-        joined_at: m.joined_at,
-        email: m.email,
-        organization: m.organizations,
-      }));
+      const transformedMemberships: UserOrganization[] = memberships.map(
+        (m: any) => ({
+          id: m.id,
+          user_id: m.user_id,
+          organization_id: m.organization_id,
+          role: m.role,
+          is_primary: m.is_primary,
+          joined_at: m.joined_at,
+          email: m.email,
+          organization: m.organizations,
+        }),
+      );
 
       setUserOrganizations(transformedMemberships);
 
@@ -141,13 +154,15 @@ export const OrganizationProvider = ({ children }: { children: React.ReactNode }
       let currentMembership: UserOrganization | null = null;
 
       if (profile?.default_organization_id) {
-        currentMembership = transformedMemberships.find(
-          (m) => m.organization_id === profile.default_organization_id
-        ) || null;
+        currentMembership =
+          transformedMemberships.find(
+            (m) => m.organization_id === profile.default_organization_id,
+          ) || null;
       }
 
       if (!currentMembership) {
-        currentMembership = transformedMemberships.find((m) => m.is_primary) || null;
+        currentMembership =
+          transformedMemberships.find((m) => m.is_primary) || null;
       }
 
       if (!currentMembership && transformedMemberships.length > 0) {
@@ -200,7 +215,9 @@ export const OrganizationProvider = ({ children }: { children: React.ReactNode }
 export const useOrganization = () => {
   const context = useContext(OrganizationContext);
   if (context === undefined) {
-    throw new Error("useOrganization must be used within an OrganizationProvider");
+    throw new Error(
+      "useOrganization must be used within an OrganizationProvider",
+    );
   }
   return context;
 };

@@ -59,6 +59,7 @@ import {
   BudgetMetricsGrid,
   EnhancedReportExport,
   BudgetOverview,
+  FlaggedMinistriesPanel,
 } from "../components";
 import { AllocationRequestForm } from "../components/AllocationRequestForm";
 import { AllocationRequestList } from "../components/AllocationRequestList";
@@ -400,6 +401,9 @@ const BudgetDashboard = () => {
                 {/* World-Class Overview for Admin/Treasury/Finance */}
                 {hasFullAccess && budgetSummary && activeExpenses && (
                   <>
+                    {/* Flagged Ministries Alert Panel */}
+                    <FlaggedMinistriesPanel organizationId={currentOrganization?.id} />
+
                     <BudgetOverview
                       expenses={activeExpenses}
                       allocations={activeAllocationRequests || []}

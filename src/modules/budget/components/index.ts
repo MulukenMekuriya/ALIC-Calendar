@@ -29,6 +29,12 @@ export { AllocationReviewDialog } from "./AllocationReviewDialog";
 // Budget Alerts
 export { BudgetAlertsPanel, BudgetAlertsBadge } from "./BudgetAlertsPanel";
 
+// Ministry Flags
+export { MinistryFlagBadge, MinistryBlockedIndicator } from "./MinistryFlagBadge";
+export { CreateMinistryFlagDialog } from "./CreateMinistryFlagDialog";
+export { ResolveMinistryFlagDialog } from "./ResolveMinistryFlagDialog";
+export { default as FlaggedMinistriesPanel } from "./FlaggedMinistriesPanel";
+
 // Budget Overview & Analytics
 export { default as BudgetOverviewCharts } from "./BudgetOverviewCharts";
 export { default as BudgetMetricsGrid } from "./BudgetMetricsGrid";

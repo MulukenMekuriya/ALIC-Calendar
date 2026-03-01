@@ -426,6 +426,77 @@ export interface AllocationRequestHistory {
   created_at: string;
 }
 
+// =====================================================
+// Ministry Flag Types (Advance Payment Document Tracking)
+// =====================================================
+
+export type MinistryFlagType = "missing_receipts" | "unreturned_funds";
+
+export interface MinistryFlag {
+  id: string;
+  ministry_id: string;
+  organization_id: string;
+  flag_type: MinistryFlagType;
+  expense_request_id: string | null;
+  created_by: string;
+  created_by_name: string;
+  resolved_at: string | null;
+  resolved_by: string | null;
+  resolved_by_name: string | null;
+  notes: string | null;
+  resolution_notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MinistryFlagInsert {
+  ministry_id: string;
+  organization_id: string;
+  flag_type: MinistryFlagType;
+  expense_request_id?: string | null;
+  created_by: string;
+  created_by_name: string;
+  notes?: string | null;
+}
+
+export interface MinistryFlagWithRelations extends MinistryFlag {
+  ministry: Ministry;
+  expense_request?: {
+    id: string;
+    title: string;
+    amount: number;
+    status: ExpenseStatus;
+  } | null;
+}
+
+export const MINISTRY_FLAG_TYPE_CONFIG: Record<
+  MinistryFlagType,
+  {
+    label: string;
+    description: string;
+    color: string;
+    bgColor: string;
+    borderColor: string;
+  }
+> = {
+  missing_receipts: {
+    label: "Missing Receipts",
+    description:
+      "Ministry has not submitted receipts for an advance payment",
+    color: "text-red-700",
+    bgColor: "bg-red-50",
+    borderColor: "border-red-300",
+  },
+  unreturned_funds: {
+    label: "Unreturned Funds",
+    description:
+      "Ministry has not returned unused advance payment funds",
+    color: "text-red-700",
+    bgColor: "bg-red-50",
+    borderColor: "border-red-300",
+  },
+};
+
 // Period helpers
 export const PERIOD_TYPE_LABELS: Record<AllocationPeriodType, string> = {
   annual: "Annual",

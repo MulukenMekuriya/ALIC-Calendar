@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useRef,
+} from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -32,7 +38,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const syncSessionWithExternalApp = async (currentSession: Session | null) => {
     if (typeof window === "undefined") return;
 
-    const hasTokens = currentSession?.access_token && currentSession.refresh_token;
+    const hasTokens =
+      currentSession?.access_token && currentSession.refresh_token;
 
     try {
       await fetch("/api/session", {
@@ -47,7 +54,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 access_token: currentSession.access_token,
                 refresh_token: currentSession.refresh_token,
               }
-            : {}
+            : {},
         ),
       });
     } catch (error) {
@@ -65,7 +72,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // On TOKEN_REFRESHED / other events where the user hasn't changed,
       // only update the session (silently) — don't cascade state updates
       // that would re-render the entire tree and close open dialogs/forms.
-      if (event === "TOKEN_REFRESHED" && newUserId === currentUserIdRef.current) {
+      if (
+        event === "TOKEN_REFRESHED" &&
+        newUserId === currentUserIdRef.current
+      ) {
         // Silently update session reference without touching user/roles
         setSession(currentSession);
         return;

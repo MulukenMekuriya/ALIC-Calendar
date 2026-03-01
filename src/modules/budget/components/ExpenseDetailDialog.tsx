@@ -34,6 +34,7 @@ import {
   ArrowRightCircle,
   Undo2,
   Pencil,
+  AlertTriangle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,6 +55,7 @@ interface ExpenseDetailDialogProps {
   onTreasuryDeny?: () => void;
   onFinanceProcess?: () => void;
   onAdminEdit?: () => void;
+  onFlagMinistry?: () => void;
 }
 
 interface AttachmentWithSignedUrl extends AttachmentData {
@@ -74,6 +76,7 @@ export function ExpenseDetailDialog({
   onTreasuryDeny,
   onFinanceProcess,
   onAdminEdit,
+  onFlagMinistry,
 }: ExpenseDetailDialogProps) {
   const [attachmentsWithUrls, setAttachmentsWithUrls] = useState<
     AttachmentWithSignedUrl[]
@@ -696,6 +699,29 @@ export function ExpenseDetailDialog({
                   >
                     <CheckCircle className="mr-2 h-4 w-4" />
                     Process Payment
+                  </Button>
+                </div>
+              </>
+            )}
+
+          {/* Flag Ministry Action (finance, completed advance payments) */}
+          {expense.status === "completed" &&
+            expense.is_advance_payment &&
+            userRole === "finance" &&
+            onFlagMinistry && (
+              <>
+                <Separator />
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={() => {
+                      onOpenChange(false);
+                      onFlagMinistry();
+                    }}
+                  >
+                    <AlertTriangle className="mr-2 h-4 w-4" />
+                    Flag Ministry for Missing Receipts
                   </Button>
                 </div>
               </>

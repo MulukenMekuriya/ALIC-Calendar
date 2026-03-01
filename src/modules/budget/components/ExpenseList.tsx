@@ -62,6 +62,7 @@ import {
   Hash,
   ArrowRightCircle,
   Undo2,
+  AlertTriangle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ExpenseStatusBadge } from "./ExpenseStatusBadge";
@@ -81,7 +82,10 @@ import { useToast } from "@/shared/hooks/use-toast";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useSearch } from "@/shared/contexts/SearchContext";
-import { useDeleteExpense, useSubmitExpenseForReview } from "../hooks";
+import { useDeleteExpense, useSubmitExpenseForReview, useBlockedMinistryIds } from "../hooks";
+import { useOrganization } from "@/shared/contexts/OrganizationContext";
+import { MinistryBlockedIndicator } from "./MinistryFlagBadge";
+import { CreateMinistryFlagDialog } from "./CreateMinistryFlagDialog";
 import type { ExpenseRequestWithRelations, ExpenseStatus } from "../types";
 import { EXPENSE_STATUS_CONFIG, REIMBURSEMENT_TYPE_LABELS } from "../types";
 import { Badge } from "@/shared/components/ui/badge";
@@ -103,6 +107,8 @@ export function ExpenseList({
   const { user } = useAuth();
   const { profile } = useUserProfile();
   const { searchQuery } = useSearch();
+  const { currentOrganization } = useOrganization();
+  const { data: blockedMinistryIds = [] } = useBlockedMinistryIds(currentOrganization?.id);
 
   // State for dialogs
   const [selectedExpense, setSelectedExpense] =
@@ -118,6 +124,7 @@ export function ExpenseList({
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [isRecallApprovalOpen, setIsRecallApprovalOpen] = useState(false);
   const [isAdminEditDialogOpen, setIsAdminEditDialogOpen] = useState(false);
+  const [isFlagMinistryOpen, setIsFlagMinistryOpen] = useState(false);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<ExpenseStatus | "all">(
@@ -233,6 +240,12 @@ export function ExpenseList({
       expense.status === "pending_finance") &&
     userRole === "finance";
 
+  const canFlagMinistry = (expense: ExpenseRequestWithRelations) =>
+    userRole === "finance" &&
+    expense.is_advance_payment &&
+    expense.status === "completed" &&
+    !blockedMinistryIds.includes(expense.ministry_id);
+
   // Helper to get recipient info
   const getRecipientInfo = (expense: ExpenseRequestWithRelations) => {
     const isDifferent = expense.is_different_recipient;
@@ -326,6 +339,7 @@ export function ExpenseList({
                             <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
                               <Building2 className="h-3 w-3" />
                               {expense.ministry?.name || "No Ministry"}
+                              <MinistryBlockedIndicator isBlocked={blockedMinistryIds.includes(expense.ministry_id)} />
                             </div>
                           </div>
                           <ExpenseStatusBadge status={expense.status} />
@@ -554,6 +568,21 @@ export function ExpenseList({
                                   </DropdownMenuItem>
                                 </>
                               )}
+                              {canFlagMinistry(expense) && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedExpense(expense);
+                                      setIsFlagMinistryOpen(true);
+                                    }}
+                                    className="text-red-600"
+                                  >
+                                    <AlertTriangle className="mr-2 h-4 w-4" />
+                                    Flag Ministry
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                               {canDelete(expense) && (
                                 <>
                                   <DropdownMenuSeparator />
@@ -629,6 +658,7 @@ export function ExpenseList({
                                   <span className="flex items-center gap-1">
                                     <Building2 className="h-3 w-3" />
                                     {expense.ministry?.name || "-"}
+                                    <MinistryBlockedIndicator isBlocked={blockedMinistryIds.includes(expense.ministry_id)} />
                                   </span>
                                   <span className="flex items-center gap-1">
                                     <Calendar className="h-3 w-3" />
@@ -886,6 +916,22 @@ export function ExpenseList({
                                       </>
                                     )}
 
+                                    {canFlagMinistry(expense) && (
+                                      <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setSelectedExpense(expense);
+                                            setIsFlagMinistryOpen(true);
+                                          }}
+                                          className="text-red-600"
+                                        >
+                                          <AlertTriangle className="mr-2 h-4 w-4" />
+                                          Flag Ministry
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
+
                                     {canDelete(expense) && (
                                       <>
                                         <DropdownMenuSeparator />
@@ -943,6 +989,15 @@ export function ExpenseList({
           onAdminEdit={() => {
             setIsAdminEditDialogOpen(true);
           }}
+          onFlagMinistry={
+            selectedExpense &&
+            selectedExpense.status === "completed" &&
+            selectedExpense.is_advance_payment &&
+            userRole === "finance" &&
+            !blockedMinistryIds.includes(selectedExpense.ministry_id)
+              ? () => setIsFlagMinistryOpen(true)
+              : undefined
+          }
         />
 
         {/* Edit Dialog (draft editing by requester) */}
@@ -1017,6 +1072,17 @@ export function ExpenseList({
               expense={selectedExpense}
               onSuccess={onRefresh}
             />
+            {currentOrganization && (
+              <CreateMinistryFlagDialog
+                open={isFlagMinistryOpen}
+                onOpenChange={setIsFlagMinistryOpen}
+                ministryId={selectedExpense.ministry_id}
+                ministryName={selectedExpense.ministry?.name || "Unknown Ministry"}
+                organizationId={currentOrganization.id}
+                expenseRequestId={selectedExpense.id}
+                onSuccess={onRefresh}
+              />
+            )}
           </>
         )}
       </>

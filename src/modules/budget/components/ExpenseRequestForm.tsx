@@ -33,12 +33,12 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { Switch } from "@/shared/components/ui/switch";
-import { Loader2, Send, Save, Paperclip, X, FileText, Image as ImageIcon, Calendar } from "lucide-react";
+import { Loader2, Send, Save, Paperclip, X, FileText, Image as ImageIcon, Calendar, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { AttachmentData } from "../types";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useMinistries, useFiscalYears, useActiveFiscalYear } from "../hooks";
-import { useCreateExpense, useUpdateExpense, useSubmitExpenseForReview, useAdminEditExpense } from "../hooks";
+import { useCreateExpense, useUpdateExpense, useSubmitExpenseForReview, useAdminEditExpense, useBlockedMinistryIds } from "../hooks";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useOrganization } from "@/shared/contexts/OrganizationContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -147,6 +147,9 @@ export function ExpenseRequestForm({
   const isInitialMount = useRef(true);
 
   const { data: ministries, isLoading: ministriesLoading } = useMinistries(
+    currentOrganization?.id
+  );
+  const { data: blockedMinistryIds = [] } = useBlockedMinistryIds(
     currentOrganization?.id
   );
   const { data: fiscalYears, isLoading: fiscalYearsLoading } = useFiscalYears(
@@ -441,6 +444,16 @@ export function ExpenseRequestForm({
       return;
     }
 
+    // Block submission for flagged ministries
+    if (submit && blockedMinistryIds.includes(values.ministry_id)) {
+      toast({
+        title: "Ministry Blocked",
+        description: "This ministry has unresolved flags (missing receipts or unreturned funds). New expense requests cannot be submitted until flags are resolved.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     // Determine the final title: either the selected category or custom "Other" text
@@ -657,11 +670,23 @@ export function ExpenseRequestForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {ministries?.map((ministry) => (
-                          <SelectItem key={ministry.id} value={ministry.id}>
-                            {ministry.name}
-                          </SelectItem>
-                        ))}
+                        {ministries?.map((ministry) => {
+                          const isBlocked = blockedMinistryIds.includes(ministry.id);
+                          return (
+                            <SelectItem
+                              key={ministry.id}
+                              value={ministry.id}
+                              disabled={isBlocked}
+                            >
+                              <span className="flex items-center gap-2">
+                                {ministry.name}
+                                {isBlocked && (
+                                  <AlertTriangle className="h-3 w-3 text-red-500" />
+                                )}
+                              </span>
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                     <FormMessage />
