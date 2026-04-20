@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import LandingNav from "../components/LandingNav";
 import LandingFooter from "../components/LandingFooter";
@@ -19,6 +20,8 @@ const CAMPUSES = [
     pastor: "Pastor Mekashaw Shimelash", role: "Lead Pastor",
     yt: "https://www.youtube.com/@addislidetmedia",
     fb: "https://www.facebook.com/AddisLedet/",
+    photo: "/md-campus.jpg",
+    channelId: "UC0a-B295i9i-wTezQ4G-M3w",
     tagline: "Our founding home — where the family first gathered.",
     since: "Since 2009",
     rhythm: [
@@ -36,6 +39,8 @@ const CAMPUSES = [
     pastor: "Pastor Elias Getaneh", role: "Lead Pastor",
     yt: "https://www.youtube.com/@AddisLidetVirginia",
     fb: "https://www.facebook.com/profile.php?id=100007033008234",
+    photo: "/va-campus.jpg",
+    channelId: "UC9wD2V5iETIWes24ZJv6OsA",
     tagline: "A new home on Eisenhower Avenue — the family across the Potomac.",
     since: "Since 2014 · New home 2026",
     rhythm: [
@@ -74,6 +79,37 @@ function LocHero() {
   );
 }
 
+function CampusStream({ c }: { c: typeof CAMPUSES[number] }) {
+  const [live, setLive] = useState(false);
+  const latestSrc = `https://www.youtube.com/embed?listType=playlist&list=${c.channelId.replace('UC', 'UU')}&index=1`;
+  const liveSrc   = `https://www.youtube.com/embed/live_stream?channel=${c.channelId}`;
+
+  return (
+    <div className="cmp__stream">
+      <div className="cmp__stream-head">
+        <span className="eyebrow">Live &amp; archive · Watch</span>
+        <div className="cmp__stream-toggle">
+          <button className={`cmp__stream-btn${!live ? ' is-on' : ''}`} onClick={() => setLive(false)}>Latest</button>
+          <button className={`cmp__stream-btn${live ? ' is-on' : ''}`}  onClick={() => setLive(true)}>Watch Live</button>
+        </div>
+      </div>
+      <div className="cmp__stream-player">
+        <iframe
+          key={live ? 'live' : 'latest'}
+          src={live ? liveSrc : latestSrc}
+          title={`${c.name} — ${live ? 'live stream' : 'latest service'}`}
+          allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      </div>
+      <div className="cmp__stream-links">
+        <a href={c.yt} target="_blank" rel="noreferrer" className="cmp__link">→ Full channel &amp; archive</a>
+        <a href={`${c.yt}/playlists`} target="_blank" rel="noreferrer" className="cmp__link">→ Sermon series</a>
+      </div>
+    </div>
+  );
+}
+
 function Campus({ c }: { c: typeof CAMPUSES[number] }) {
   return (
     <section id={c.id} className="cmp">
@@ -89,7 +125,7 @@ function Campus({ c }: { c: typeof CAMPUSES[number] }) {
         <div className="cmp__grid">
           {/* Media: sticky photo + map */}
           <div className="cmp__media">
-            <PhotoSlot label={`${c.name} campus — photograph`} className="cmp__photo" paper />
+            <PhotoSlot label={`${c.name} campus — photograph`} src={c.photo || undefined} className="cmp__photo" paper />
             <div className="cmp__map">
               <iframe
                 src={c.mapsEmbed}
@@ -151,11 +187,13 @@ function Campus({ c }: { c: typeof CAMPUSES[number] }) {
                 Get directions <ArrowIcon />
               </a>
               <a href={c.yt} target="_blank" rel="noreferrer" className="btn btn--ghost btn--lg">
-                Watch live
+                Watch on YouTube
               </a>
             </div>
           </div>
         </div>
+
+        <CampusStream c={c} />
       </div>
     </section>
   );

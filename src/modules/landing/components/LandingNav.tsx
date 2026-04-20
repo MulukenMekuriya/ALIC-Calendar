@@ -47,8 +47,8 @@ export default function LandingNav() {
         </div>
 
         <div className="nav__right">
-          <Link to="/auth" className="btn btn--ghost btn--sm">Log in</Link>
           <Link to="/give" className="btn btn--gold btn--sm">{t('cta.give')}</Link>
+          <Link to="/auth" className="btn btn--gold btn--sm">Log in</Link>
         </div>
       </div>
     </nav>

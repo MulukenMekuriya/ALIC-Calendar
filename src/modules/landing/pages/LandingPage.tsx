@@ -282,6 +282,7 @@ const LOCATIONS = [
       "Fri 8:30pm — Overnight Prayer",
     ],
     caption: "03 · Silver Spring sanctuary",
+    photo: "/md-campus.jpg",
     badge: null,
   },
   {
@@ -300,6 +301,7 @@ const LOCATIONS = [
       "Sat 7:00pm — Young Adults",
     ],
     caption: "04 · Eisenhower Ave · new 2026",
+    photo: "/va-campus.jpg",
     badge: "New · 2026",
   },
 ];
@@ -330,6 +332,7 @@ function Locations() {
               {l.badge && <div className="loc__badge">{l.badge}</div>}
               <PhotoSlot
                 caption={l.caption}
+                src={l.photo || undefined}
                 tag="Photo"
                 className="loc__photo"
               />

@@ -3,6 +3,7 @@ import React from 'react';
 interface PhotoSlotProps {
   caption?: string;
   label?: string; // backward-compat alias for caption
+  src?: string;
   tag?: string;
   className?: string;
   paper?: boolean;
@@ -10,7 +11,7 @@ interface PhotoSlotProps {
   children?: React.ReactNode;
 }
 
-export default function PhotoSlot({ caption, label, tag, className = '', paper, style, children }: PhotoSlotProps) {
+export default function PhotoSlot({ caption, label, src, tag, className = '', paper, style, children }: PhotoSlotProps) {
   const c = caption ?? label ?? '';
   return (
     <div
@@ -19,7 +20,10 @@ export default function PhotoSlot({ caption, label, tag, className = '', paper, 
       style={style}
     >
       {tag && <div className="photo-slot__tag">{tag}</div>}
-      <div className="photo-slot__frame" />
+      {src
+        ? <img src={src} alt={c} className="photo-slot__img" />
+        : <div className="photo-slot__frame" />
+      }
       {children}
     </div>
   );

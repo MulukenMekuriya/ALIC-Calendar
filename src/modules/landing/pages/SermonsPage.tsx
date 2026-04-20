@@ -118,7 +118,7 @@ function SermonsStage({ active }: { active: string }) {
             {current.channelId ? (
               <iframe
                 key={current.key}
-                src={`https://www.youtube.com/embed/live_stream?channel=${current.channelId}`}
+                src={`https://www.youtube.com/embed?listType=playlist&list=${current.channelId.replace('UC', 'UU')}&index=1`}
                 title={`Addis Lidet — ${current.label}`}
                 allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
