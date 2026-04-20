@@ -38,15 +38,15 @@ function AboutHero() {
 
 /* ── Timeline ── */
 const MILESTONES = [
-  { year: "2008", city: "Washington, DC", t: "The beginning",       b: "A small DC apartment, a coffee table, and a few families around the word — asking the Lord for a church for the diaspora." },
-  { year: "2009", city: "Silver Spring",   t: "First home",          b: "The church moves to its first dedicated space on Ripley St. Sunday worship and midweek prayer take root." },
-  { year: "2013", city: "DMV",             t: "Young Adult Ministry",b: "A generation finds its voice — Sunday evenings become a gathering for students, young professionals, and newlyweds far from home." },
-  { year: "2017", city: "Springfield",     t: "A second campus",     b: "Virginia families plant a branch in Springfield. Two locations, one church, same gospel — on both sides of the Potomac." },
-  { year: "2020", city: "Online",          t: "The streams go live", b: "When the world went quiet, the broadcasts began. Silver Spring, Virginia, and Young Adults build channels reaching from Addis to Adelaide." },
-  { year: "2022", city: "Ethiopia",        t: "ALIC Mission",        b: "Formalizing what began at the founding: church plants, discipleship materials, and gospel partnerships in Ethiopia and beyond." },
-  { year: "2024", city: "DMV",             t: "ALIC Bible School",   b: "A discipleship program for the whole family — theology, mission, and formation in English and Amharic." },
-  { year: "2026", city: "Alexandria",      t: "New Virginia home",   b: "The VA campus buys its first building — 2730 Eisenhower Avenue in Alexandria. A permanent home for the family across the Potomac." },
-  { year: "Today",city: "—",              t: "One family, many places", b: "Seven services a week across two campuses. A community of worship carrying the story forward." },
+  { year: "2008", city: "Washington, DC", t: "The beginning",        b: "A small DC apartment, a coffee table, and a few families around the word — asking the Lord for a church for the diaspora." },
+  { year: "2009", city: "Silver Spring",  t: "First home",           b: "The church moves to 1010 Ripley St, Silver Spring, MD 20910 — a home it would occupy for over a decade. Sunday worship and midweek prayer take root." },
+  { year: "2014", city: "Alexandria, VA", t: "A second campus",      b: "Weekday worship and prayer begin in Arlington, Virginia, targeting members in two home cells in Alexandria. Today those seeds have grown into seven home cells across Virginia." },
+  { year: "2020", city: "Online",         t: "The streams go live",  b: "When the world went quiet, the broadcasts began. Silver Spring, Virginia, and Young Adults build channels reaching from Addis to Adelaide." },
+  { year: "2021", city: "Silver Spring",  t: "Our own building",     b: "In June 2021 Addis Lidet acquires its own worship space — 11961 Tech Rd, Silver Spring, MD 20904. After thirteen years of renting, the Maryland family finally has a home of its own." },
+  { year: "2022", city: "Ethiopia",       t: "ALIC Mission",         b: "Formalizing what began at the founding: church plants, discipleship materials, and gospel partnerships in Ethiopia and beyond." },
+  { year: "2024", city: "DMV",            t: "ALIC Bible School",    b: "A discipleship program for the whole family — theology, mission, and formation in English and Amharic." },
+  { year: "2026", city: "Alexandria, VA", t: "New Virginia home",    b: "The VA campus acquires its first building — 2730 Eisenhower Ave, Alexandria, VA 22314. A permanent home for the family across the Potomac." },
+  { year: "Today",city: "—",             t: "One family, many places", b: "~15 home cells in Maryland, 7 in Virginia, and a congregation that keeps arriving and keeps staying." },
 ];
 
 function Timeline() {
@@ -140,9 +140,9 @@ function Beliefs() {
 
 /* ── Leadership ── */
 const TEAM = [
-  { name: "Pastor Elias Getaneh",  role: "Lead Pastor · Silver Spring",  b: "Shepherding Silver Spring since its earliest days. Preaches weekly in Amharic and English." },
-  { name: "Pastor Mekashaw",       role: "Associate Pastor · Silver Spring",b: "Teaching pastor and discipleship lead, anchoring midweek and overnight prayer services." },
-  { name: "Pastor Biniam Aboye",   role: "Pastor · Silver Spring, MD",    b: "ALIC Pastoral Office Associate. Supports the pastoral team in shepherding the Silver Spring congregation." },
+  { name: "Pastor Mekashaw Shimelash", role: "Lead Pastor",               b: "ALIC's lead shepherd and founding voice. Oversees both campuses, preaches weekly, and stewards the vision God placed in a DC apartment in 2008." },
+  { name: "Pastor Elias Getaneh",      role: "Lead Pastor · Alexandria, VA", b: "Plants and shepherds the Virginia congregation — seven home cells and a church that has grown from two families in Arlington to a campus of its own." },
+  { name: "Pastor Biniam Aboye",       role: "Pastor · Silver Spring, MD",   b: "ALIC Pastoral Office Associate. Walks closely with the Silver Spring congregation, supporting teaching, care, and day-to-day ministry." },
 ];
 
 function Leadership() {

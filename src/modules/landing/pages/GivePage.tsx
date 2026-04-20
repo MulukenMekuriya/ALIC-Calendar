@@ -19,7 +19,7 @@ const FUNDS: Record<string, { label: string; sub: string; color: string }> = {
 
 const OTHER_WAYS = [
   { code: "IN–01",   t: "In person",              b: "Drop your gift in the offering box at either campus during service. No envelope required — our finance team will issue a receipt." },
-  { code: "MAIL–02", t: "Mail a check",            b: "Payable to \"Addis Lidet International Church\" · 8818 Piney Branch Rd, Silver Spring, MD 20903." },
+  { code: "MAIL–02", t: "Mail a check",            b: "Payable to \"Addis Lidet International Church\" · 11961 Tech Rd, Silver Spring, MD 20904." },
   { code: "ACH–03",  t: "ACH / Bank transfer",     b: "For recurring gifts over $500, ACH avoids processing fees entirely. Email finance@addislidet.org for account details." },
   { code: "STK–04",  t: "Stock & appreciated assets",b: "Gifts of stock, mutual funds, or crypto can offer significant tax advantages. We walk you through it step by step." },
   { code: "EST–05",  t: "Estate & legacy",         b: "Include Addis Lidet in your will or trust. Our finance team can share suggested language and confirm our legal name." },
