@@ -13,6 +13,14 @@ import {
 import { SearchProvider } from "@/shared/contexts/SearchContext";
 
 // Module page imports
+import {
+  LandingPage,
+  AboutPage,
+  LocationsPage,
+  SermonsPage,
+  ConnectPage,
+  GivePage,
+} from "@/modules/landing";
 import { Dashboard, PublicCalendar } from "@/modules/calendar";
 import { Admin } from "@/modules/admin";
 import { Auth, ForgotPassword, ResetPassword } from "@/modules/auth";
@@ -108,7 +116,12 @@ const App = () => (
             <SearchProvider>
               <Routes>
                 {/* Public routes */}
-                <Route path="/" element={<Navigate to="/public" replace />} />
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/locations" element={<LocationsPage />} />
+                <Route path="/sermons" element={<SermonsPage />} />
+                <Route path="/connect" element={<ConnectPage />} />
+                <Route path="/give" element={<GivePage />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
