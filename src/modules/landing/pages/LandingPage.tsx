@@ -33,14 +33,6 @@ function Hero() {
       </PhotoSlot>
 
       <div className="container hero__inner">
-        <div className="hero__logo reveal">
-          <img
-            src="/alic-logo.png"
-            alt="Addis Lidet International Church"
-            className="hero__logo-img"
-          />
-        </div>
-
         <div className="hero__eyebrow reveal">
           <span className="eyebrow">
             <span
@@ -535,7 +527,7 @@ function Pastors() {
           <div className="pastor reveal" data-delay="1">
             <PhotoSlot
               caption="Pastor Mekashaw · MD"
-              tag="Portrait"
+              src="/pastor_mekashaw.jpg"
               className="pastor__photo"
             />
             <div className="pastor__meta">
@@ -553,7 +545,7 @@ function Pastors() {
           <div className="pastor reveal" data-delay="2">
             <PhotoSlot
               caption="Pastor Elias Getaneh · VA"
-              tag="Portrait"
+              src="/pastor_elias.jpg"
               className="pastor__photo"
             />
             <div className="pastor__meta">
@@ -574,25 +566,20 @@ function Pastors() {
 }
 
 /* ── Watch / Sermons ── */
-const SERMONS = [
+const WATCH_CHANNELS = [
   {
-    t: "The House That Prayer Built",
-    p: "Pastor Elias",
-    d: "38:20",
-    date: "Nov 2",
-  },
-  { t: "When God Waits", p: "Pastor Mekashaw", d: "41:05", date: "Oct 26" },
-  {
-    t: "ዳግመኛ ስንወለድ — When We Are Born Again",
-    p: "Pastor Elias",
-    d: "47:30",
-    date: "Oct 19",
+    key: "md",
+    label: "Silver Spring, MD",
+    handle: "@addislidetmedia",
+    channelId: "UC0a-B295i9i-wTezQ4G-M3w",
+    url: "https://www.youtube.com/@addislidetmedia",
   },
   {
-    t: "The Quiet Faithfulness of God",
-    p: "Pastor Mekashaw",
-    d: "36:44",
-    date: "Oct 12",
+    key: "va",
+    label: "Alexandria, VA",
+    handle: "@AddisLidetVirginia",
+    channelId: "UC9wD2V5iETIWes24ZJv6OsA",
+    url: "https://www.youtube.com/@AddisLidetVirginia",
   },
 ];
 
@@ -606,81 +593,41 @@ function Watch() {
           </div>
           <h2 className="watch__title mask" data-delay="1">
             <span>
-              Every Sunday, <em>live</em>. Every other day, <em>on demand.</em>
+              Every Sunday, <em>live</em>.<br />Every other day, <em>on demand.</em>
             </span>
           </h2>
         </div>
 
-        <div className="watch__grid">
-          <Link className="watch__feat reveal" data-delay="1" to="/sermons">
-            <PhotoSlot
-              caption="Latest sermon · Pastor Mekashaw"
-              tag="Sermon · Latest"
-              className="watch__feat-photo"
-            >
-              <div className="watch__play">
-                <svg viewBox="0 0 48 48" width="48" height="48">
-                  <polygon points="18,14 36,24 18,34" fill="currentColor" />
-                </svg>
+        <div className="watch__channels reveal" data-delay="2">
+          {WATCH_CHANNELS.map((ch) => (
+            <div key={ch.key} className="watch__channel">
+              <div className="watch__channel-meta">
+                <span className="watch__channel-label">{ch.label}</span>
+                <a href={ch.url} target="_blank" rel="noreferrer" className="watch__channel-handle">
+                  {ch.handle} ↗
+                </a>
               </div>
-              <div className="watch__feat-grad" />
-            </PhotoSlot>
-            <div className="watch__feat-info">
-              <div className="watch__feat-series">
-                Series · Born Again, Again
+              <div className="watch__embed">
+                <iframe
+                  src={`https://www.youtube.com/embed?listType=playlist&list=${ch.channelId.replace('UC','UU')}&index=1`}
+                  title={`Addis Lidet — ${ch.label}`}
+                  allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
               </div>
-              <h3 className="watch__feat-title">The Weight of a New Name.</h3>
-              <div className="watch__feat-meta">
-                <span>Pastor Mekashaw</span>
-                <span className="watch__dot">·</span>
-                <span>44:12</span>
-                <span className="watch__dot">·</span>
-                <span>Nov 9, 2025</span>
+              <div className="watch__channel-links">
+                <a href={ch.url} target="_blank" rel="noreferrer" className="watch__channel-link">→ Full archive</a>
+                <a href={`${ch.url}/streams`} target="_blank" rel="noreferrer" className="watch__channel-link">→ Live streams</a>
+                <a href={`${ch.url}/playlists`} target="_blank" rel="noreferrer" className="watch__channel-link">→ Sermon series</a>
               </div>
             </div>
-          </Link>
+          ))}
+        </div>
 
-          <div className="watch__list">
-            {SERMONS.map((s, i) => (
-              <Link
-                key={i}
-                className="watch__item reveal"
-                data-delay={i + 1}
-                to="/sermons"
-              >
-                <PhotoSlot caption="" className="watch__item-photo">
-                  <div className="watch__item-play">▶</div>
-                </PhotoSlot>
-                <div className="watch__item-info">
-                  <h4>{s.t}</h4>
-                  <div className="watch__item-meta">
-                    <span>{s.p}</span>
-                    <span className="watch__dot">·</span>
-                    <span>{s.d}</span>
-                    <span className="watch__dot">·</span>
-                    <span>{s.date}</span>
-                  </div>
-                </div>
-                <svg
-                  className="watch__item-arrow"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 14 14"
-                  fill="none"
-                >
-                  <path
-                    d="M1 7h12M8 2l5 5-5 5"
-                    stroke="currentColor"
-                    strokeWidth="1.2"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </Link>
-            ))}
-            <Link className="watch__all" to="/sermons">
-              Browse all sermons <ArrowSVG />
-            </Link>
-          </div>
+        <div className="watch__foot reveal" data-delay="3">
+          <Link to="/sermons" className="btn btn--ghost btn--lg">
+            Full sermon library <ArrowSVG />
+          </Link>
         </div>
       </div>
     </section>

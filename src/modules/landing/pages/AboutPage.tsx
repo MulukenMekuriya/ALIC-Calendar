@@ -6,7 +6,13 @@ import "../landing.css";
 
 const ArrowIcon = () => (
   <svg className="arrow" width="14" height="14" viewBox="0 0 14 14" fill="none">
-    <path d="M1 7h12M8 2l5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path
+      d="M1 7h12M8 2l5 5-5 5"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 
@@ -15,19 +21,37 @@ function AboutHero() {
   return (
     <section className="ab-hero">
       <div className="container-wide">
-        <div className="eyebrow" style={{ marginBottom: 36 }}>About · ስለ እኛ</div>
+        <div className="eyebrow" style={{ marginBottom: 36 }}>
+          About · ስለ እኛ
+        </div>
         <h1 className="ab-hero__title">
           <span>A small apartment</span>
-          <span>in <em>Washington, DC</em>.</span>
+          <span>
+            in <em>Washington, DC</em>.
+          </span>
           <span>September, 2008.</span>
         </h1>
         <div className="ab-hero__grid">
           <div className="ab-hero__lede">
-            <p>That's where Addis Lidet — <em>"new birth"</em> — began. A handful of believers around a coffee table, praying for a church that would carry the gospel to Ethiopians across the diaspora, and home again.</p>
-            <p>Seventeen years on, we worship in two cities across the DMV and serve alongside partners on three continents. The family has grown. The welcome has not changed.</p>
+            <p>
+              That's where Addis Lidet — <em>"new birth"</em> — began. A handful
+              of believers around a coffee table, praying for a church that
+              would carry the gospel to Ethiopians across the diaspora, and home
+              again.
+            </p>
+            <p>
+              Seventeen years on, we worship in two cities across the DMV and
+              serve alongside partners on three continents. The family has
+              grown. The welcome has not changed.
+            </p>
           </div>
           <aside>
-            <PhotoSlot label="Founding families — photograph" className="ab-hero__side" paper style={{ aspectRatio: "4/5" }} />
+            <PhotoSlot
+              label="Founding families — photograph"
+              className="ab-hero__side"
+              paper
+              style={{ aspectRatio: "4/5" }}
+            />
             <div className="ab-hero__cap">Founding families · 2008</div>
           </aside>
         </div>
@@ -38,15 +62,60 @@ function AboutHero() {
 
 /* ── Timeline ── */
 const MILESTONES = [
-  { year: "2008", city: "Washington, DC", t: "The beginning",        b: "A small DC apartment, a coffee table, and a few families around the word — asking the Lord for a church for the diaspora." },
-  { year: "2009", city: "Silver Spring",  t: "First home",           b: "The church moves to 1010 Ripley St, Silver Spring, MD 20910 — a home it would occupy for over a decade. Sunday worship and midweek prayer take root." },
-  { year: "2014", city: "Alexandria, VA", t: "A second campus",      b: "Weekday worship and prayer begin in Arlington, Virginia, targeting members in two home cells in Alexandria. Today those seeds have grown into seven home cells across Virginia." },
-  { year: "2020", city: "Online",         t: "The streams go live",  b: "When the world went quiet, the broadcasts began. Silver Spring, Virginia, and Young Adults build channels reaching from Addis to Adelaide." },
-  { year: "2021", city: "Silver Spring",  t: "Our own building",     b: "In June 2021 Addis Lidet acquires its own worship space — 11961 Tech Rd, Silver Spring, MD 20904. After thirteen years of renting, the Maryland family finally has a home of its own." },
-  { year: "2022", city: "Ethiopia",       t: "ALIC Mission",         b: "Formalizing what began at the founding: church plants, discipleship materials, and gospel partnerships in Ethiopia and beyond." },
-  { year: "2024", city: "DMV",            t: "ALIC Bible School",    b: "A discipleship program for the whole family — theology, mission, and formation in English and Amharic." },
-  { year: "2026", city: "Alexandria, VA", t: "New Virginia home",    b: "The VA campus acquires its first building — 2730 Eisenhower Ave, Alexandria, VA 22314. A permanent home for the family across the Potomac." },
-  { year: "Today",city: "—",             t: "One family, many places", b: "~15 home cells in Maryland, 7 in Virginia, and a congregation that keeps arriving and keeps staying." },
+  {
+    year: "2008",
+    city: "Washington, DC",
+    t: "The beginning",
+    b: "A small DC apartment, a coffee table, and a few families around the word — asking the Lord for a church for the diaspora.",
+  },
+  {
+    year: "2009",
+    city: "Silver Spring",
+    t: "First home",
+    b: "The church moves to 1010 Ripley St, Silver Spring, MD 20910 — a home it would occupy for over a decade. Sunday worship and midweek prayer take root.",
+  },
+  {
+    year: "2014",
+    city: "Springfield, VA",
+    t: "A second campus",
+    b: "Weekday worship and prayer begin in Arlington, Virginia, targeting members in two home cells in Alexandria. Today those seeds have grown into seven home cells across Virginia.",
+  },
+  {
+    year: "2020",
+    city: "Online",
+    t: "The streams go live",
+    b: "When the world went quiet, the broadcasts began. Silver Spring, Virginia, and Young Adults build channels reaching from Addis to Adelaide.",
+  },
+  {
+    year: "2021",
+    city: "Silver Spring",
+    t: "Our own building",
+    b: "In June 2021 Addis Lidet acquires its own worship space — 11961 Tech Rd, Silver Spring, MD 20904. After thirteen years of renting, the Maryland family finally has a home of its own.",
+  },
+  {
+    year: "2022",
+    city: "Ethiopia",
+    t: "ALIC Mission",
+    b: "Formalizing what began at the founding: church plants, discipleship materials, and gospel partnerships in Ethiopia and beyond.",
+  },
+  {
+    year: "2024",
+    city: "DMV",
+    t: "ALIC Bible School",
+    b: "A discipleship program for the whole family — theology, mission, and formation in English and Amharic.",
+  },
+  {
+    year: "2026",
+    city: "Alexandria, VA",
+    t: "New Virginia building",
+    b: "The VA campus acquires its first building — 2730 Eisenhower Ave, Alexandria, VA 22314. A permanent home for the family across the Potomac.",
+  },
+  {
+    year: "Today",
+    city: "—",
+    t: "One family, many places",
+    b: "~15 home cells in Maryland, 7 in Virginia, and a congregation that keeps arriving and keeps staying.",
+  },
 ];
 
 function Timeline() {
@@ -55,7 +124,9 @@ function Timeline() {
       <div className="container-wide">
         <div className="tl__head">
           <div className="eyebrow">Our story · ታሪካችን</div>
-          <h2 className="tl__title">Seventeen years. <em>One faithful God.</em></h2>
+          <h2 className="tl__title">
+            Seventeen years. <em>One faithful God.</em>
+          </h2>
         </div>
         <ol className="tl">
           {MILESTONES.map((m, i) => (
@@ -82,9 +153,13 @@ function VisionMission() {
         <div className="vm__grid">
           <div className="vm__card">
             <div className="vm__num">I</div>
-            <div className="eyebrow" style={{ marginBottom: 18 }}>Vision · ራዕይ</div>
+            <div className="eyebrow" style={{ marginBottom: 18 }}>
+              Vision · ራዕይ
+            </div>
             <p className="vm__body">
-              We envision a church that declares the gospel of <em>Jesus Christ</em>, and nurtures disciples committed to doing the same.
+              We envision a church that declares the gospel of{" "}
+              <em>Jesus Christ</em>, and nurtures disciples committed to doing
+              the same.
             </p>
             <p className="vm__am">
               የኢየሱስ ክርስቶስን ወንጌል የምታውጅ እና ቁርጥ ያሉ ደቀመዛሙርትን የምታሳድግ ቤተክርስቲያን እናያለን።
@@ -92,12 +167,26 @@ function VisionMission() {
           </div>
           <div className="vm__card">
             <div className="vm__num">II</div>
-            <div className="eyebrow" style={{ marginBottom: 18 }}>Mission · ተልዕኮ</div>
+            <div className="eyebrow" style={{ marginBottom: 18 }}>
+              Mission · ተልዕኮ
+            </div>
             <ul className="vm__list">
-              <li><b>Worship</b> — gathering the family around the presence of Jesus each week.</li>
-              <li><b>Word</b> — teaching the full counsel of scripture in English and Amharic.</li>
-              <li><b>Witness</b> — carrying the gospel to our cities, our people, and the nations.</li>
-              <li><b>Welcome</b> — building a community where no one belongs alone.</li>
+              <li>
+                <b>Worship</b> — gathering the family around the presence of
+                Jesus each week.
+              </li>
+              <li>
+                <b>Word</b> — teaching the full counsel of scripture in English
+                and Amharic.
+              </li>
+              <li>
+                <b>Witness</b> — carrying the gospel to our cities, our people,
+                and the nations.
+              </li>
+              <li>
+                <b>Welcome</b> — building a community where no one belongs
+                alone.
+              </li>
             </ul>
           </div>
         </div>
@@ -108,12 +197,36 @@ function VisionMission() {
 
 /* ── Beliefs ── */
 const BELIEFS = [
-  { n: "I",   t: "Scripture",     b: "The Bible is the inspired, inerrant Word of God — our supreme authority for faith and life." },
-  { n: "II",  t: "The Trinity",   b: "One God eternally existing in three persons: Father, Son, and Holy Spirit." },
-  { n: "III", t: "Jesus Christ",  b: "Fully God and fully human. Crucified, risen, reigning, and returning." },
-  { n: "IV",  t: "Salvation",     b: "By grace alone, through faith alone, in Christ alone — a gift that transforms." },
-  { n: "V",   t: "The Holy Spirit",b: "Present to comfort, convict, empower, and form us into the image of Christ." },
-  { n: "VI",  t: "The Church",    b: "A family gathered across languages and nations to worship God and make disciples." },
+  {
+    n: "I",
+    t: "Scripture",
+    b: "The Bible is the inspired, inerrant Word of God — our supreme authority for faith and life.",
+  },
+  {
+    n: "II",
+    t: "The Trinity",
+    b: "One God eternally existing in three persons: Father, Son, and Holy Spirit.",
+  },
+  {
+    n: "III",
+    t: "Jesus Christ",
+    b: "Fully God and fully human. Crucified, risen, reigning, and returning.",
+  },
+  {
+    n: "IV",
+    t: "Salvation",
+    b: "By grace alone, through faith alone, in Christ alone — a gift that transforms.",
+  },
+  {
+    n: "V",
+    t: "The Holy Spirit",
+    b: "Present to comfort, convict, empower, and form us into the image of Christ.",
+  },
+  {
+    n: "VI",
+    t: "The Church",
+    b: "A family gathered across languages and nations to worship God and make disciples.",
+  },
 ];
 
 function Beliefs() {
@@ -122,7 +235,11 @@ function Beliefs() {
       <div className="container-wide">
         <div className="beliefs__head">
           <div className="eyebrow">What we believe</div>
-          <h2 className="beliefs__title">Simple. Historic.<br /><em>Unchanging.</em></h2>
+          <h2 className="beliefs__title">
+            Simple. Historic.
+            <br />
+            <em>Unchanging.</em>
+          </h2>
         </div>
         <div className="beliefs__grid">
           {BELIEFS.map((b) => (
@@ -140,9 +257,24 @@ function Beliefs() {
 
 /* ── Leadership ── */
 const TEAM = [
-  { name: "Pastor Mekashaw Shimelash", role: "Lead Pastor",               b: "ALIC's lead shepherd and founding voice. Oversees both campuses, preaches weekly, and stewards the vision God placed in a DC apartment in 2008." },
-  { name: "Pastor Elias Getaneh",      role: "Lead Pastor · Alexandria, VA", b: "Plants and shepherds the Virginia congregation — seven home cells and a church that has grown from two families in Arlington to a campus of its own." },
-  { name: "Pastor Biniam Aboye",       role: "Pastor · Silver Spring, MD",   b: "ALIC Pastoral Office Associate. Walks closely with the Silver Spring congregation, supporting teaching, care, and day-to-day ministry." },
+  {
+    name: "Pastor Mekashaw Shimelash",
+    role: "Lead Pastor",
+    photo: "/pastor_mekashaw.jpg",
+    b: "ALIC's lead shepherd and founding voice. Oversees both campuses, preaches weekly, and stewards the vision God placed in a DC apartment in 2008.",
+  },
+  {
+    name: "Pastor Elias Getaneh",
+    role: "Lead Pastor · Alexandria, VA",
+    photo: "/pastor_elias.jpg",
+    b: "Plants and shepherds the Virginia congregation — seven home cells and a church that has grown from two families in Arlington to a campus of its own.",
+  },
+  {
+    name: "Pastor Biniam Aboye",
+    role: "Pastor · Silver Spring, MD",
+    photo: "/pastor_biniam.jpg",
+    b: "ALIC Pastoral Office Associate. Walks closely with the Silver Spring congregation, supporting teaching, care, and day-to-day ministry.",
+  },
 ];
 
 function Leadership() {
@@ -152,16 +284,21 @@ function Leadership() {
         <div className="lead__head">
           <div>
             <div className="eyebrow">Shepherds · እረኞቻችን</div>
-            <h2 className="lead__title">The people<br />praying for you.</h2>
+            <h2 className="lead__title">
+              The people
+              <br />
+              praying for you.
+            </h2>
           </div>
           <p className="lead__lede">
-            Our pastors lead with open doors. Reach out any time — to meet, to pray, or to walk with you through a hard season.
+            Our pastors lead with open doors. Reach out any time — to meet, to
+            pray, or to walk with you through a hard season.
           </p>
         </div>
         <div className="lead__grid">
           {TEAM.map((p) => (
             <article key={p.name}>
-              <PhotoSlot label="Portrait" className="leader__photo" paper />
+              <PhotoSlot label={p.name} src={p.photo} className="leader__photo" />
               <div className="leader__body">
                 <div className="leader__role">{p.role}</div>
                 <h3 className="leader__name">{p.name}</h3>
@@ -182,20 +319,36 @@ function MissionStrip() {
       <div className="container-wide">
         <div className="ms__grid">
           <div>
-            <div className="eyebrow" style={{ marginBottom: 18 }}>ALIC Mission · አገልግሎት</div>
+            <div className="eyebrow" style={{ marginBottom: 18 }}>
+              ALIC Mission · አገልግሎት
+            </div>
             <h2 className="ms__title">
               <span>From a DC apartment</span>
-              <span><em>to the ends of the earth.</em></span>
+              <span>
+                <em>to the ends of the earth.</em>
+              </span>
             </h2>
             <p className="ms__p">
-              ALIC Mission equips church plants in Ethiopia, trains pastors in the diaspora, and sends teams to underserved communities — rooted in the same gospel that founded us in 2008.
+              ALIC Mission equips church plants in Ethiopia, trains pastors in
+              the diaspora, and sends teams to underserved communities — rooted
+              in the same gospel that founded us in 2008.
             </p>
-            <a href="https://addislidetchurch.org/alic-mission/" target="_blank" rel="noreferrer" className="btn btn--primary btn--lg">
+            <a
+              href="https://addislidetchurch.org/alic-mission/"
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn--primary btn--lg"
+            >
               Learn about ALIC Mission <ArrowIcon />
             </a>
           </div>
           <div className="ms__figs">
-            {[["12+","Partner churches"],["3","Continents served"],["40+","Pastors trained"],["—","Gospel shared"]].map(([n, l]) => (
+            {[
+              ["12+", "Partner churches"],
+              ["3", "Continents served"],
+              ["40+", "Pastors trained"],
+              ["—", "Gospel shared"],
+            ].map(([n, l]) => (
               <div key={l} className="ms__fig">
                 <div className="ms__n">{n}</div>
                 <div className="ms__l">{l}</div>
@@ -213,11 +366,19 @@ function AboutCTA() {
   return (
     <section className="about-cta">
       <div className="container-wide about-cta__inner">
-        <div className="eyebrow" style={{ marginBottom: 20 }}>Next step</div>
-        <h2 className="about-cta__title">Meet us this <em>Sunday.</em></h2>
+        <div className="eyebrow" style={{ marginBottom: 20 }}>
+          Next step
+        </div>
+        <h2 className="about-cta__title">
+          Meet us this <em>Sunday.</em>
+        </h2>
         <div className="about-cta__actions">
-          <Link to="/locations" className="btn btn--cream btn--lg">Plan a visit <ArrowIcon /></Link>
-          <Link to="/connect"   className="btn btn--ghost-cream btn--lg">Get connected</Link>
+          <Link to="/locations" className="btn btn--cream btn--lg">
+            Plan a visit <ArrowIcon />
+          </Link>
+          <Link to="/connect" className="btn btn--ghost-cream btn--lg">
+            Get connected
+          </Link>
         </div>
       </div>
     </section>
