@@ -197,36 +197,16 @@ function VisionMission() {
 
 /* ── Beliefs ── */
 const BELIEFS = [
-  {
-    n: "I",
-    t: "Scripture",
-    b: "The Bible is the inspired, inerrant Word of God — our supreme authority for faith and life.",
-  },
-  {
-    n: "II",
-    t: "The Trinity",
-    b: "One God eternally existing in three persons: Father, Son, and Holy Spirit.",
-  },
-  {
-    n: "III",
-    t: "Jesus Christ",
-    b: "Fully God and fully human. Crucified, risen, reigning, and returning.",
-  },
-  {
-    n: "IV",
-    t: "Salvation",
-    b: "By grace alone, through faith alone, in Christ alone — a gift that transforms.",
-  },
-  {
-    n: "V",
-    t: "The Holy Spirit",
-    b: "Present to comfort, convict, empower, and form us into the image of Christ.",
-  },
-  {
-    n: "VI",
-    t: "The Church",
-    b: "A family gathered across languages and nations to worship God and make disciples.",
-  },
+  { n: "I",    t: "Triune God",          b: "One God eternally existing in three persons: Father, Son, and Holy Spirit." },
+  { n: "II",   t: "Salvation",           b: "By grace alone, through faith alone, in Christ alone — a gift that transforms." },
+  { n: "III",  t: "Water Baptism",       b: "Believers' baptism by immersion — an outward sign of an inward change." },
+  { n: "IV",   t: "Holy Communion",      b: "The Lord's Supper, observed in remembrance of Christ's sacrifice until He comes again." },
+  { n: "V",    t: "Sanctification",      b: "The ongoing work of the Holy Spirit, setting believers apart for God's purpose." },
+  { n: "VI",   t: "The Second Coming",   b: "Jesus Christ will return visibly and bodily to judge the living and the dead." },
+  { n: "VII",  t: "God's Judgment",      b: "All will stand before God — the righteous to eternal life, the unrighteous to eternal separation." },
+  { n: "VIII", t: "Church",              b: "A family gathered across languages and nations to worship God and make disciples." },
+  { n: "IX",   t: "Bible",              b: "The Bible is the inspired, inerrant Word of God — our supreme authority for faith and life." },
+  { n: "X",    t: "Christian Marriage",  b: "A covenant between one man and one woman, reflecting Christ's love for the Church." },
 ];
 
 function Beliefs() {
@@ -236,9 +216,7 @@ function Beliefs() {
         <div className="beliefs__head">
           <div className="eyebrow">What we believe</div>
           <h2 className="beliefs__title">
-            Simple. Historic.
-            <br />
-            <em>Unchanging.</em>
+            <em>Doctrine.</em>
           </h2>
         </div>
         <div className="beliefs__grid">
