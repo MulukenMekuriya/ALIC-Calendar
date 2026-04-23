@@ -108,14 +108,8 @@
   color: var(--paper-muted);
   display: inline-flex; align-items: center; gap: 10px;
 }
-.landing-root .eyebrow::before {
-  content: ''; width: 24px; height: 2px;
-  background: var(--accent-gradient); border-radius: 1px;
-}
-.landing-root .eyebrow--plain::before { display: none; }
 .landing-root .eyebrow--gold { color: var(--gold); }
 .landing-root .eyebrow--dark { color: var(--text-on-paper-muted); }
-.landing-root .eyebrow--dark::before { background: var(--accent-gradient); }
 
 /* ── Gradient accent text — used on dark-bg section titles ── */
 .landing-root .pastors__title em,
@@ -593,7 +587,6 @@
   color: var(--text-on-paper);
 }
 .landing-root .story .eyebrow { color: var(--text-on-paper-muted); }
-.landing-root .story .eyebrow::before { background: var(--gold); }
 .landing-root .story__head { margin-bottom: 80px; }
 .landing-root .story__title {
   font-family: var(--font-serif); font-size: clamp(44px, 6vw, 96px);
@@ -725,7 +718,6 @@
    ====================================================== */
 .landing-root .watch { padding: 160px 0; background: var(--paper); color: var(--text-on-paper); }
 .landing-root .watch .eyebrow { color: var(--text-on-paper-muted); }
-.landing-root .watch .eyebrow::before { background: var(--gold); }
 .landing-root .watch__head { margin-bottom: 70px; }
 .landing-root .watch__title { font-family: var(--font-serif); font-size: clamp(40px, 5vw, 76px); font-weight: 400; letter-spacing: -0.02em; line-height: 0.98; margin: 22px 0 0; max-width: 1100px; color: var(--text-on-paper); }
 .landing-root .watch__title em { font-style: italic; color: var(--gold); }
