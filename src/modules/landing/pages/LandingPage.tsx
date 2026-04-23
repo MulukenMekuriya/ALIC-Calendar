@@ -61,7 +61,7 @@ function Hero() {
         </h1>
 
         <p className="hero__lede reveal" data-delay="3">
-          Two campuses. One family. Worshipping in Amharic since 2008.
+          Two campuses. One family. Worshipping since 2008.
         </p>
 
         <div className="hero__ctas reveal" data-delay="4">
@@ -177,16 +177,49 @@ function LiveTicker() {
 }
 
 /* ── Sunday Gatherings ── */
+const sundayModules = import.meta.glob<string>(
+  "/public/sunday-worship/*.{jpg,jpeg,png,webp}",
+  { eager: true, import: "default", query: "?url" },
+);
+const SUNDAY_PHOTOS = Object.values(sundayModules);
+
 function SundayGatherings() {
+  const [photoIdx, setPhotoIdx] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(
+      () => setPhotoIdx((i) => (i + 1) % SUNDAY_PHOTOS.length),
+      4000,
+    );
+    return () => clearInterval(t);
+  }, []);
+
   return (
     <section className="sg">
       <div className="container sg__inner">
         <div className="sg__photos reveal">
-          <PhotoSlot
-            caption="Worship · Sunday morning"
-            tag="Photo"
-            className="sg__photo sg__photo--1"
-          />
+          <div
+            className="photo-slot sg__photo sg__photo--1"
+            data-caption="Worship · Sunday morning"
+          >
+            {SUNDAY_PHOTOS.map((src, i) => (
+              <img
+                key={src}
+                src={src}
+                alt="Sunday worship"
+                className="photo-slot__img sg__slideshow-img"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  opacity: i === photoIdx ? 1 : 0,
+                  transition: "opacity 1s ease",
+                }}
+              />
+            ))}
+          </div>
           <PhotoSlot
             caption="Kids ministry"
             tag="Photo"
