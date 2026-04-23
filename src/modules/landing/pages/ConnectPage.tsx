@@ -1,13 +1,8 @@
 import { useState } from "react";
 import LandingNav from "../components/LandingNav";
 import LandingFooter from "../components/LandingFooter";
+import ArrowIcon from "../components/ArrowIcon";
 import "../landing.css";
-
-const ArrowIcon = () => (
-  <svg className="arrow" width="14" height="14" viewBox="0 0 14 14" fill="none">
-    <path d="M1 7h12M8 2l5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
 
 const PATHWAY_STEPS = [
   { n: "01", day: "DAY 01",    t: "Come once",        icon: "☾", b: "Visit a Sunday service. Nothing required. Come in jeans, bring your kids, sit in the back — we'd love to meet you." },
@@ -189,20 +184,19 @@ function ConnectForm() {
 
           {/* Form card */}
           <form onSubmit={handleSubmit} className="cf-form-card">
-            <span className="cf-label-text">I'd like to…</span>
-            <div style={{ marginBottom: 28 }}>
+            <fieldset style={{ border: 0, padding: 0, margin: 0, marginBottom: 28 }}>
+              <legend className="cf-label-text">I'd like to…</legend>
               {CONNECT_ROLES.map((r) => (
                 <label
                   key={r.v}
                   className={`cf-radio${role === r.v ? " cf-radio--active" : ""}`}
-                  onClick={() => setRole(r.v)}
                 >
-                  <input type="radio" name="role" checked={role === r.v} onChange={() => setRole(r.v)} style={{ display: "none" }} />
-                  <span className="cf-radio__dot" />
+                  <input type="radio" name="role" value={r.v} checked={role === r.v} onChange={() => setRole(r.v)} className="sr-only" />
+                  <span className="cf-radio__dot" aria-hidden="true" />
                   {r.l}
                 </label>
               ))}
-            </div>
+            </fieldset>
 
             <div className="cf-field-row">
               <label className="cf-field">
@@ -248,10 +242,12 @@ function ConnectForm() {
 const ConnectPage = () => (
   <div className="landing-root">
     <LandingNav />
-    <ConnectHero />
-    <Pathway />
-    <Ministries />
-    <ConnectForm />
+    <main id="main-content">
+      <ConnectHero />
+      <Pathway />
+      <Ministries />
+      <ConnectForm />
+    </main>
     <LandingFooter />
   </div>
 );

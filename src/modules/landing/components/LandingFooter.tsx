@@ -42,7 +42,7 @@ export default function LandingFooter() {
           </div>
 
           <div>
-            <h5>Visit</h5>
+            <h5>{t('footer.visit')}</h5>
             <ul>
               <li><Link to="/locations">Silver Spring, MD</Link></li>
               <li><Link to="/locations">Alexandria, VA</Link></li>
@@ -52,7 +52,7 @@ export default function LandingFooter() {
           </div>
 
           <div>
-            <h5>Explore</h5>
+            <h5>{t('footer.explore')}</h5>
             <ul>
               <li><Link to="/about">About</Link></li>
               <li><Link to="/sermons">Sermons</Link></li>
@@ -63,7 +63,7 @@ export default function LandingFooter() {
           </div>
 
           <div>
-            <h5>Contact</h5>
+            <h5>{t('footer.contact')}</h5>
             <ul>
               <li><Link to="/connect">Contact Form</Link></li>
               <li><Link to="/connect">Prayer Request</Link></li>

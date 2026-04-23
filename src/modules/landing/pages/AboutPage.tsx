@@ -2,19 +2,8 @@ import { Link } from "react-router-dom";
 import LandingNav from "../components/LandingNav";
 import LandingFooter from "../components/LandingFooter";
 import PhotoSlot from "../components/PhotoSlot";
+import ArrowIcon from "../components/ArrowIcon";
 import "../landing.css";
-
-const ArrowIcon = () => (
-  <svg className="arrow" width="14" height="14" viewBox="0 0 14 14" fill="none">
-    <path
-      d="M1 7h12M8 2l5 5-5 5"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
 
 /* ── Hero ── */
 function AboutHero() {
@@ -195,6 +184,119 @@ function VisionMission() {
   );
 }
 
+/* ── Statement of Faith ── */
+const FAITH_STATEMENTS = [
+  {
+    ref: "1.1",
+    title: "God",
+    body: [
+      "There is one God (Deut. 6:4), Creator of all things (Rev. 4:11), who is infinitely perfect (Matt. 5:48), existing eternally in three persons: Father, Son, and Holy Spirit (Matt. 28:19).",
+    ],
+  },
+  {
+    ref: "1.2",
+    title: "Jesus Christ",
+    body: [
+      "Jesus Christ is the true God and true man (Phil. 2:6-11). He was sent by the Father (John 20:21), conceived by the Holy Spirit, and born of the virgin, Mary (Luke 1:34-38). He died on the cross, the Just for the unjust (1 Pet. 3:18), as a substitutionary sacrifice (Heb. 2:9), and all who believe in Him are justified on the ground of His shed blood (Rom. 5:9). He rose from the dead according to the Scriptures (1 Cor. 15:3-4). He is now at the right hand of the Majesty on high as our great High Priest (Heb. 8:1). He will come again to establish His Kingdom of righteousness and peace (Isa. 9:6-7).",
+    ],
+  },
+  {
+    ref: "1.3",
+    title: "The Holy Spirit",
+    body: [
+      "The Holy Spirit is a divine person (John 14:16-18), sent to indwell, guide, teach, gift, empower, and bear His fruit in every believer (John 16:13; 1 Cor. 12:4, 11; Acts 1:8; Gal. 5:22-23). He convicts the world of sin, of righteousness, and of judgment (John 16:7-11).",
+    ],
+  },
+  {
+    ref: "1.4",
+    title: "The Bible",
+    body: [
+      "The Old and New Testaments, inerrant as originally given, were verbally inspired by God and are a complete revelation of His will for our salvation. They constitute the divine and only rule of Christian faith and practice (2 Pet. 1:20-21; 2 Tim. 3:15-17).",
+    ],
+  },
+  {
+    ref: "1.5",
+    title: "Humanity and Sin",
+    body: [
+      "Man and woman, created in the image and likeness of God (Gen. 1:27), fell through disobedience, incurring both physical and spiritual death (Rom. 6:23). Therefore, everyone is born with a sinful nature (Rom. 5:12), is separated from the life of God (Eph. 4:18), and can be saved only through the atoning work of the Lord Jesus Christ (Rom. 3:25).",
+    ],
+  },
+  {
+    ref: "1.6",
+    title: "Salvation",
+    body: [
+      "Salvation has been provided through Jesus Christ for all people (1 John 2:2). Those who repent and believe in Him are justified by grace through faith (Rom. 3:21-24), born again of the Holy Spirit (Titus 3:4-7), delivered from the dominion of darkness, transferred into the Kingdom of God\u2019s Son (Col. 1:13), granted the gift of eternal life, and adopted as the children of God (Rom. 8:14-16; John 1:12).",
+    ],
+  },
+  {
+    ref: "1.7",
+    title: "Sanctification",
+    body: [
+      "It is the will of God that each believer should be filled with the Holy Spirit and speaking with tongues and prophecies (Acts 10:45-46, 19:6), be sanctified wholly (1 Thess. 5:23), being separated from sin and the world and fully dedicated to the will of God, thereby receiving power for holy living and effective service (Acts 1:8). This is both a crisis and a progressive experience wrought in the life of the believer subsequent to conversion (Rom. 6:1\u201314).",
+    ],
+  },
+  {
+    ref: "1.8",
+    title: "Healing",
+    body: [
+      "Provision is made in the redemptive work of the Lord Jesus Christ for the healing of the whole person (Isa. 53:4-5; Matt. 8:16-17). Prayer for the sick and anointing with oil are taught in the Scriptures (James 5:13-16) as privileges for the Church in this present age (Acts 4:30).",
+    ],
+  },
+  {
+    ref: "1.9",
+    title: "The Church",
+    body: [
+      "The Church consists of all those who believe in the Lord Jesus Christ, are redeemed through His blood, and are born again by the Holy Spirit. Christ is the Head of His Body (Eph. 1:22-23, Col. 1:18), the Church, which has been commissioned by Him to go into all the world making disciples of all peoples (Matt. 24:14, 28:19-20).",
+      "The local church is a body of believers in Christ (Eph. 5:30) who are called to love (1 Thess. 3:12) and joined together for the worship of God, edification through the Word of God, prayer, fellowship, proclamation of the gospel through word and deed (Luke 4:18-19), and observance of the ordinances of Baptism and the Lord\u2019s Supper (Acts 2:41-47).",
+    ],
+  },
+  {
+    ref: "1.10",
+    title: "The Resurrection",
+    body: [
+      "There will be a bodily resurrection of all people (Acts 24:15). Our Lord Jesus Christ will judge with perfect justice (Acts 17:31, John 5:28-30) as the unrepentant and unbelieving are raised to the conscious anguish of eternal separation from God (Rev. 20:15, 21:8, 2 Thess. 1:9), and repentant believers are raised (John 6:40) to the unending joy of eternal life with God (Ps. 16:11, Rev. 21:1-4).",
+    ],
+  },
+  {
+    ref: "1.11",
+    title: "The Return of Jesus",
+    body: [
+      "The Second Coming of the Lord Jesus Christ is imminent (Heb. 10:37) and will be personal, visible, and premillennial (Luke 21:27). This is the believer\u2019s blessed hope and is a vital truth which is an incentive to holy living and faithful service (Titus 2:11\u201314).",
+    ],
+  },
+];
+
+function StatementOfFaith() {
+  return (
+    <section className="sof">
+      <div className="container-wide">
+        <div className="sof__head">
+          <div className="eyebrow">{"\u12A5\u121D\u1290\u1273\u127D\u1295"}</div>
+          <h2 className="sof__title">
+            Statement of <em>Faith.</em>
+          </h2>
+          <p className="sof__lede">
+            We base our beliefs on the infallible Word of God, the Bible.
+          </p>
+        </div>
+        <div className="sof__grid">
+          {FAITH_STATEMENTS.map((s) => (
+            <article key={s.ref} className="sof__item">
+              <div className="sof__ref">{s.ref}</div>
+              <h3 className="sof__item-title">{s.title}</h3>
+              {s.body.map((p, i) => (
+                <p key={i} className="sof__item-body">
+                  {p}
+                </p>
+              ))}
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ── Beliefs ── */
 const BELIEFS = [
   { n: "I",    t: "Triune God",          b: "One God eternally existing in three persons: Father, Son, and Holy Spirit." },
@@ -238,19 +340,16 @@ const TEAM = [
   {
     name: "Pastor Mekashaw Shimelash",
     role: "Lead Pastor",
-    photo: "/pastor_mekashaw.jpg",
     b: "ALIC's lead shepherd and founding voice. Oversees both campuses, preaches weekly, and stewards the vision God placed in a DC apartment in 2008.",
   },
   {
     name: "Pastor Elias Getaneh",
     role: "Lead Pastor · Alexandria, VA",
-    photo: "/pastor_elias.jpg",
     b: "Plants and shepherds the Virginia congregation — seven home cells and a church that has grown from two families in Arlington to a campus of its own.",
   },
   {
     name: "Pastor Biniam Aboye",
     role: "Pastor · Silver Spring, MD",
-    photo: "/pastor_biniam.jpg",
     b: "ALIC Pastoral Office Associate. Walks closely with the Silver Spring congregation, supporting teaching, care, and day-to-day ministry.",
   },
 ];
@@ -278,7 +377,6 @@ function Leadership() {
             <article key={p.name}>
               <PhotoSlot
                 label={p.name}
-                src={p.photo}
                 className="leader__photo"
               />
               <div className="leader__body">
@@ -355,10 +453,10 @@ function AboutCTA() {
           Meet us this <em>Sunday.</em>
         </h2>
         <div className="about-cta__actions">
-          <Link to="/locations" className="btn btn--cream btn--lg">
+          <Link to="/locations" className="btn btn--primary btn--lg">
             Plan a visit <ArrowIcon />
           </Link>
-          <Link to="/connect" className="btn btn--ghost-cream btn--lg">
+          <Link to="/connect" className="btn btn--ghost btn--lg">
             Get connected
           </Link>
         </div>
@@ -371,13 +469,16 @@ function AboutCTA() {
 const AboutPage = () => (
   <div className="landing-root">
     <LandingNav />
-    <AboutHero />
-    <Timeline />
-    <VisionMission />
-    <Beliefs />
-    <Leadership />
-    <MissionStrip />
-    <AboutCTA />
+    <main id="main-content">
+      <AboutHero />
+      <Timeline />
+      <VisionMission />
+      <Beliefs />
+      <StatementOfFaith />
+      <Leadership />
+      <MissionStrip />
+      <AboutCTA />
+    </main>
     <LandingFooter />
   </div>
 );

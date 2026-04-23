@@ -1,13 +1,8 @@
 import { useState } from "react";
 import LandingNav from "../components/LandingNav";
 import LandingFooter from "../components/LandingFooter";
+import ArrowIcon from "../components/ArrowIcon";
 import "../landing.css";
-
-const ArrowIcon = () => (
-  <svg className="arrow" width="14" height="14" viewBox="0 0 14 14" fill="none">
-    <path d="M1 7h12M8 2l5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
 
 const FUNDS: Record<string, { label: string; sub: string; color: string }> = {
   general:     { label: "General Fund",         sub: "Where needed most",          color: "var(--gold)" },
@@ -284,10 +279,12 @@ function Impact() {
 const GivePage = () => (
   <div className="landing-root">
     <LandingNav />
-    <GiveHero />
-    <OfferingPlate />
-    <OtherWays />
-    <Impact />
+    <main id="main-content">
+      <GiveHero />
+      <OfferingPlate />
+      <OtherWays />
+      <Impact />
+    </main>
     <LandingFooter />
   </div>
 );

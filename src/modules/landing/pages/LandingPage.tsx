@@ -3,27 +3,18 @@ import { Link } from "react-router-dom";
 import LandingNav from "../components/LandingNav";
 import LandingFooter from "../components/LandingFooter";
 import PhotoSlot from "../components/PhotoSlot";
+import ArrowIcon from "../components/ArrowIcon";
 import { useReveal } from "../components/useReveal";
+import { useSlideshow } from "../components/useSlideshow";
+import { useI18n } from "../components/useI18n";
 import "../landing.css";
-
-const ArrowSVG = () => (
-  <svg className="arrow" viewBox="0 0 14 14" fill="none" width="14" height="14">
-    <path
-      d="M1 7h12M8 2l5 5-5 5"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
 
 /* ── Hero ── */
 function Hero() {
+  const { t } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    // Ensure video plays even if autoplay is initially blocked
     const v = videoRef.current;
     if (v) {
       v.play().catch(() => {});
@@ -37,6 +28,7 @@ function Hero() {
           ref={videoRef}
           className="hero__video"
           src="/addis lidet video.mp4"
+          poster="/md-campus.jpg"
           autoPlay
           loop
           muted
@@ -67,22 +59,22 @@ function Hero() {
 
         <h1 className="hero__title">
           <span className="mask" data-delay="1">
-            <span>A new birth.</span>
+            <span>{t("hero.title.1")}</span>
           </span>
           <span className="mask hero__title-italic" data-delay="2">
             <span>
-              <em>A new life.</em>
+              <em>{t("hero.title.2")}</em>
             </span>
           </span>
         </h1>
 
         <p className="hero__lede reveal" data-delay="3">
-          Two campuses. One family. Worshipping since 2008.
+          {t("hero.lede")}
         </p>
 
         <div className="hero__ctas reveal" data-delay="4">
           <Link to="/connect" className="btn btn--gold btn--lg">
-            Plan your visit <ArrowSVG />
+            {t("hero.cta")} <ArrowIcon />
           </Link>
           <Link to="/sermons" className="hero__watch">
             <span className="hero__watch-icon">
@@ -90,7 +82,7 @@ function Hero() {
                 <polygon points="8,5 19,12 8,19" fill="currentColor" />
               </svg>
             </span>
-            Watch the latest
+            {t("hero.watch")}
           </Link>
         </div>
       </div>
@@ -125,33 +117,10 @@ const yaModules = import.meta.glob<string>(
 const YA_PHOTOS = Object.values(yaModules);
 
 function SundayGatherings() {
-  const [photoIdx, setPhotoIdx] = useState(0);
-  const [kidsIdx, setKidsIdx] = useState(0);
-  const [yaIdx, setYaIdx] = useState(0);
-
-  useEffect(() => {
-    const t = setInterval(
-      () => setPhotoIdx((i) => (i + 1) % SUNDAY_PHOTOS.length),
-      4000,
-    );
-    return () => clearInterval(t);
-  }, []);
-
-  useEffect(() => {
-    const t = setInterval(
-      () => setKidsIdx((i) => (i + 1) % KIDS_PHOTOS.length),
-      4000,
-    );
-    return () => clearInterval(t);
-  }, []);
-
-  useEffect(() => {
-    const t = setInterval(
-      () => setYaIdx((i) => (i + 1) % YA_PHOTOS.length),
-      4000,
-    );
-    return () => clearInterval(t);
-  }, []);
+  const { t } = useI18n();
+  const photoIdx = useSlideshow(SUNDAY_PHOTOS.length);
+  const kidsIdx = useSlideshow(KIDS_PHOTOS.length);
+  const yaIdx = useSlideshow(YA_PHOTOS.length);
 
   return (
     <section className="sg">
@@ -166,7 +135,7 @@ function SundayGatherings() {
                 key={src}
                 src={src}
                 alt="Sunday worship"
-                className="photo-slot__img sg__slideshow-img"
+                className="photo-slot__img sg__slideshow-img" loading="lazy"
                 style={{
                   position: "absolute",
                   inset: 0,
@@ -188,7 +157,7 @@ function SundayGatherings() {
                 key={src}
                 src={src}
                 alt="Kids ministry"
-                className="photo-slot__img sg__slideshow-img"
+                className="photo-slot__img sg__slideshow-img" loading="lazy"
                 style={{
                   position: "absolute",
                   inset: 0,
@@ -210,7 +179,7 @@ function SundayGatherings() {
                 key={src}
                 src={src}
                 alt="Young Adults Ministry"
-                className="photo-slot__img sg__slideshow-img"
+                className="photo-slot__img sg__slideshow-img" loading="lazy"
                 style={{
                   position: "absolute",
                   inset: 0,
@@ -226,17 +195,14 @@ function SundayGatherings() {
         </div>
 
         <div className="sg__text">
-          <span className="eyebrow eyebrow--dark">On Sunday · እሁድ</span>
+          <span className="eyebrow eyebrow--dark">{t("sg.eyebrow")}</span>
           <h2 className="mask" data-delay="1">
             <span>
-              Sunday <em>gatherings.</em>
+              {t("sg.title")}
             </span>
           </h2>
           <p className="sg__body reveal" data-delay="2">
-            Sunday is our family table. We sing in the language our parents sang
-            in, we open Scripture in the language our kids think in, and we make
-            room for both generations to hear the Spirit together. Everyone is
-            welcome — visitor, skeptic, longtime believer, brand-new seeker.
+            {t("sg.body")}
           </p>
 
           <div className="sg__times reveal" data-delay="3">
@@ -272,7 +238,7 @@ function SundayGatherings() {
 
           <div className="sg__cta reveal" data-delay="4">
             <Link to="/connect" className="btn-dark-pill">
-              Plan your visit <ArrowSVG />
+              Plan your visit <ArrowIcon />
             </Link>
           </div>
         </div>
@@ -325,12 +291,13 @@ const LOCATIONS = [
 ];
 
 function Locations() {
+  const { t } = useI18n();
   return (
     <section className="locs" id="locations">
       <div className="container">
         <div className="locs__head">
           <div className="reveal">
-            <span className="eyebrow">Two homes · ሁለት ቤቶች</span>
+            <span className="eyebrow">{t("locs.eyebrow")}</span>
           </div>
           <h2 className="locs__title mask" data-delay="1">
             <span>
@@ -382,7 +349,7 @@ function Locations() {
               </div>
               <div className="loc__cta">
                 <span>Get directions</span>
-                <ArrowSVG />
+                <ArrowIcon />
               </div>
             </Link>
           ))}
@@ -442,6 +409,7 @@ const STORY = [
 ];
 
 function StoryStrip() {
+  const { t } = useI18n();
   const [active, setActive] = useState(0);
   const ref = useRef<HTMLElement>(null);
 
@@ -472,7 +440,7 @@ function StoryStrip() {
     <section className="story" id="story" ref={ref}>
       <div className="container-tight">
         <div className="story__head reveal">
-          <span className="eyebrow">Our story · ታሪካችን</span>
+          <span className="eyebrow">{t("story.eyebrow")}</span>
           <h2 className="story__title">
             From a <em>small group</em>
             <br /> to a family of thousands.
@@ -534,61 +502,6 @@ function StoryStrip() {
   );
 }
 
-/* ── Pastors ── */
-function Pastors() {
-  return (
-    <section className="pastors">
-      <div className="container">
-        <div className="pastors__head reveal">
-          <span className="eyebrow">Our pastors · አገልጋዮች</span>
-          <h2 className="pastors__title mask" data-delay="1">
-            <span>
-              Shepherds for <em>both</em> homes.
-            </span>
-          </h2>
-        </div>
-
-        <div className="pastors__grid">
-          <div className="pastor reveal" data-delay="1">
-            <PhotoSlot
-              caption="Pastor Mekashaw · MD"
-              src="/pastor_mekashaw.jpg"
-              className="pastor__photo"
-            />
-            <div className="pastor__meta">
-              <div className="pastor__num">01 / MD</div>
-              <h3 className="pastor__name">Pastor Mekashaw</h3>
-              <div className="pastor__role">Lead Pastor · Maryland Campus</div>
-              <p className="pastor__body">
-                Pastor Mekashaw has led the Silver Spring family for over a
-                decade, preaching in both Amharic and English and shepherding
-                the TrueVine English gathering.
-              </p>
-            </div>
-          </div>
-
-          <div className="pastor reveal" data-delay="2">
-            <PhotoSlot
-              caption="Pastor Elias Getaneh · VA"
-              src="/pastor_elias.jpg"
-              className="pastor__photo"
-            />
-            <div className="pastor__meta">
-              <div className="pastor__num">02 / VA</div>
-              <h3 className="pastor__name">Pastor Elias Getaneh</h3>
-              <div className="pastor__role">Lead Pastor · Virginia Campus</div>
-              <p className="pastor__body">
-                Pastor Elias leads our Alexandria congregation as we settle into
-                our new home on Eisenhower Ave — a larger space for a
-                congregation that keeps arriving and keeps staying.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
 
 /* ── Watch / Sermons ── */
 const WATCH_CHANNELS = [
@@ -609,12 +522,13 @@ const WATCH_CHANNELS = [
 ];
 
 function Watch() {
+  const { t } = useI18n();
   return (
     <section className="watch" id="watch">
       <div className="container">
         <div className="watch__head">
           <div className="reveal">
-            <span className="eyebrow eyebrow--gold">Watch</span>
+            <span className="eyebrow eyebrow--gold">{t("watch.eyebrow")}</span>
           </div>
           <h2 className="watch__title mask" data-delay="1">
             <span>
@@ -641,9 +555,10 @@ function Watch() {
               <div className="watch__embed">
                 <iframe
                   src={`https://www.youtube.com/embed?listType=playlist&list=${ch.channelId.replace("UC", "UU")}&index=1`}
-                  title={`Addis Lidet — ${ch.label}`}
+                  title={`Addis Lidet latest service — ${ch.label}`}
                   allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
+                  loading="lazy"
                 />
               </div>
               <div className="watch__channel-links">
@@ -678,7 +593,7 @@ function Watch() {
 
         <div className="watch__foot reveal" data-delay="3">
           <Link to="/sermons" className="btn btn--ghost btn--lg">
-            Full sermon library <ArrowSVG />
+            {t("watch.fullLibrary")} <ArrowIcon />
           </Link>
         </div>
       </div>
@@ -688,10 +603,18 @@ function Watch() {
 
 /* ── Connect / Plan Visit ── */
 function Connect() {
+  const { t } = useI18n();
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     alert("Thank you — we will reach out shortly.");
   };
+
+  const whenOptions = [
+    t("connect.when.thisSun"),
+    t("connect.when.nextSun"),
+    t("connect.when.month"),
+    t("connect.when.exploring"),
+  ];
 
   return (
     <section className="connect" id="plan-visit">
@@ -707,23 +630,21 @@ function Connect() {
         <div className="connect__grid">
           <div className="connect__lead">
             <div className="reveal">
-              <span className="eyebrow eyebrow--gold">Plan your visit</span>
+              <span className="eyebrow eyebrow--gold">{t("connect.eyebrow")}</span>
             </div>
             <h2 className="connect__title mask" data-delay="1">
-              <span>Come as you are.</span>
+              <span>{t("connect.title.1")}</span>
             </h2>
             <h2
               className="connect__title connect__title--2 mask"
               data-delay="2"
             >
               <span>
-                <em>Stay as family.</em>
+                <em>{t("connect.title.2")}</em>
               </span>
             </h2>
             <p className="connect__lede reveal" data-delay="3">
-              Whether it's your first Sunday or your fiftieth, there's a seat, a
-              cup of coffee, and a hand to shake. Let us know you're coming and
-              we'll make sure someone finds you at the door.
+              {t("connect.lede")}
             </p>
           </div>
 
@@ -734,23 +655,23 @@ function Connect() {
           >
             <div className="connect__form-head">
               <span className="eyebrow eyebrow--plain eyebrow--gold">
-                Let us know
+                {t("connect.formHead")}
               </span>
               <span className="connect__form-num">01 / 04</span>
             </div>
 
             <div className="connect__field">
-              <label>Your name</label>
+              <label>{t("connect.name")}</label>
               <input type="text" placeholder="Abebe Bikila" />
             </div>
 
             <div className="connect__field-row">
               <div className="connect__field">
-                <label>Email</label>
+                <label>{t("connect.email")}</label>
                 <input type="email" placeholder="you@example.com" />
               </div>
               <div className="connect__field">
-                <label>Campus</label>
+                <label>{t("connect.campus")}</label>
                 <select defaultValue="">
                   <option value="" disabled>
                     Choose one
@@ -763,14 +684,9 @@ function Connect() {
             </div>
 
             <div className="connect__field">
-              <label>When are you thinking of visiting?</label>
+              <label>{t("connect.when")}</label>
               <div className="connect__chips">
-                {[
-                  "This Sunday",
-                  "Next Sunday",
-                  "Within a month",
-                  "Just exploring",
-                ].map((c) => (
+                {whenOptions.map((c) => (
                   <label key={c} className="connect__chip">
                     <input type="radio" name="when" />
                     <span>{c}</span>
@@ -783,12 +699,12 @@ function Connect() {
               type="submit"
               className="btn btn--gold btn--lg connect__submit"
             >
-              Save my seat <ArrowSVG />
+              {t("cta.saveSeat")} <ArrowIcon />
             </button>
 
             <p className="connect__fine">
-              Prefer to just show up? That's welcome too.{" "}
-              <Link to="/locations"> See service times →</Link>
+              {t("connect.fine")}{" "}
+              <Link to="/locations"> {t("connect.seeTimes")} →</Link>
             </p>
           </form>
         </div>
@@ -812,13 +728,14 @@ export default function LandingPage() {
   return (
     <div className="landing-root">
       <LandingNav />
+      <main id="main-content">
       <Hero />
       <SundayGatherings />
       <Locations />
       <StoryStrip />
-      <Pastors />
       <Watch />
       <Connect />
+      </main>
       <LandingFooter />
     </div>
   );

@@ -2,6 +2,7 @@ import { Toaster } from "@/shared/components/ui/toaster";
 import { Toaster as Sonner } from "@/shared/components/ui/sonner";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
 import { PageLoader } from "@/shared/components/ui/loading";
+import { Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import {
@@ -114,6 +115,7 @@ const App = () => (
         <AuthProvider>
           <OrganizationProvider>
             <SearchProvider>
+              <Suspense fallback={<PageLoader message="Loading…" />}>
               <Routes>
                 {/* Public routes */}
                 <Route path="/" element={<LandingPage />} />
@@ -211,6 +213,7 @@ const App = () => (
                 {/* 404 */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              </Suspense>
             </SearchProvider>
           </OrganizationProvider>
         </AuthProvider>

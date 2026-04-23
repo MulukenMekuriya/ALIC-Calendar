@@ -3,19 +3,8 @@ import { Link } from "react-router-dom";
 import LandingNav from "../components/LandingNav";
 import LandingFooter from "../components/LandingFooter";
 import PhotoSlot from "../components/PhotoSlot";
+import ArrowIcon from "../components/ArrowIcon";
 import "../landing.css";
-
-const ArrowIcon = () => (
-  <svg className="arrow" width="14" height="14" viewBox="0 0 14 14" fill="none">
-    <path
-      d="M1 7h12M8 2l5 5-5 5"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
 
 const CAMPUSES = [
   {
@@ -200,9 +189,10 @@ function CampusStream({ c }: { c: (typeof CAMPUSES)[number] }) {
             <iframe
               key={`${channel}-${live ? "live" : "latest"}`}
               src={live ? liveSrc : latestSrc}
-              title={`${c.name}${channel === "ya" ? " Young Adults" : ""} — ${live ? "live stream" : "latest service"}`}
+              title={`Addis Lidet ${c.name}${channel === "ya" ? " Young Adults" : ""} — ${live ? "live stream" : "latest service"}`}
               allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
+              loading="lazy"
             />
           </div>
         </div>
@@ -406,11 +396,13 @@ function LocCTA() {
 const LocationsPage = () => (
   <div className="landing-root">
     <LandingNav />
-    <LocHero />
-    {CAMPUSES.map((c) => (
-      <Campus key={c.id} c={c} />
-    ))}
-    <LocCTA />
+    <main id="main-content">
+      <LocHero />
+      {CAMPUSES.map((c) => (
+        <Campus key={c.id} c={c} />
+      ))}
+      <LocCTA />
+    </main>
     <LandingFooter />
   </div>
 );

@@ -21,7 +21,7 @@ export default function PhotoSlot({ caption, label, src, tag, className = '', pa
     >
       {tag && <div className="photo-slot__tag">{tag}</div>}
       {src
-        ? <img src={src} alt={c} className="photo-slot__img" />
+        ? <img src={src} alt={c || 'Photo'} className="photo-slot__img" loading="lazy" />
         : <div className="photo-slot__frame" />
       }
       {children}

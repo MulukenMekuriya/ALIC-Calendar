@@ -2,19 +2,8 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import LandingNav from "../components/LandingNav";
 import LandingFooter from "../components/LandingFooter";
+import ArrowIcon from "../components/ArrowIcon";
 import "../landing.css";
-
-const ArrowIcon = () => (
-  <svg className="arrow" width="14" height="14" viewBox="0 0 14 14" fill="none">
-    <path
-      d="M1 7h12M8 2l5 5-5 5"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
 
 const CHANNELS = [
   {
@@ -128,9 +117,10 @@ function SermonsStage({ active }: { active: string }) {
               <iframe
                 key={current.key}
                 src={`https://www.youtube.com/embed?listType=playlist&list=${current.channelId.replace("UC", "UU")}&index=1`}
-                title={`Addis Lidet — ${current.label}`}
+                title={`Addis Lidet latest service — ${current.label}`}
                 allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
+                loading="lazy"
               />
             ) : (
               <div className="s-player__fallback">
@@ -314,9 +304,11 @@ const SermonsPage = () => {
   return (
     <div className="landing-root">
       <LandingNav />
-      <SermonsHero active={active} setActive={setActive} />
-      <SermonsStage active={active} />
-      <ScheduleTable />
+      <main id="main-content">
+        <SermonsHero active={active} setActive={setActive} />
+        <SermonsStage active={active} />
+        <ScheduleTable />
+      </main>
       <LandingFooter />
     </div>
   );

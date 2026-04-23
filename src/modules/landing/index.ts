@@ -1,6 +1,8 @@
-export { default as LandingPage }   from "./pages/LandingPage";
-export { default as AboutPage }     from "./pages/AboutPage";
-export { default as LocationsPage } from "./pages/LocationsPage";
-export { default as SermonsPage }   from "./pages/SermonsPage";
-export { default as ConnectPage }   from "./pages/ConnectPage";
-export { default as GivePage }      from "./pages/GivePage";
+import { lazy } from "react";
+
+export const LandingPage = lazy(() => import("./pages/LandingPage"));
+export const AboutPage = lazy(() => import("./pages/AboutPage"));
+export const LocationsPage = lazy(() => import("./pages/LocationsPage"));
+export const SermonsPage = lazy(() => import("./pages/SermonsPage"));
+export const ConnectPage = lazy(() => import("./pages/ConnectPage"));
+export const GivePage = lazy(() => import("./pages/GivePage"));
