@@ -6,7 +6,13 @@ import "../landing.css";
 
 const ArrowIcon = () => (
   <svg className="arrow" width="14" height="14" viewBox="0 0 14 14" fill="none">
-    <path d="M1 7h12M8 2l5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path
+      d="M1 7h12M8 2l5 5-5 5"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 
@@ -36,7 +42,7 @@ const CHANNELS = [
     label: "Young Adults",
     city: "DMV",
     handle: "@addislidetyoungadultminist6291",
-    channelId: null,
+    channelId: "UCnIYfT518KOxn4KZTZLxwng",
     url: "https://www.youtube.com/@addislidetyoungadultminist6291",
     languages: "English · Amharic",
     days: "Fri · Sat · Sun",
@@ -44,35 +50,52 @@ const CHANNELS = [
 ];
 
 const SCHEDULE = [
-  { day: "Sunday", items: [
-    ["Silver Spring", "Morning Prayer",  "10:00a"],
-    ["Silver Spring", "Sunday Worship",  "11:00a"],
-    ["Silver Spring", "Young Adult",     "6:30p"],
-    ["Alexandria",    "Morning Prayer",  "9:30a"],
-    ["Alexandria",    "Sunday Worship",  "10:30a"],
-  ]},
-  { day: "Tuesday",   items: [["Alexandria",    "Midweek Teaching",  "7:00p"]] },
-  { day: "Wednesday", items: [["Silver Spring", "Midweek Service",   "6:30p"]] },
-  { day: "Thursday",  items: [["Silver Spring", "Thursday Prayer",   "10:00a"]] },
-  { day: "Friday", items: [
-    ["Alexandria",    "Prayer Night",     "7:00p"],
-    ["Silver Spring", "Overnight Prayer", "8:30p"],
-  ]},
+  {
+    day: "Sunday",
+    items: [
+      ["Silver Spring", "Morning Prayer", "10:00a"],
+      ["Silver Spring", "Sunday Worship", "11:00a"],
+      ["Silver Spring", "Young Adult", "6:30p"],
+      ["Alexandria", "Morning Prayer", "9:30a"],
+      ["Alexandria", "Sunday Worship", "10:30a"],
+    ],
+  },
+  { day: "Tuesday", items: [["Alexandria", "Midweek Teaching", "7:00p"]] },
+  { day: "Wednesday", items: [["Silver Spring", "Midweek Service", "6:30p"]] },
+  { day: "Thursday", items: [["Silver Spring", "Thursday Prayer", "10:00a"]] },
+  {
+    day: "Friday",
+    items: [
+      ["Alexandria", "Prayer Night", "7:00p"],
+      ["Silver Spring", "Overnight Prayer", "8:30p"],
+    ],
+  },
   { day: "Saturday", items: [["Alexandria", "Young Adult", "7:00p"]] },
 ];
 
-function SermonsHero({ active, setActive }: { active: string; setActive: (k: string) => void }) {
+function SermonsHero({
+  active,
+  setActive,
+}: {
+  active: string;
+  setActive: (k: string) => void;
+}) {
   return (
     <section className="s-hero">
       <div className="container-wide">
-        <div className="eyebrow" style={{ marginBottom: 36 }}>Watch &amp; listen · Sermon archive</div>
+        <div className="eyebrow" style={{ marginBottom: 36 }}>
+          Watch &amp; listen · Sermon archive
+        </div>
         <h1 className="s-hero__title">
           <span>Preaching from</span>
-          <span><em>Silver Spring</em>, <em>Alexandria</em>,</span>
+          <span>
+            <em>Silver Spring</em>, <em>Alexandria</em>,
+          </span>
           <span>and our Young Adults.</span>
         </h1>
         <p className="s-hero__lede">
-          Every Sunday service, prayer night, and worship evening — streamed live and kept on YouTube for the whole family, wherever you are.
+          Every Sunday service, prayer night, and worship evening — streamed
+          live and kept on YouTube for the whole family, wherever you are.
         </p>
         <div className="s-channels">
           {CHANNELS.map((c) => (
@@ -108,22 +131,57 @@ function SermonsStage({ active }: { active: string }) {
             {current.channelId ? (
               <iframe
                 key={current.key}
-                src={`https://www.youtube.com/embed?listType=playlist&list=${current.channelId.replace('UC', 'UU')}&index=1`}
+                src={`https://www.youtube.com/embed?listType=playlist&list=${current.channelId.replace("UC", "UU")}&index=1`}
                 title={`Addis Lidet — ${current.label}`}
                 allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
             ) : (
               <div className="s-player__fallback">
-                <div style={{ position: "relative", zIndex: 3, padding: 48, textAlign: "center", maxWidth: 440 }}>
-                  <div className="eyebrow" style={{ color: "var(--cream-muted)", marginBottom: 18 }}>Young Adult Ministry</div>
-                  <h3 style={{ fontFamily: "var(--font-serif)", fontWeight: 300, fontSize: 32, color: "var(--cream)", marginBottom: 16, lineHeight: 1.1 }}>
+                <div
+                  style={{
+                    position: "relative",
+                    zIndex: 3,
+                    padding: 48,
+                    textAlign: "center",
+                    maxWidth: 440,
+                  }}
+                >
+                  <div
+                    className="eyebrow"
+                    style={{ color: "var(--cream-muted)", marginBottom: 18 }}
+                  >
+                    Young Adult Ministry
+                  </div>
+                  <h3
+                    style={{
+                      fontFamily: "var(--font-serif)",
+                      fontWeight: 300,
+                      fontSize: 32,
+                      color: "var(--cream)",
+                      marginBottom: 16,
+                      lineHeight: 1.1,
+                    }}
+                  >
                     Watch on YouTube
                   </h3>
-                  <p style={{ color: "var(--cream-dim)", marginBottom: 28, fontSize: 14, lineHeight: 1.55 }}>
-                    Live embedding isn't enabled for this channel. All services and worship nights stream live on YouTube.
+                  <p
+                    style={{
+                      color: "var(--cream-dim)",
+                      marginBottom: 28,
+                      fontSize: 14,
+                      lineHeight: 1.55,
+                    }}
+                  >
+                    Live embedding isn't enabled for this channel. All services
+                    and worship nights stream live on YouTube.
                   </p>
-                  <a href={current.url} target="_blank" rel="noreferrer" className="btn btn--cream btn--sm">
+                  <a
+                    href={current.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn btn--cream btn--sm"
+                  >
                     Open channel <ArrowIcon />
                   </a>
                 </div>
@@ -132,28 +190,63 @@ function SermonsStage({ active }: { active: string }) {
           </div>
 
           <aside className="s-meta">
-            <div className="eyebrow" style={{ marginBottom: 18 }}>Now playing</div>
+            <div className="eyebrow" style={{ marginBottom: 18 }}>
+              Now playing
+            </div>
             <h2 className="s-meta__title">{current.label}</h2>
             <div className="s-meta__city">{current.city}</div>
 
             <dl className="s-spec">
-              <div><dt>Handle</dt><dd>{current.handle}</dd></div>
-              <div><dt>Languages</dt><dd>{current.languages}</dd></div>
-              <div><dt>Live days</dt><dd>{current.days}</dd></div>
+              <div>
+                <dt>Handle</dt>
+                <dd>{current.handle}</dd>
+              </div>
+              <div>
+                <dt>Languages</dt>
+                <dd>{current.languages}</dd>
+              </div>
+              <div>
+                <dt>Live days</dt>
+                <dd>{current.days}</dd>
+              </div>
             </dl>
 
             <div className="s-links">
-              <a href={current.url} target="_blank" rel="noreferrer" className="btn btn--primary btn--sm">
+              <a
+                href={current.url}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn--primary btn--sm"
+              >
                 Open on YouTube <ArrowIcon />
               </a>
-              <a href={`${current.url}/videos`} target="_blank" rel="noreferrer" className="s-link">→ Past services</a>
-              <a href={`${current.url}/playlists`} target="_blank" rel="noreferrer" className="s-link">→ Sermon series</a>
+              <a
+                href={`${current.url}/videos`}
+                target="_blank"
+                rel="noreferrer"
+                className="s-link"
+              >
+                → Past services
+              </a>
+              <a
+                href={`${current.url}/playlists`}
+                target="_blank"
+                rel="noreferrer"
+                className="s-link"
+              >
+                → Sermon series
+              </a>
               {current.channelId && (
-                <a href={`${current.url}/streams`} target="_blank" rel="noreferrer" className="s-link">→ All live broadcasts</a>
+                <a
+                  href={`${current.url}/streams`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="s-link"
+                >
+                  → All live broadcasts
+                </a>
               )}
             </div>
-
-            <p className="s-note">If no live service is active, the most recent stream will display automatically.</p>
           </aside>
         </div>
       </div>
@@ -165,11 +258,26 @@ function ScheduleTable() {
   return (
     <section className="sched">
       <div className="container-wide">
-        <div className="sched__head">
-          <div className="eyebrow">Weekly schedule</div>
-          <h2 className="sched__title">When services<br />stream live.</h2>
-          <p className="sched__lede">All times Eastern. Services begin streaming at service start and replays post within 24 hours.</p>
-        </div>
+        <header className="sched__head">
+          <div>
+            <div className="eyebrow">Weekly schedule</div>
+            <h2 className="sched__title">
+              When services
+              <br />
+              stream <em>live.</em>
+            </h2>
+          </div>
+          <div className="sched__head-right">
+            <p className="sched__lede">
+              All times Eastern. Services begin streaming at service start and
+              replays post within 24&nbsp;hours.
+            </p>
+            <Link to="/locations" className="btn btn--ghost btn--sm">
+              View all locations
+            </Link>
+          </div>
+        </header>
+
         <ul className="sched__list">
           {SCHEDULE.map((r, i) => (
             <li key={i} className="sched__row">
@@ -177,7 +285,7 @@ function ScheduleTable() {
               <div className="sched__items">
                 {r.items.map((it, j) => (
                   <div key={j} className="sched__item">
-                    <span className="sched__where">{it[0]}</span>
+                    <span className="sched__campus">{it[0]}</span>
                     <span className="sched__what">{it[1]}</span>
                     <span className="sched__when">{it[2]}</span>
                   </div>
@@ -186,6 +294,11 @@ function ScheduleTable() {
             </li>
           ))}
         </ul>
+
+        <p className="sched__tz">
+          <span className="sched__tz-dot" />
+          Eastern Time (ET) · Updated for 2026 schedule
+        </p>
       </div>
     </section>
   );
@@ -193,11 +306,17 @@ function ScheduleTable() {
 
 const SermonsPage = () => {
   const [active, setActive] = useState(() => {
-    try { return localStorage.getItem("alic.channel") || "md"; } catch { return "md"; }
+    try {
+      return localStorage.getItem("alic.channel") || "md";
+    } catch {
+      return "md";
+    }
   });
 
   useEffect(() => {
-    try { localStorage.setItem("alic.channel", active); } catch {}
+    try {
+      localStorage.setItem("alic.channel", active);
+    } catch {}
   }, [active]);
 
   return (

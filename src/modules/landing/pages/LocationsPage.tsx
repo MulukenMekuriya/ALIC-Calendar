@@ -34,6 +34,8 @@ const CAMPUSES = [
     fb: "https://www.facebook.com/AddisLedet/",
     photo: "/md-campus.jpg",
     channelId: "UC0a-B295i9i-wTezQ4G-M3w",
+    yaYt: "https://www.youtube.com/@addislidetyoungadultminist6291",
+    yaChannelId: "UCnIYfT518KOxn4KZTZLxwng",
     tagline: "Our founding home — where the family first gathered.",
     since: "Since 2009",
     rhythm: [
@@ -118,49 +120,122 @@ function LocHero() {
 
 function CampusStream({ c }: { c: (typeof CAMPUSES)[number] }) {
   const [live, setLive] = useState(false);
-  const latestSrc = `https://www.youtube.com/embed?listType=playlist&list=${c.channelId.replace("UC", "UU")}&index=1`;
-  const liveSrc = `https://www.youtube.com/embed/live_stream?channel=${c.channelId}`;
+  const [channel, setChannel] = useState<"main" | "ya">("main");
+  const hasYA = "yaChannelId" in c && c.yaChannelId;
+  const activeChannelId =
+    channel === "ya" && hasYA ? c.yaChannelId! : c.channelId;
+  const activeYt = channel === "ya" && hasYA ? c.yaYt! : c.yt;
+  const latestSrc = `https://www.youtube.com/embed?listType=playlist&list=${activeChannelId.replace("UC", "UU")}&index=1`;
+  const liveSrc = `https://www.youtube.com/embed/live_stream?channel=${activeChannelId}`;
 
   return (
-    <div className="cmp__stream">
-      <div className="cmp__stream-head">
-        <span className="eyebrow">Live &amp; archive · Watch</span>
-        <div className="cmp__stream-toggle">
-          <button
-            className={`cmp__stream-btn${!live ? " is-on" : ""}`}
-            onClick={() => setLive(false)}
-          >
-            Latest
-          </button>
-          <button
-            className={`cmp__stream-btn${live ? " is-on" : ""}`}
-            onClick={() => setLive(true)}
-          >
-            Watch Live
-          </button>
+    <div className={`cmp__stream${live ? " cmp__stream--live" : ""}`}>
+      {/* Ambient background layers */}
+      <div className="cmp__stream-bg" aria-hidden="true">
+        <div className="cmp__stream-orb cmp__stream-orb--1" />
+        <div className="cmp__stream-orb cmp__stream-orb--2" />
+        <div className="cmp__stream-grain" />
+        <div className="cmp__stream-vignette" />
+      </div>
+
+      <div className="container-wide cmp__stream-inner">
+        {/* Heading band */}
+        <header className="cmp__stream-header">
+          <div className="cmp__stream-header-text">
+            <span className="eyebrow">Watch · {c.name}</span>
+            <h3 className="cmp__stream-title">
+              Stream from <em>anywhere.</em>
+            </h3>
+          </div>
+          <p className="cmp__stream-desc">
+            Catch the latest service or join us live — wherever you are in the
+            world.
+          </p>
+        </header>
+
+        {/* Controls bar */}
+        <div className="cmp__stream-controls">
+          {hasYA && (
+            <div className="cmp__stream-channels">
+              <button
+                className={`cmp__ch-btn${channel === "main" ? " is-on" : ""}`}
+                onClick={() => {
+                  setChannel("main");
+                  setLive(false);
+                }}
+              >
+                Main Church
+              </button>
+              <button
+                className={`cmp__ch-btn${channel === "ya" ? " is-on" : ""}`}
+                onClick={() => {
+                  setChannel("ya");
+                  setLive(false);
+                }}
+              >
+                Young Adults
+              </button>
+            </div>
+          )}
+          <div className="cmp__stream-toggle">
+            <button
+              className={`cmp__tog-btn${!live ? " is-on" : ""}`}
+              onClick={() => setLive(false)}
+            >
+              Latest
+            </button>
+            <button
+              className={`cmp__tog-btn cmp__tog-btn--live${live ? " is-on" : ""}`}
+              onClick={() => setLive(true)}
+            >
+              <span className="cmp__pulse" />
+              Live
+            </button>
+          </div>
         </div>
-      </div>
-      <div className="cmp__stream-player">
-        <iframe
-          key={live ? "live" : "latest"}
-          src={live ? liveSrc : latestSrc}
-          title={`${c.name} — ${live ? "live stream" : "latest service"}`}
-          allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        />
-      </div>
-      <div className="cmp__stream-links">
-        <a href={c.yt} target="_blank" rel="noreferrer" className="cmp__link">
-          → Full channel &amp; archive
-        </a>
-        <a
-          href={`${c.yt}/playlists`}
-          target="_blank"
-          rel="noreferrer"
-          className="cmp__link"
-        >
-          → Sermon series
-        </a>
+
+        {/* Cinematic player */}
+        <div className="cmp__stream-stage">
+          <div className="cmp__stream-player">
+            <iframe
+              key={`${channel}-${live ? "live" : "latest"}`}
+              src={live ? liveSrc : latestSrc}
+              title={`${c.name}${channel === "ya" ? " Young Adults" : ""} — ${live ? "live stream" : "latest service"}`}
+              allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </div>
+
+        {/* Footer links */}
+        <div className="cmp__stream-foot">
+          <a
+            href={activeYt}
+            target="_blank"
+            rel="noreferrer"
+            className="cmp__stream-link"
+          >
+            <span className="cmp__stream-link-icon">▶</span>
+            Full channel &amp; archive
+          </a>
+          <a
+            href={`${activeYt}/playlists`}
+            target="_blank"
+            rel="noreferrer"
+            className="cmp__stream-link"
+          >
+            <span className="cmp__stream-link-icon">☰</span>
+            Sermon series
+          </a>
+          <a
+            href={activeYt}
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn--ghost btn--sm cmp__stream-yt"
+          >
+            Subscribe on YouTube
+          </a>
+        </div>
       </div>
     </div>
   );

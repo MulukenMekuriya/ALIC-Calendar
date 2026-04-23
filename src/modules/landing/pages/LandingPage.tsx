@@ -20,17 +20,33 @@ const ArrowSVG = () => (
 
 /* ── Hero ── */
 function Hero() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    // Ensure video plays even if autoplay is initially blocked
+    const v = videoRef.current;
+    if (v) {
+      v.play().catch(() => {});
+    }
+  }, []);
+
   return (
     <section className="hero">
-      <PhotoSlot
-        tag="Photo — swap for hero image"
-        caption=""
-        className="hero__photo"
-      >
+      <div className="hero__video-wrap">
+        <video
+          ref={videoRef}
+          className="hero__video"
+          src="/addis lidet video.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+        />
         <div className="hero__vignette" />
         <div className="hero__warm ambient-pan" />
         <div className="hero__grain" />
-      </PhotoSlot>
+      </div>
 
       <div className="container hero__inner">
         <div className="hero__eyebrow reveal">
