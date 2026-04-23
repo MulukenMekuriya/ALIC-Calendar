@@ -329,7 +329,6 @@ function Locations() {
                 className="loc__photo"
               />
               <div className="loc__meta">
-                <div className="loc__num">{i === 0 ? "01" : "02"}</div>
                 <div className="loc__info">
                   <div className="loc__name">{l.name}</div>
                   <div className="loc__city">{l.city}</div>
