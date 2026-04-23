@@ -24,7 +24,6 @@ const CHANNELS = [
     handle: "@addislidetmedia",
     channelId: "UC0a-B295i9i-wTezQ4G-M3w",
     url: "https://www.youtube.com/@addislidetmedia",
-    languages: "Amharic · English",
     days: "Sun · Wed · Fri",
   },
   {
@@ -34,7 +33,6 @@ const CHANNELS = [
     handle: "@AddisLidetVirginia",
     channelId: "UC9wD2V5iETIWes24ZJv6OsA",
     url: "https://www.youtube.com/@AddisLidetVirginia",
-    languages: "Amharic · English",
     days: "Sun · Tue · Fri",
   },
   {
@@ -44,7 +42,6 @@ const CHANNELS = [
     handle: "@addislidetyoungadultminist6291",
     channelId: "UCnIYfT518KOxn4KZTZLxwng",
     url: "https://www.youtube.com/@addislidetyoungadultminist6291",
-    languages: "English · Amharic",
     days: "Fri · Sat · Sun",
   },
 ];
@@ -109,7 +106,6 @@ function SermonsHero({
                 <span className="s-channel__city">{c.city}</span>
               </div>
               <div className="s-channel__meta">
-                <span>{c.languages}</span>
                 <span>{c.days}</span>
               </div>
             </button>
@@ -200,10 +196,6 @@ function SermonsStage({ active }: { active: string }) {
               <div>
                 <dt>Handle</dt>
                 <dd>{current.handle}</dd>
-              </div>
-              <div>
-                <dt>Languages</dt>
-                <dd>{current.languages}</dd>
               </div>
               <div>
                 <dt>Live days</dt>
