@@ -105,93 +105,6 @@ function Hero() {
   );
 }
 
-/* ── Live Ticker ── */
-function LiveTicker() {
-  const [now, setNow] = useState(new Date());
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 30000);
-    return () => clearInterval(t);
-  }, []);
-
-  const daysToSun = (7 - now.getDay()) % 7;
-  const nextSun = new Date(now);
-  nextSun.setDate(
-    now.getDate() + (daysToSun === 0 && now.getHours() >= 18 ? 7 : daysToSun),
-  );
-  const sundayLabel =
-    daysToSun === 0
-      ? "This Sunday"
-      : daysToSun === 1
-        ? "Tomorrow"
-        : nextSun.toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "short",
-            day: "numeric",
-          });
-
-  return (
-    <section className="sunday">
-      <div className="container">
-        <div className="sunday__rail reveal">
-          <div className="sunday__lbl">
-            <span className="sunday__dot" />
-            {sundayLabel}
-          </div>
-
-          <div className="sunday__cols">
-            <div className="sunday__col">
-              <div className="sunday__campus">
-                <span className="sunday__num">01</span>
-                <span className="sunday__name">Maryland · Silver Spring</span>
-              </div>
-              <div className="sunday__times">
-                <div className="sunday__time">
-                  <span className="sunday__time-hr">10:00 am</span>
-                  <span className="sunday__time-desc">Morning Prayer</span>
-                </div>
-                <div className="sunday__time">
-                  <span className="sunday__time-hr">11:00 am</span>
-                  <span className="sunday__time-desc">Sunday Worship</span>
-                </div>
-                <div className="sunday__time">
-                  <span className="sunday__time-hr">6:30 pm</span>
-                  <span className="sunday__time-desc">
-                    <span className="sunday__badge">Young Adult</span>
-                    Young Adult Service
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="sunday__divider" />
-
-            <div className="sunday__col">
-              <div className="sunday__campus">
-                <span className="sunday__num">02</span>
-                <span className="sunday__name">Virginia · Alexandria</span>
-              </div>
-              <div className="sunday__times">
-                <div className="sunday__time">
-                  <span className="sunday__time-hr">9:30 am</span>
-                  <span className="sunday__time-desc">Morning Prayer</span>
-                </div>
-                <div className="sunday__time">
-                  <span className="sunday__time-hr">10:30 am</span>
-                  <span className="sunday__time-desc">Sunday Worship</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <Link to="/locations" className="sunday__link">
-            All times & directions <ArrowSVG />
-          </Link>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 /* ── Sunday Gatherings ── */
 const sundayModules = import.meta.glob<string>(
   "/public/sunday-worship/*.{jpg,jpeg,png,webp}",
@@ -902,7 +815,6 @@ export default function LandingPage() {
       <Hero />
       <SundayGatherings />
       <Locations />
-      <LiveTicker />
       <StoryStrip />
       <Pastors />
       <Watch />
