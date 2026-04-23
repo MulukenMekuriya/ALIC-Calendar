@@ -12,16 +12,13 @@ const FUNDS: Record<string, { label: string; sub: string; color: string }> = {
   youth:       { label: "Youth & Young Adult",   sub: "Next generation",            color: "var(--gold-bright)" },
 };
 
-const DONATE_URL = "https://addislidetchurch.org/donate/";
-
 const OTHER_WAYS = [
-  { code: "ONL–00",  t: "Online",                  b: "Give securely online through our donation portal — one-time or recurring.", href: DONATE_URL },
-  { code: "IN–01",   t: "In person",              b: "Drop your gift in the offering box at either campus during service. No envelope required — our finance team will issue a receipt." },
-  { code: "MAIL–02", t: "Mail a check",            b: "Payable to \"Addis Lidet International Church\" · 11961 Tech Rd, Silver Spring, MD 20904." },
-  { code: "ACH–03",  t: "ACH / Bank transfer",     b: "For recurring gifts over $500, ACH avoids processing fees entirely. Email finance@addislidet.org for account details." },
-  { code: "STK–04",  t: "Stock & appreciated assets",b: "Gifts of stock, mutual funds, or crypto can offer significant tax advantages. We walk you through it step by step." },
-  { code: "EST–05",  t: "Estate & legacy",         b: "Include Addis Lidet in your will or trust. Our finance team can share suggested language and confirm our legal name." },
-  { code: "MAT–06",  t: "Employer match",          b: "Many companies double their employees' giving. Ask your HR team — we're happy to fill out whatever paperwork they need." },
+  { code: "PP–01",   t: "PayPal",                  b: "Donate with debit or credit card via PayPal · @addislidetchurch" },
+  { code: "ZEL–02",  t: "Zelle",                   b: "Send directly from your bank app · (240) 505-5310" },
+  { code: "VEN–03",  t: "Venmo",                   b: "Quick mobile giving · @Addis-Lidet" },
+  { code: "TXT–04",  t: "Text to give",            b: "Text your dollar amount to +1 (888) 494-6651 · first-time givers will be prompted to register a card." },
+  { code: "CHK–05",  t: "Mail a check",            b: "Payable to \"Addis Lidet Int. Church\" · 11961 Tech Rd, Silver Spring, MD 20906." },
+  { code: "IN–06",   t: "In person",               b: "Drop your gift in the offering box at either campus during service. No envelope required — our finance team will issue a receipt." },
 ];
 
 const IMPACT_ROWS = [
@@ -186,10 +183,10 @@ function OfferingPlate() {
                 )}
               </div>
 
-              <a href={DONATE_URL} target="_blank" rel="noopener noreferrer" className="op-submit" style={{ textDecoration: "none" }}>
+              <button type="submit" className="op-submit" disabled={effective <= 0}>
                 <span>Place {freq === "once" ? "this gift" : `recurring ${freq} gift`}</span>
                 <ArrowIcon />
-              </a>
+              </button>
 
               <div className="op-foot">
                 <span>TITHE.LY · STRIPE · SSL</span>
@@ -213,7 +210,7 @@ function OtherWays() {
             <div className="op-aside__label">OTHER WAYS</div>
             <h2>Not a donate button?<br />Still an act of worship.</h2>
           </div>
-          <p>Online is easiest — but stock, ACH, and mailed checks are welcome too. Every gift is tax-deductible.</p>
+          <p>PayPal, Zelle, Venmo, text, check, or in person — pick whatever is easiest. Every gift is tax-deductible.</p>
         </div>
         <div className="ow-ledger">
           <div className="ow-ledger__head">
@@ -222,25 +219,14 @@ function OtherWays() {
             <span>NOTES</span>
             <span />
           </div>
-          {OTHER_WAYS.map((r, i) => {
-            const content = (
-              <>
-                <span className="ow-code">{r.code}</span>
-                <span className="ow-method">{r.t}</span>
-                <span className="ow-notes">{r.b}</span>
-                <span className="ow-arrow">→</span>
-              </>
-            );
-            return r.href ? (
-              <a key={i} className="ow-ledger__row" href={r.href} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none", color: "inherit" }}>
-                {content}
-              </a>
-            ) : (
-              <div key={i} className="ow-ledger__row">
-                {content}
-              </div>
-            );
-          })}
+          {OTHER_WAYS.map((r, i) => (
+            <div key={i} className="ow-ledger__row">
+              <span className="ow-code">{r.code}</span>
+              <span className="ow-method">{r.t}</span>
+              <span className="ow-notes">{r.b}</span>
+              <span className="ow-arrow">→</span>
+            </div>
+          ))}
         </div>
       </div>
     </section>
