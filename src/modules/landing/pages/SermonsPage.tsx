@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import LandingNav from "../components/LandingNav";
 import LandingFooter from "../components/LandingFooter";
-import PhotoSlot from "../components/PhotoSlot";
 import "../landing.css";
 
 const ArrowIcon = () => (
@@ -42,15 +41,6 @@ const CHANNELS = [
     languages: "English · Amharic",
     days: "Fri · Sat · Sun",
   },
-];
-
-const SERIES = [
-  { t: "Grace & Truth",       sub: "6-part series · Silver Spring",    count: 6,   channel: "md" },
-  { t: "Ethiopian Mezmur",    sub: "Worship nights · both campuses",    count: 24,  channel: "md" },
-  { t: "The Book of Acts",    sub: "14-part expository · Virginia",     count: 14,  channel: "va" },
-  { t: "Young Adult Nights",  sub: "Worship + teaching · DMV",          count: 18,  channel: "ya" },
-  { t: "Prayer & Fasting",    sub: "Friday overnights archive",          count: 52,  channel: "md" },
-  { t: "Sunday Amharic",      sub: "Amharic-language archive",           count: 180, channel: "md" },
 ];
 
 const SCHEDULE = [
@@ -201,40 +191,6 @@ function ScheduleTable() {
   );
 }
 
-function SeriesArchive() {
-  return (
-    <section className="arc">
-      <div className="container-wide">
-        <div className="arc__head">
-          <div>
-            <div className="eyebrow">Archive</div>
-            <h2 className="arc__title">Every sermon,<br />kept.</h2>
-          </div>
-          <p className="arc__lede">
-            Thousands of hours of Amharic and English preaching, mezmur, and prayer — archived on YouTube and free to anyone, forever.
-          </p>
-        </div>
-        <div className="arc__grid">
-          {SERIES.map((s, i) => {
-            const ch = CHANNELS.find((c) => c.key === s.channel)!;
-            return (
-              <a key={i} href={ch.url} target="_blank" rel="noreferrer" className="arc__card">
-                <PhotoSlot label={`${s.t} — cover`} className="arc__photo" />
-                <div className="arc__meta">
-                  <span>{ch.label}</span>
-                  <span>{s.count} episodes</span>
-                </div>
-                <h3 className="arc__t">{s.t}</h3>
-                <p className="arc__s">{s.sub}</p>
-              </a>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 const SermonsPage = () => {
   const [active, setActive] = useState(() => {
     try { return localStorage.getItem("alic.channel") || "md"; } catch { return "md"; }
@@ -250,7 +206,6 @@ const SermonsPage = () => {
       <SermonsHero active={active} setActive={setActive} />
       <SermonsStage active={active} />
       <ScheduleTable />
-      <SeriesArchive />
       <LandingFooter />
     </div>
   );
