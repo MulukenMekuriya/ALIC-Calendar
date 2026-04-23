@@ -446,7 +446,7 @@ function AboutCTA() {
   return (
     <section className="about-cta">
       <div className="container-wide about-cta__inner">
-        <div className="eyebrow" style={{ marginBottom: 20 }}>
+        <div className="eyebrow" style={{ marginBottom: 20, color: "var(--text-on-paper-dim)" }}>
           Next step
         </div>
         <h2 className="about-cta__title">
