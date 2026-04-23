@@ -117,12 +117,17 @@ function Timeline() {
             Seventeen years. <em>One faithful God.</em>
           </h2>
         </div>
+      </div>
+      <div className="tl-track">
+        <div className="tl-rail" />
         <ol className="tl">
           {MILESTONES.map((m, i) => (
             <li key={i} className="tl-item">
-              <div className="tl-year">{m.year}</div>
-              <div className="tl-body">
-                <div className="tl-meta">{m.city}</div>
+              <div className="tl-node">
+                <span className="tl-dot" />
+                <span className="tl-year">{m.year}</span>
+              </div>
+              <div className="tl-card">
                 <h3 className="tl-t">{m.t}</h3>
                 <p className="tl-b">{m.b}</p>
               </div>

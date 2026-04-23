@@ -964,37 +964,65 @@
 }
 
 /* Timeline */
-.landing-root .tl-section { padding: 140px 0; background: var(--paper); color: var(--text-on-paper); }
-.landing-root .tl__head { margin-bottom: 72px; }
+.landing-root .tl-section { padding: 72px 0 56px; background: var(--paper); color: var(--text-on-paper); overflow: hidden; }
+.landing-root .tl__head { margin-bottom: 40px; }
 .landing-root .tl__title {
-  font-family: var(--font-serif); font-size: clamp(40px, 5vw, 72px);
-  font-weight: 400; letter-spacing: -0.025em; line-height: 0.98; margin: 18px 0 0;
+  font-family: var(--font-serif); font-size: clamp(32px, 4vw, 56px);
+  font-weight: 400; letter-spacing: -0.025em; line-height: 0.98; margin: 14px 0 0;
   color: var(--text-on-paper);
 }
 .landing-root .tl__title em { font-style: italic; color: var(--gold); }
-.landing-root .tl { list-style: none; padding: 0; margin: 0; border-left: 1px solid rgba(17,24,39,0.15); margin-left: 60px; }
-.landing-root .tl-item {
-  position: relative; padding: 0 0 56px 56px;
-  display: grid; grid-template-columns: 80px 1fr; gap: 32px; align-items: baseline;
+
+/* horizontal scroll track */
+.landing-root .tl-track {
+  position: relative; padding: 0 var(--gutter, 40px);
 }
-.landing-root .tl-item::before {
-  content: ''; position: absolute; left: -5px; top: 8px;
-  width: 9px; height: 9px; border-radius: 50%;
-  background: var(--gold); border: 1px solid var(--paper);
+.landing-root .tl-rail {
+  position: absolute; top: 40px; left: 0; right: 0;
+  height: 1px; background: rgba(17,24,39,0.12);
+}
+.landing-root .tl {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; gap: 0;
+  overflow-x: auto; scroll-snap-type: x mandatory;
+  scrollbar-width: none; -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 8px;
+}
+.landing-root .tl::-webkit-scrollbar { display: none; }
+.landing-root .tl-item {
+  flex: 0 0 260px; scroll-snap-align: start;
+  display: flex; flex-direction: column; padding-right: 12px;
+}
+.landing-root .tl-node {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  padding-bottom: 20px;
+}
+.landing-root .tl-dot {
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--gold); border: 2px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--gold);
+  flex-shrink: 0;
 }
 .landing-root .tl-year {
-  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.22em;
-  color: var(--gold-deep); text-transform: uppercase; padding-top: 2px;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.18em;
+  color: var(--gold-deep); text-transform: uppercase; font-weight: 600;
 }
-.landing-root .tl-meta {
-  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em;
-  text-transform: uppercase; color: var(--text-on-paper-muted); margin-bottom: 8px;
+.landing-root .tl-card {
+  background: rgba(17,24,39,0.025); border: 1px solid rgba(17,24,39,0.06);
+  border-radius: 8px; padding: 18px 20px;
+  flex: 1;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.landing-root .tl-card:hover {
+  border-color: rgba(17,24,39,0.14);
+  box-shadow: 0 2px 12px rgba(17,24,39,0.06);
 }
 .landing-root .tl-t {
-  font-family: var(--font-serif); font-size: clamp(22px, 2.4vw, 32px);
-  font-weight: 400; letter-spacing: -0.015em; color: var(--text-on-paper); margin: 0 0 10px;
+  font-family: var(--font-serif); font-size: 19px;
+  font-weight: 400; letter-spacing: -0.01em; color: var(--text-on-paper); margin: 0 0 6px;
 }
-.landing-root .tl-b { font-size: 15px; line-height: 1.65; color: var(--text-on-paper-dim); margin: 0; max-width: 540px; }
+.landing-root .tl-b { font-size: 13px; line-height: 1.55; color: var(--text-on-paper-dim); margin: 0; }
 
 /* Vision & Mission */
 .landing-root .vm { padding: 120px 0; background: var(--ink); }
@@ -1130,8 +1158,7 @@
 
 @media (max-width: 980px) {
   .landing-root .ab-hero__grid { grid-template-columns: 1fr; }
-  .landing-root .tl { margin-left: 24px; }
-  .landing-root .tl-item { grid-template-columns: 60px 1fr; gap: 20px; padding-left: 36px; }
+  .landing-root .tl-item { flex: 0 0 220px; }
   .landing-root .vm__grid { grid-template-columns: 1fr; }
   .landing-root .sof__grid { grid-template-columns: 1fr; }
   .landing-root .beliefs__grid { grid-template-columns: 1fr 1fr; }
