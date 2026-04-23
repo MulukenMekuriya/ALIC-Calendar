@@ -298,7 +298,9 @@ const SermonsPage = () => {
   useEffect(() => {
     try {
       localStorage.setItem("alic.channel", active);
-    } catch {}
+    } catch {
+      // localStorage may be unavailable
+    }
   }, [active]);
 
   return (
