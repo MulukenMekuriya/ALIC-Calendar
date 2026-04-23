@@ -205,9 +205,16 @@ const kidsModules = import.meta.glob<string>(
 );
 const KIDS_PHOTOS = Object.values(kidsModules);
 
+const yaModules = import.meta.glob<string>(
+  "/public/young-adults/*.{jpg,jpeg,png,webp}",
+  { eager: true, import: "default", query: "?url" },
+);
+const YA_PHOTOS = Object.values(yaModules);
+
 function SundayGatherings() {
   const [photoIdx, setPhotoIdx] = useState(0);
   const [kidsIdx, setKidsIdx] = useState(0);
+  const [yaIdx, setYaIdx] = useState(0);
 
   useEffect(() => {
     const t = setInterval(
@@ -220,6 +227,14 @@ function SundayGatherings() {
   useEffect(() => {
     const t = setInterval(
       () => setKidsIdx((i) => (i + 1) % KIDS_PHOTOS.length),
+      4000,
+    );
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    const t = setInterval(
+      () => setYaIdx((i) => (i + 1) % YA_PHOTOS.length),
       4000,
     );
     return () => clearInterval(t);
@@ -273,11 +288,28 @@ function SundayGatherings() {
               />
             ))}
           </div>
-          <PhotoSlot
-            caption="Fellowship"
-            tag="Photo"
-            className="sg__photo sg__photo--3"
-          />
+          <div
+            className="photo-slot sg__photo sg__photo--3"
+            data-caption="Young Adults Ministry"
+          >
+            {YA_PHOTOS.map((src, i) => (
+              <img
+                key={src}
+                src={src}
+                alt="Young Adults Ministry"
+                className="photo-slot__img sg__slideshow-img"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  opacity: i === yaIdx ? 1 : 0,
+                  transition: "opacity 1s ease",
+                }}
+              />
+            ))}
+          </div>
         </div>
 
         <div className="sg__text">
