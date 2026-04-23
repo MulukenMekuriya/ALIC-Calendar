@@ -408,7 +408,7 @@ const STORY = [
     year: "2026",
     tag: "Today",
     title: "New home in Alexandria, VA.",
-    body: "The Virginia campus moved into its own building — 2730 Eisenhower Ave, Alexandria, VA 22314. About 15 home cells in Maryland, 7 in Virginia, and a family that keeps growing.",
+    body: "The Virginia campus moved into its own building — 2730 Eisenhower Ave, Alexandria, VA 22314. About 30 home cells in Maryland, 10 in Virginia, and a family that keeps growing.",
     caption: "05 · 2730 Eisenhower Ave, Alexandria · 2026",
     subject: "New sanctuary · Eisenhower Ave",
     tint: "era-26",
@@ -592,7 +592,8 @@ function Watch() {
           </div>
           <h2 className="watch__title mask" data-delay="1">
             <span>
-              Every Sunday, <em>live</em>.<br />Every other day, <em>on demand.</em>
+              Every Sunday, <em>live</em>.<br />
+              Every other day, <em>on demand.</em>
             </span>
           </h2>
         </div>
@@ -602,22 +603,48 @@ function Watch() {
             <div key={ch.key} className="watch__channel">
               <div className="watch__channel-meta">
                 <span className="watch__channel-label">{ch.label}</span>
-                <a href={ch.url} target="_blank" rel="noreferrer" className="watch__channel-handle">
+                <a
+                  href={ch.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="watch__channel-handle"
+                >
                   {ch.handle} ↗
                 </a>
               </div>
               <div className="watch__embed">
                 <iframe
-                  src={`https://www.youtube.com/embed?listType=playlist&list=${ch.channelId.replace('UC','UU')}&index=1`}
+                  src={`https://www.youtube.com/embed?listType=playlist&list=${ch.channelId.replace("UC", "UU")}&index=1`}
                   title={`Addis Lidet — ${ch.label}`}
                   allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                 />
               </div>
               <div className="watch__channel-links">
-                <a href={ch.url} target="_blank" rel="noreferrer" className="watch__channel-link">→ Full archive</a>
-                <a href={`${ch.url}/streams`} target="_blank" rel="noreferrer" className="watch__channel-link">→ Live streams</a>
-                <a href={`${ch.url}/playlists`} target="_blank" rel="noreferrer" className="watch__channel-link">→ Sermon series</a>
+                <a
+                  href={ch.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="watch__channel-link"
+                >
+                  → Full archive
+                </a>
+                <a
+                  href={`${ch.url}/streams`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="watch__channel-link"
+                >
+                  → Live streams
+                </a>
+                <a
+                  href={`${ch.url}/playlists`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="watch__channel-link"
+                >
+                  → Sermon series
+                </a>
               </div>
             </div>
           ))}

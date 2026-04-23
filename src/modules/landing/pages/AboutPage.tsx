@@ -114,7 +114,7 @@ const MILESTONES = [
     year: "Today",
     city: "—",
     t: "One family, many places",
-    b: "~15 home cells in Maryland, 7 in Virginia, and a congregation that keeps arriving and keeps staying.",
+    b: "~30+ home cells in Maryland, 10+ in Virginia, and a congregation that keeps arriving and keeps staying.",
   },
 ];
 
@@ -298,7 +298,11 @@ function Leadership() {
         <div className="lead__grid">
           {TEAM.map((p) => (
             <article key={p.name}>
-              <PhotoSlot label={p.name} src={p.photo} className="leader__photo" />
+              <PhotoSlot
+                label={p.name}
+                src={p.photo}
+                className="leader__photo"
+              />
               <div className="leader__body">
                 <div className="leader__role">{p.role}</div>
                 <h3 className="leader__name">{p.name}</h3>
