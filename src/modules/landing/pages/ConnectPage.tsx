@@ -157,6 +157,7 @@ function Ministries() {
 
 function ConnectForm() {
   const [role, setRole] = useState("new");
+  const [campus, setCampus] = useState("");
   const [values, setValues] = useState({ name: "", email: "", phone: "", note: "" });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -213,6 +214,16 @@ function ConnectForm() {
                 <input type="email" value={values.email} onChange={(e) => setValues({ ...values, email: e.target.value })} placeholder="you@email.com" />
               </label>
             </div>
+
+            <label className="cf-field">
+              <span className="cf-label-text">Campus</span>
+              <select value={campus} onChange={(e) => setCampus(e.target.value)}>
+                <option value="" disabled>Choose one</option>
+                <option value="md">Maryland — Silver Spring</option>
+                <option value="va">Virginia — Alexandria</option>
+                <option value="online">Either / online</option>
+              </select>
+            </label>
 
             <label className="cf-field">
               <span className="cf-label-text">Phone (optional)</span>
