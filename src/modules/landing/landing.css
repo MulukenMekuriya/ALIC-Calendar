@@ -1108,6 +1108,7 @@
 
 /* Leadership */
 .landing-root .lead { padding: 140px 0; background: var(--paper); color: var(--text-on-paper); }
+.landing-root .lead .eyebrow { color: var(--text-on-paper-muted); }
 .landing-root .lead__head {
   display: grid; grid-template-columns: 1fr 1fr; gap: 60px;
   align-items: start; margin-bottom: 72px;
