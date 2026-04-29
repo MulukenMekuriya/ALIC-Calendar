@@ -326,15 +326,29 @@ function Beliefs() {
             <em>Doctrine.</em>
           </h2>
         </div>
-        <div className="beliefs__grid">
+      </div>
+      <div className="bf-track">
+        <div className="bf-rail" />
+        <ol className="bf">
           {BELIEFS.map((b) => (
-            <article key={b.n} className="belief">
-              <div className="belief__n">{b.n}</div>
-              <h3 className="belief__t">{b.t}</h3>
-              <p className="belief__b">{b.b}</p>
-            </article>
+            <li key={b.n} className="bf-item">
+              <div className="bf-node">
+                <span className="bf-dot" />
+                <span className="bf-num">{b.n}</span>
+              </div>
+              <div className="bf-card">
+                <h3 className="bf-t">{b.t}</h3>
+                <p className="bf-b">{b.b}</p>
+              </div>
+            </li>
           ))}
-        </div>
+        </ol>
+      </div>
+      <div className="bf-hint">
+        <span>Scroll for more</span>
+        <svg viewBox="0 0 18 8" fill="none">
+          <path d="M0 4h16M12 1l4 3-4 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       </div>
     </section>
   );

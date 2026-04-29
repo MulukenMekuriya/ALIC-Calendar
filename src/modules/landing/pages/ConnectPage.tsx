@@ -1,8 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import LandingNav from "../components/LandingNav";
 import LandingFooter from "../components/LandingFooter";
 import ArrowIcon from "../components/ArrowIcon";
 import "../landing.css";
+
+function useHashScroll() {
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (!hash) return;
+    const id = hash.slice(1);
+    requestAnimationFrame(() => {
+      document
+        .getElementById(id)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [hash]);
+}
 
 const PATHWAY_STEPS = [
   { n: "01", day: "DAY 01",    t: "Come once",        icon: "☾", b: "Visit a Sunday service. Nothing required. Come in jeans, bring your kids, sit in the back — we'd love to meet you." },
@@ -239,17 +253,20 @@ function ConnectForm() {
   );
 }
 
-const ConnectPage = () => (
-  <div className="landing-root">
-    <LandingNav />
-    <main id="main-content">
-      <ConnectHero />
-      <Pathway />
-      <Ministries />
-      <ConnectForm />
-    </main>
-    <LandingFooter />
-  </div>
-);
+const ConnectPage = () => {
+  useHashScroll();
+  return (
+    <div className="landing-root">
+      <LandingNav />
+      <main id="main-content">
+        <ConnectHero />
+        <Pathway />
+        <Ministries />
+        <ConnectForm />
+      </main>
+      <LandingFooter />
+    </div>
+  );
+};
 
 export default ConnectPage;

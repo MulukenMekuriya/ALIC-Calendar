@@ -26,7 +26,7 @@ const I18N = {
     "hero.title.2a": "Addis Lidet",
     "hero.title.2b": "Int'l Church.",
     "hero.caption": "Est. 2008 · International Church",
-    "hero.lede": "Two campuses. One family. Worshipping since 2008.",
+    "hero.lede": "Two campuses. One family. Worshiping since 2008.",
     "hero.cta": "Plan your visit",
     "hero.watch": "Watch the latest",
 

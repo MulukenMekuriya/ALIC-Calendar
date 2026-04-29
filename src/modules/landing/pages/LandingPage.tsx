@@ -41,11 +41,6 @@ function Hero() {
       </div>
 
       <div className="container hero__inner">
-        <div className="hero__caption reveal" data-delay="1">
-          <span className="hero__caption-rule" />
-          <span className="hero__caption-text">{t("hero.caption")}</span>
-        </div>
-
         <h1 className="hero__title">
           <span className="mask hero__title-welcome" data-delay="2">
             <span>{t("hero.title.1")}</span>
@@ -63,17 +58,26 @@ function Hero() {
         </p>
 
         <div className="hero__ctas reveal" data-delay="5">
-          <Link to="/connect" className="btn btn--gold btn--lg">
+          <Link to="/connect#form" className="btn btn--gold btn--lg">
             {t("hero.cta")} <ArrowIcon />
           </Link>
-          <Link to="/locations" className="hero__watch">
+          <a
+            href="#watch"
+            className="hero__watch"
+            onClick={(e) => {
+              e.preventDefault();
+              document
+                .getElementById("watch")
+                ?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+          >
             <span className="hero__watch-icon">
               <svg viewBox="0 0 24 24" width="14" height="14">
                 <polygon points="8,5 19,12 8,19" fill="currentColor" />
               </svg>
             </span>
             {t("hero.watch")}
-          </Link>
+          </a>
         </div>
       </div>
 

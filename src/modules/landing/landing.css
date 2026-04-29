@@ -420,30 +420,37 @@
 .landing-root .hero__caption-text { color: var(--paper-dim); }
 .landing-root .hero__eyebrow { margin-bottom: 40px; }
 .landing-root .hero__title {
-  font-family: var(--font-sans);
-  font-size: clamp(48px, 8.5vw, 132px);
-  font-weight: 600; line-height: 0.94; letter-spacing: -0.04em;
-  margin: 0 0 36px; color: var(--paper);
-  text-shadow: 0 2px 32px rgba(0, 0, 0, 0.5);
+  font-family: var(--font-serif);
+  font-size: clamp(56px, 10vw, 168px);
+  font-weight: 400; line-height: 0.92; letter-spacing: -0.03em;
+  margin: 0 0 40px; color: var(--paper);
+  text-shadow: 0 2px 32px rgba(0, 0, 0, 0.45);
 }
 .landing-root .hero__title .mask { display: block; }
 .landing-root .hero__title-welcome {
   display: block;
-  font-weight: 300;
+  font-family: var(--font-mono);
+  font-weight: 400;
   color: var(--paper-dim);
-  font-size: 0.34em;
-  letter-spacing: 0.01em;
-  margin-bottom: 0.35em;
-  font-style: italic;
-  font-family: var(--font-serif);
+  font-size: clamp(11px, 0.95vw, 13px);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  margin-bottom: 1.6em;
+  font-style: normal;
 }
 .landing-root .hero__title-name {
   display: block;
-  font-weight: 600;
+  font-style: italic;
+  font-weight: 400;
   color: var(--paper);
 }
 .landing-root .hero__title-name + .hero__title-name {
-  margin-top: -0.04em;
+  font-size: 0.62em;
+  margin-top: 0.06em;
+  font-style: normal;
+  font-weight: 400;
+  color: var(--paper-dim);
+  letter-spacing: -0.025em;
 }
 @keyframes gradient-shift {
   0%, 100% { background-position: 0% center; }
@@ -1004,6 +1011,12 @@
 .landing-root .tl-track {
   position: relative; padding: 0 var(--gutter, 40px);
 }
+.landing-root .tl-track::after {
+  content: ""; position: absolute; top: 0; right: 0; bottom: 0;
+  width: 96px;
+  background: linear-gradient(90deg, rgba(249,250,251,0) 0%, var(--paper) 70%);
+  pointer-events: none; z-index: 2;
+}
 .landing-root .tl-rail {
   position: absolute; top: 40px; left: 0; right: 0;
   height: 1px; background: rgba(17,24,39,0.12);
@@ -1112,26 +1125,75 @@
 .landing-root .sof__item-body:last-child { margin-bottom: 0; }
 
 /* Beliefs */
-.landing-root .beliefs { padding: 140px 0; background: var(--paper); color: var(--text-on-paper); }
-.landing-root .beliefs__head { margin-bottom: 72px; }
+.landing-root .beliefs { padding: 120px 0 96px; background: var(--paper); color: var(--text-on-paper); overflow: hidden; }
+.landing-root .beliefs__head { margin-bottom: 56px; }
 .landing-root .beliefs__title {
   font-family: var(--font-serif); font-size: clamp(30px, 5vw, 72px);
   font-weight: 400; letter-spacing: -0.025em; margin: 18px 0 0;
 }
 .landing-root .beliefs__title em { font-style: italic; color: var(--gold); }
-.landing-root .beliefs__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
-.landing-root .belief {
-  padding: 36px 32px; background: var(--paper);
-  border: 1px solid rgba(17,24,39,0.1);
-  transition: background 0.2s;
+
+.landing-root .bf-track { position: relative; padding: 0 var(--gutter, 40px); }
+.landing-root .bf-track::after {
+  content: ""; position: absolute; top: 0; right: 0; bottom: 0;
+  width: 96px;
+  background: linear-gradient(90deg, rgba(249,250,251,0) 0%, var(--paper) 70%);
+  pointer-events: none; z-index: 2;
 }
-.landing-root .belief:hover { background: var(--paper-2); }
-.landing-root .belief__n {
-  font-family: var(--font-serif); font-style: italic; font-size: 36px;
-  color: var(--gold); line-height: 1; margin-bottom: 18px;
+.landing-root .bf-hint {
+  display: flex; align-items: center; gap: 10px;
+  margin: 18px var(--gutter, 40px) 0;
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--text-on-paper-muted);
 }
-.landing-root .belief__t { font-family: var(--font-serif); font-size: 24px; font-weight: 400; color: var(--text-on-paper); margin: 0 0 12px; }
-.landing-root .belief__b { font-size: 14.5px; line-height: 1.65; color: var(--text-on-paper-dim); margin: 0; }
+.landing-root .bf-hint svg { width: 18px; height: 8px; }
+.landing-root .bf-rail {
+  position: absolute; top: 40px; left: 0; right: 0;
+  height: 1px; background: rgba(17,24,39,0.12);
+}
+.landing-root .bf {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; gap: 0;
+  overflow-x: auto; scroll-snap-type: x mandatory;
+  scrollbar-width: none; -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 8px;
+}
+.landing-root .bf::-webkit-scrollbar { display: none; }
+.landing-root .bf-item {
+  flex: 0 0 280px; scroll-snap-align: start;
+  display: flex; flex-direction: column; padding-right: 12px;
+}
+.landing-root .bf-node {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  padding-bottom: 20px;
+}
+.landing-root .bf-dot {
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--gold); border: 2px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--gold);
+  flex-shrink: 0;
+}
+.landing-root .bf-num {
+  font-family: var(--font-serif); font-style: italic; font-size: 28px;
+  color: var(--gold); line-height: 1; font-weight: 400;
+}
+.landing-root .bf-card {
+  background: rgba(17,24,39,0.025); border: 1px solid rgba(17,24,39,0.06);
+  border-radius: 8px; padding: 22px 24px;
+  flex: 1;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.landing-root .bf-card:hover {
+  border-color: rgba(17,24,39,0.14);
+  box-shadow: 0 2px 12px rgba(17,24,39,0.06);
+}
+.landing-root .bf-t {
+  font-family: var(--font-serif); font-size: 22px;
+  font-weight: 400; letter-spacing: -0.01em;
+  color: var(--text-on-paper); margin: 0 0 10px;
+}
+.landing-root .bf-b { font-size: 13.5px; line-height: 1.6; color: var(--text-on-paper-dim); margin: 0; }
 
 /* Leadership */
 .landing-root .lead { padding: 140px 0; background: var(--paper); color: var(--text-on-paper); }
@@ -1189,7 +1251,7 @@
   .landing-root .tl-item { flex: 0 0 220px; }
   .landing-root .vm__grid { grid-template-columns: 1fr; }
   .landing-root .sof__grid { grid-template-columns: 1fr; }
-  .landing-root .beliefs__grid { grid-template-columns: 1fr 1fr; }
+  .landing-root .bf-item { flex: 0 0 240px; }
   .landing-root .lead__head { grid-template-columns: 1fr; }
   .landing-root .lead__grid { grid-template-columns: 1fr 1fr; gap: 32px; }
   .landing-root .ms__grid { grid-template-columns: 1fr; }
@@ -2409,7 +2471,7 @@
   .landing-root .sof__item { padding: 28px 24px; }
   .landing-root .beliefs { padding: 96px 0; }
   .landing-root .beliefs__head { margin-bottom: 48px; }
-  .landing-root .belief { padding: 28px 24px; }
+  .landing-root .bf-card { padding: 18px 20px; }
   .landing-root .lead { padding: 96px 0; }
   .landing-root .lead__head { margin-bottom: 48px; }
   .landing-root .ms { padding: 96px 0; }
@@ -2496,8 +2558,8 @@
   .landing-root .sof__ref { font-size: 22px; }
   .landing-root .sof__item-title { font-size: 19px; }
   .landing-root .beliefs { padding: 72px 0; }
-  .landing-root .beliefs__grid { grid-template-columns: 1fr; }
-  .landing-root .belief__t { font-size: 21px; }
+  .landing-root .bf-item { flex: 0 0 220px; }
+  .landing-root .bf-t { font-size: 19px; }
   .landing-root .lead { padding: 72px 0; }
   .landing-root .lead__grid { grid-template-columns: 1fr; gap: 36px; }
   .landing-root .ms { padding: 72px 0; }
