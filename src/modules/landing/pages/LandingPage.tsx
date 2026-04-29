@@ -76,7 +76,7 @@ function Hero() {
           <Link to="/connect" className="btn btn--gold btn--lg">
             {t("hero.cta")} <ArrowIcon />
           </Link>
-          <Link to="/sermons" className="hero__watch">
+          <Link to="/locations" className="hero__watch">
             <span className="hero__watch-icon">
               <svg viewBox="0 0 24 24" width="14" height="14">
                 <polygon points="8,5 19,12 8,19" fill="currentColor" />
@@ -592,7 +592,7 @@ function Watch() {
         </div>
 
         <div className="watch__foot reveal" data-delay="3">
-          <Link to="/sermons" className="btn btn--ghost btn--lg">
+          <Link to="/locations" className="btn btn--ghost btn--lg">
             {t("watch.fullLibrary")} <ArrowIcon />
           </Link>
         </div>

@@ -55,7 +55,7 @@ export default function LandingFooter() {
             <h5>{t('footer.explore')}</h5>
             <ul>
               <li><Link to="/about">About</Link></li>
-              <li><Link to="/sermons">Sermons</Link></li>
+              <li><Link to="/ministries">Ministries</Link></li>
               <li><Link to="/connect">Get Connected</Link></li>
               <li><a href="https://sites.google.com/alicbibleschool.com/abs" target="_blank" rel="noreferrer">ALIC Bible School</a></li>
               <li><a href="https://addislidetchurch.org/alic-mission/" target="_blank" rel="noreferrer">ALIC Mission</a></li>

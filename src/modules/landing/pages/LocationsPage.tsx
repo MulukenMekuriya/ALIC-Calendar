@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import LandingNav from "../components/LandingNav";
 import LandingFooter from "../components/LandingFooter";
@@ -104,130 +103,6 @@ function LocHero() {
         </div>
       </div>
     </section>
-  );
-}
-
-function CampusStream({ c }: { c: (typeof CAMPUSES)[number] }) {
-  const [live, setLive] = useState(false);
-  const [channel, setChannel] = useState<"main" | "ya">("main");
-  const hasYA = "yaChannelId" in c && c.yaChannelId;
-  const activeChannelId =
-    channel === "ya" && hasYA ? c.yaChannelId! : c.channelId;
-  const activeYt = channel === "ya" && hasYA ? c.yaYt! : c.yt;
-  const latestSrc = `https://www.youtube.com/embed?listType=playlist&list=${activeChannelId.replace("UC", "UU")}&index=1`;
-  const liveSrc = `https://www.youtube.com/embed/live_stream?channel=${activeChannelId}`;
-
-  return (
-    <div className={`cmp__stream${live ? " cmp__stream--live" : ""}`}>
-      {/* Ambient background layers */}
-      <div className="cmp__stream-bg" aria-hidden="true">
-        <div className="cmp__stream-orb cmp__stream-orb--1" />
-        <div className="cmp__stream-orb cmp__stream-orb--2" />
-        <div className="cmp__stream-grain" />
-        <div className="cmp__stream-vignette" />
-      </div>
-
-      <div className="container-wide cmp__stream-inner">
-        {/* Heading band */}
-        <header className="cmp__stream-header">
-          <div className="cmp__stream-header-text">
-            <span className="eyebrow">Watch · {c.name}</span>
-            <h3 className="cmp__stream-title">
-              Stream from <em>anywhere.</em>
-            </h3>
-          </div>
-          <p className="cmp__stream-desc">
-            Catch the latest service or join us live — wherever you are in the
-            world.
-          </p>
-        </header>
-
-        {/* Controls bar */}
-        <div className="cmp__stream-controls">
-          {hasYA && (
-            <div className="cmp__stream-channels">
-              <button
-                className={`cmp__ch-btn${channel === "main" ? " is-on" : ""}`}
-                onClick={() => {
-                  setChannel("main");
-                  setLive(false);
-                }}
-              >
-                Main Church
-              </button>
-              <button
-                className={`cmp__ch-btn${channel === "ya" ? " is-on" : ""}`}
-                onClick={() => {
-                  setChannel("ya");
-                  setLive(false);
-                }}
-              >
-                Young Adults
-              </button>
-            </div>
-          )}
-          <div className="cmp__stream-toggle">
-            <button
-              className={`cmp__tog-btn${!live ? " is-on" : ""}`}
-              onClick={() => setLive(false)}
-            >
-              Latest
-            </button>
-            <button
-              className={`cmp__tog-btn cmp__tog-btn--live${live ? " is-on" : ""}`}
-              onClick={() => setLive(true)}
-            >
-              <span className="cmp__pulse" />
-              Live
-            </button>
-          </div>
-        </div>
-
-        {/* Cinematic player */}
-        <div className="cmp__stream-stage">
-          <div className="cmp__stream-player">
-            <iframe
-              key={`${channel}-${live ? "live" : "latest"}`}
-              src={live ? liveSrc : latestSrc}
-              title={`Addis Lidet ${c.name}${channel === "ya" ? " Young Adults" : ""} — ${live ? "live stream" : "latest service"}`}
-              allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              loading="lazy"
-            />
-          </div>
-        </div>
-
-        {/* Footer links */}
-        <div className="cmp__stream-foot">
-          <a
-            href={activeYt}
-            target="_blank"
-            rel="noreferrer"
-            className="cmp__stream-link"
-          >
-            <span className="cmp__stream-link-icon">▶</span>
-            Full channel &amp; archive
-          </a>
-          <a
-            href={`${activeYt}/playlists`}
-            target="_blank"
-            rel="noreferrer"
-            className="cmp__stream-link"
-          >
-            <span className="cmp__stream-link-icon">☰</span>
-            Sermon series
-          </a>
-          <a
-            href={activeYt}
-            target="_blank"
-            rel="noreferrer"
-            className="btn btn--ghost btn--sm cmp__stream-yt"
-          >
-            Subscribe on YouTube
-          </a>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -361,7 +236,80 @@ function Campus({ c }: { c: (typeof CAMPUSES)[number] }) {
           </div>
         </div>
 
-        <CampusStream c={c} />
+      </div>
+    </section>
+  );
+}
+
+const SCHEDULE = [
+  {
+    day: "Sunday",
+    items: [
+      ["Silver Spring", "Morning Prayer", "10:00a"],
+      ["Silver Spring", "Sunday Worship", "11:00a"],
+      ["Silver Spring", "Young Adult", "6:30p"],
+      ["Alexandria", "Morning Prayer", "9:30a"],
+      ["Alexandria", "Sunday Worship", "10:30a"],
+    ],
+  },
+  { day: "Tuesday", items: [["Alexandria", "Midweek Teaching", "7:00p"]] },
+  { day: "Wednesday", items: [["Silver Spring", "Midweek Service", "6:30p"]] },
+  { day: "Thursday", items: [["Silver Spring", "Thursday Prayer", "10:00a"]] },
+  {
+    day: "Friday",
+    items: [
+      ["Alexandria", "Prayer Night", "7:00p"],
+      ["Silver Spring", "Overnight Prayer", "8:30p"],
+    ],
+  },
+  { day: "Saturday", items: [["Alexandria", "Young Adult", "7:00p"]] },
+];
+
+function ScheduleTable() {
+  return (
+    <section className="sched">
+      <div className="container-wide">
+        <header className="sched__head">
+          <div>
+            <div className="eyebrow">Weekly schedule</div>
+            <h2 className="sched__title">
+              When services
+              <br />
+              stream <em>live.</em>
+            </h2>
+          </div>
+          <div className="sched__head-right">
+            <p className="sched__lede">
+              All times Eastern. Services begin streaming at service start and
+              replays post within 24&nbsp;hours across both campuses.
+            </p>
+            <Link to="/connect" className="btn btn--ghost btn--sm">
+              Plan your visit
+            </Link>
+          </div>
+        </header>
+
+        <ul className="sched__list">
+          {SCHEDULE.map((r, i) => (
+            <li key={i} className="sched__row">
+              <div className="sched__day">{r.day}</div>
+              <div className="sched__items">
+                {r.items.map((it, j) => (
+                  <div key={j} className="sched__item">
+                    <span className="sched__campus">{it[0]}</span>
+                    <span className="sched__what">{it[1]}</span>
+                    <span className="sched__when">{it[2]}</span>
+                  </div>
+                ))}
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <p className="sched__tz">
+          <span className="sched__tz-dot" />
+          Eastern Time (ET) · Updated for 2026 schedule
+        </p>
       </div>
     </section>
   );
@@ -381,9 +329,14 @@ function LocCTA() {
           Stream with us this <em>Sunday.</em>
         </h2>
         <div className="loc-cta__actions">
-          <Link to="/sermons" className="btn btn--cream btn--lg">
+          <a
+            href="https://www.youtube.com/@addislidetmedia"
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn--cream btn--lg"
+          >
             Watch live
-          </Link>
+          </a>
           <Link to="/connect" className="btn btn--ghost-cream btn--lg">
             Find your community
           </Link>
@@ -401,6 +354,7 @@ const LocationsPage = () => (
       {CAMPUSES.map((c) => (
         <Campus key={c.id} c={c} />
       ))}
+      <ScheduleTable />
       <LocCTA />
     </main>
     <LandingFooter />

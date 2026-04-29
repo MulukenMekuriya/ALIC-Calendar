@@ -32,7 +32,7 @@ export default function LandingNav() {
     { key: 'home',      label: t('nav.home'),      to: '/' },
     { key: 'about',     label: t('nav.about'),     to: '/about' },
     { key: 'locations', label: t('nav.locations'), to: '/locations' },
-    { key: 'sermons',   label: t('nav.sermons'),   to: '/sermons' },
+    { key: 'ministries', label: t('nav.ministries'), to: '/ministries' },
     { key: 'connect',   label: t('nav.connect'),   to: '/connect' },
   ];
 
