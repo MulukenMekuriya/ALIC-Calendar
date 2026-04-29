@@ -22,8 +22,10 @@ const I18N = {
 
     // Hero
     "hero.eyebrow": "Addis Lidet Int'l Church · Since 2008",
-    "hero.title.1": "A new birth.",
-    "hero.title.2": "A new life.",
+    "hero.title.1": "Welcome to",
+    "hero.title.2a": "Addis Lidet",
+    "hero.title.2b": "Int'l Church.",
+    "hero.caption": "Est. 2008 · International Church",
     "hero.lede": "Two campuses. One family. Worshipping since 2008.",
     "hero.cta": "Plan your visit",
     "hero.watch": "Watch the latest",
@@ -114,8 +116,10 @@ const I18N = {
 
     // Hero
     "hero.eyebrow": "አዲስ ልደት ዓለም አቀፍ ቤተክርስቲያን · ከ 2008 ጀምሮ",
-    "hero.title.1": "አዲስ ልደት.",
-    "hero.title.2": "አዲስ ሕይወት.",
+    "hero.title.1": "እንኳን ደህና መጡ",
+    "hero.title.2a": "አዲስ ልደት",
+    "hero.title.2b": "ዓለም አቀፍ ቤተክርስቲያን።",
+    "hero.caption": "ከ 2008 ጀምሮ · ዓለም አቀፍ ቤተክርስቲያን",
     "hero.lede": "ሁለት ቅርንጫፎች። አንድ ቤተሰብ። ከ2008 ጀምሮ በአማርኛ ስብሰባ።",
     "hero.cta": "ጉብኝትዎን ያቅዱ",
     "hero.watch": "የቅርብ ጊዜ ስብከት ይመልከቱ",

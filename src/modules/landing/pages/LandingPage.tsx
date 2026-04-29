@@ -41,38 +41,28 @@ function Hero() {
       </div>
 
       <div className="container hero__inner">
-        <div className="hero__eyebrow reveal">
-          <span className="eyebrow">
-            <span
-              style={{
-                fontFamily: "var(--font-geez)",
-                color: "var(--gold)",
-                letterSpacing: 0,
-              }}
-            >
-              አዲስ ልደት
-            </span>
-            <span style={{ opacity: 0.4, margin: "0 4px" }}>·</span>
-            Addis Lidet Int'l Church
-          </span>
+        <div className="hero__caption reveal" data-delay="1">
+          <span className="hero__caption-rule" />
+          <span className="hero__caption-text">{t("hero.caption")}</span>
         </div>
 
         <h1 className="hero__title">
-          <span className="mask" data-delay="1">
+          <span className="mask hero__title-welcome" data-delay="2">
             <span>{t("hero.title.1")}</span>
           </span>
-          <span className="mask hero__title-italic" data-delay="2">
-            <span>
-              <em>{t("hero.title.2")}</em>
-            </span>
+          <span className="mask hero__title-name" data-delay="3">
+            <span>{t("hero.title.2a")}</span>
+          </span>
+          <span className="mask hero__title-name" data-delay="4">
+            <span>{t("hero.title.2b")}</span>
           </span>
         </h1>
 
-        <p className="hero__lede reveal" data-delay="3">
+        <p className="hero__lede reveal" data-delay="5">
           {t("hero.lede")}
         </p>
 
-        <div className="hero__ctas reveal" data-delay="4">
+        <div className="hero__ctas reveal" data-delay="5">
           <Link to="/connect" className="btn btn--gold btn--lg">
             {t("hero.cta")} <ArrowIcon />
           </Link>
