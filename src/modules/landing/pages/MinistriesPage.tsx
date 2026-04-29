@@ -58,8 +58,8 @@ function Hero({ lang }: { lang: Lang }) {
         </h1>
         <p className="min-hero__lede">
           {lang === "am"
-            ? "ለእያንዳንዱ ዕድሜ፣ ለእያንዳንዱ የሕይወት ምዕራፍ፣ ለእያንዳንዱ ስጦታ — በዚህ ቤተክርስቲያን ውስጥ ቤተሰብ አለ። በክርስቶስ ውስጥ አብረን ለማገልገል እንመጣለን።"
-            : "There's a ministry for every age, every stage of life, and every gift. We believe in serving together as a family in Christ — and there's a place here for you."}
+            ? "ለእያንዳንዱ ዕድሜ፣ ለእያንዳንዱ የሕይወት ምዕራፍ፣ ለእያንዳንዱ ስጦታ። በዚህ ቤተክርስቲያን ውስጥ ቤተሰብ አለ። በክርስቶስ ውስጥ አብረን ለማገልገል እንመጣለን።"
+            : "There's a ministry for every age, every stage of life, and every gift. We believe in serving together as a family in Christ, and there's a place here for you."}
         </p>
         <div className="min-hero__ctas">
           <a href="#connect" className="btn btn--gold btn--lg">
@@ -447,8 +447,8 @@ function ConnectForm({
             </h2>
             <p className="min-connect__lede">
               {lang === "am"
-                ? "ብዙ ጎብኚዎች ከድረ-ገጽ ላይ አገልግሎት አይመርጡም — በሰው ጋር በመነጋገር ይመርጣሉ። ስለ አንተ ትንሽ ንገረን፣ አንድ የእረኞች ቡድን አባል በ48 ሰዓት ውስጥ ያገኝሃል።"
-                : "Most people don't pick a ministry from a website — they pick because someone invited them. Tell us a little about yourself and a pastor or ministry leader will reach out within 48 hours."}
+                ? "ብዙ ጎብኚዎች ከድረ-ገጽ ላይ አገልግሎት አይመርጡም። በሰው ጋር በመነጋገር ይመርጣሉ። ስለ አንተ ትንሽ ንገረን፣ አንድ የእረኞች ቡድን አባል በ48 ሰዓት ውስጥ ያገኝሃል።"
+                : "Most people don't pick a ministry from a website. They pick because someone invited them. Tell us a little about yourself and a pastor or ministry leader will reach out within 48 hours."}
             </p>
           </div>
 

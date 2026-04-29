@@ -81,7 +81,7 @@ export const MINISTRIES: Ministry[] = [
       en: "For kids to know Jesus, learn the Bible, and grow in a fun, safe environment.",
     },
     description: {
-      en: "Sunday School during worship at both campuses. Addis Lidet believes deeply in raising the next generation of disciples — this ministry is the heart of that calling.",
+      en: "Sunday School during worship at both campuses. Addis Lidet believes deeply in raising the next generation of disciples, and this ministry is the heart of that calling.",
     },
     meets: null, // [VERIFY] confirm exact times per age group
     location: { en: "Both campuses · children's wing" },
@@ -137,7 +137,7 @@ export const MINISTRIES: Ministry[] = [
       en: "For anyone who wants real community and to grow in faith with a small group of believers in their neighborhood.",
     },
     description: {
-      en: "Around 42 small groups meet across the DMV — 32 cells in Maryland and 10 in Virginia. Each cell gathers for Bible study, prayer, and life together close to home.",
+      en: "Around 42 small groups meet across the DMV: 32 cells in Maryland and 10 in Virginia. Each cell gathers for Bible study, prayer, and life together close to home.",
     },
     meets: { en: "Weekly · in homes across the DMV" },
     location: { en: "32 cells across Maryland · 10 cells across Virginia" },
@@ -162,7 +162,7 @@ export const MINISTRIES: Ministry[] = [
       en: "For college students and young professionals navigating faith, career, and identity.",
     },
     description: {
-      en: "A community of college students and young professionals walking through the questions of work, calling, relationships, and faith — in both English and Amharic.",
+      en: "A community of college students and young professionals walking through the questions of work, calling, relationships, and faith, in both English and Amharic.",
     },
     meets: {
       en: "Sunday evenings 6:30–9:00 PM · Silver Spring · Saturday evenings 7:00–9:00 PM · Alexandria",
@@ -187,7 +187,7 @@ export const MINISTRIES: Ministry[] = [
     name: { en: "Prayer Ministry", am: "የጸሎት አገልግሎት" },
     forWhom: { en: "For those hungry to seek God in His presence." },
     description: {
-      en: "Our intercessors meet across the week — before Sunday services, midday on Thursdays, on Friday nights at both campuses, and once a month overnight. Anyone is welcome to come and learn to pray with us.",
+      en: "Our intercessors meet across the week: before Sunday services, midday on Thursdays, on Friday nights at both campuses, and once a month overnight. Anyone is welcome to come and learn to pray with us.",
     },
     meets: {
       en: "Sunday morning prayer · Thursday 10:00 AM–2:00 PM (MD) · Friday overnight 8:30 PM–12:30 AM (MD) · Friday 7:00–11:00 PM (VA)",
@@ -211,7 +211,7 @@ export const MINISTRIES: Ministry[] = [
     category: "outreach",
     name: { en: "ALIC Mission", am: "የአዲስ ልደት ተልዕኮ" },
     forWhom: {
-      en: "For those moved to serve the whole person — body, mind, and spirit.",
+      en: "For those moved to serve the whole person: body, mind, and spirit.",
     },
     description: {
       en: "Holistic evangelism and community service across the DMV and Ethiopia: health care, education, family counseling, small business creation, and capacity building.",
@@ -238,7 +238,7 @@ export const MINISTRIES: Ministry[] = [
     featured: false,
     category: "worship",
     name: { en: "Sunday Worship Service" },
-    forWhom: { en: "For everyone — visitor, member, family, friend." },
+    forWhom: { en: "For everyone: visitor, member, family, friend." },
     description: {
       en: "Our weekly gathering at both campuses for worship, teaching, and the Lord's Table.",
     },
@@ -282,7 +282,7 @@ export const MINISTRIES: Ministry[] = [
       en: "For believers who want to deepen their study of Scripture and theology.",
     },
     description: {
-      en: "ALIC's accredited Bible school — open to members and the wider community.",
+      en: "ALIC's accredited Bible school. Open to members and the wider community.",
     },
     meets: null,
     location: null,
