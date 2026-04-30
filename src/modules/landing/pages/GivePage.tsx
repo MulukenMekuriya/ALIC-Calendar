@@ -21,13 +21,6 @@ const OTHER_WAYS = [
   { code: "IN–06",   t: "In person",               b: "Drop your gift in the offering box at either campus during service. No envelope required — our finance team will issue a receipt." },
 ];
 
-const IMPACT_ROWS = [
-  { n: 62, l: "Weekly worship & teaching",  s: "Pastors, staff, sound, translation, childcare, building operations at both campuses.",     color: "var(--accent)" },
-  { n: 18, l: "Missions & partnerships",    s: "Partner churches and missionaries in Ethiopia, Kenya, and DRC.",                           color: "var(--gold-bright)" },
-  { n: 12, l: "Local compassion",           s: "Benevolence, community meals, partnerships with Montgomery and Fairfax nonprofits.",       color: "#4caf8a" },
-  { n: 8,  l: "Leadership development",     s: "Training our next generation of deacons, preachers, worship leaders, and planters.",       color: "var(--ink)" },
-];
-
 const PRESET_AMOUNTS = [25, 50, 100, 250, 500, 1000];
 
 function GiveHero() {
@@ -233,49 +226,6 @@ function OtherWays() {
   );
 }
 
-function Impact() {
-  return (
-    <section className="im-section">
-      <div className="container-wide">
-        <div className="im-top">
-          <div>
-            <div className="op-aside__label" style={{ color: "var(--ink-muted)" }}>IV. FY 2025 BUDGET · ALLOCATION</div>
-            <h2 className="im-title">A family,<br />not a fundraiser.</h2>
-          </div>
-          <p className="im-p">
-            Your gift is stewarded transparently. Every dollar passes through two-signature approvals; every year's numbers are published and open to any member.
-          </p>
-        </div>
-
-        {/* Proportional bar */}
-        <div className="im-bar" aria-hidden="true">
-          {IMPACT_ROWS.map((r, i) => (
-            <div key={i} className="im-bar__seg" style={{ flex: r.n, background: r.color }}>
-              <span>{r.n}%</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="im-grid">
-          {IMPACT_ROWS.map((r, i) => (
-            <div key={i} className="im-cell">
-              <div className="im-cell__swatch" style={{ background: r.color }} />
-              <div className="im-cell__pct">{r.n}<small>%</small></div>
-              <div className="im-cell__t">{r.l}</div>
-              <div className="im-cell__s">{r.s}</div>
-            </div>
-          ))}
-        </div>
-
-        <div className="im-foot">
-          <span>FULL ANNUAL REPORT · published each March · ask any elder for a copy</span>
-          <a href="#" className="im-foot__link">Download FY24 report ↓</a>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 const GivePage = () => (
   <div className="landing-root">
     <LandingNav />
@@ -283,7 +233,6 @@ const GivePage = () => (
       <GiveHero />
       <OfferingPlate />
       <OtherWays />
-      <Impact />
     </main>
     <LandingFooter />
   </div>
