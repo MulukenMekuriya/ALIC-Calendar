@@ -64,11 +64,11 @@ const CAMPUSES = [
         items: [
           ["Morning Prayer", "9:30a–10:30a"],
           ["Sunday Worship", "10:30a–1:00p"],
+          ["Young Adults", "7:00p–9:00p"],
         ],
       },
       { day: "Tuesday", items: [["Bible Study", "7:00p–9:00p"]] },
       { day: "Friday", items: [["Prayer Night", "7:00p–11:00p"]] },
-      { day: "Saturday", items: [["Young Adults", "7:00p–9:00p"]] },
     ],
   },
 ];
@@ -250,6 +250,7 @@ const SCHEDULE = [
       ["Silver Spring", "Young Adult", "6:30p"],
       ["Alexandria", "Morning Prayer", "9:30a"],
       ["Alexandria", "Sunday Worship", "10:30a"],
+      ["Alexandria", "Young Adult", "7:00p"],
     ],
   },
   { day: "Tuesday", items: [["Alexandria", "Midweek Teaching", "7:00p"]] },
@@ -262,7 +263,6 @@ const SCHEDULE = [
       ["Silver Spring", "Overnight Prayer", "8:30p"],
     ],
   },
-  { day: "Saturday", items: [["Alexandria", "Young Adult", "7:00p"]] },
 ];
 
 function ScheduleTable() {

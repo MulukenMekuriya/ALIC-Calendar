@@ -165,7 +165,7 @@ export const MINISTRIES: Ministry[] = [
       en: "A community of college students and young professionals walking through the questions of work, calling, relationships, and faith, in both English and Amharic.",
     },
     meets: {
-      en: "Sunday evenings 6:30–9:00 PM · Silver Spring · Saturday evenings 7:00–9:00 PM · Alexandria",
+      en: "Sunday evenings 6:30–9:00 PM · Silver Spring · Sunday evenings 7:00–9:00 PM · Alexandria",
     },
     location: { en: "Both campuses" },
     campuses: ["md", "va"],

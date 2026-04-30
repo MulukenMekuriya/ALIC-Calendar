@@ -135,6 +135,12 @@ function Timeline() {
           ))}
         </ol>
       </div>
+      <div className="tl-hint">
+        <span>Scroll for more</span>
+        <svg viewBox="0 0 18 8" fill="none">
+          <path d="M0 4h16M12 1l4 3-4 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
     </section>
   );
 }
@@ -284,19 +290,33 @@ function StatementOfFaith() {
             We base our beliefs on the infallible Word of God, the Bible.
           </p>
         </div>
-        <div className="sof__grid">
+      </div>
+      <div className="sof-track">
+        <div className="sof-rail" />
+        <ol className="sof-list">
           {FAITH_STATEMENTS.map((s) => (
-            <article key={s.ref} className="sof__item">
-              <div className="sof__ref">{s.ref}</div>
-              <h3 className="sof__item-title">{s.title}</h3>
-              {s.body.map((p, i) => (
-                <p key={i} className="sof__item-body">
-                  {p}
-                </p>
-              ))}
-            </article>
+            <li key={s.ref} className="sof-item">
+              <div className="sof-node">
+                <span className="sof-dot" />
+                <span className="sof-ref">{s.ref}</span>
+              </div>
+              <div className="sof-card">
+                <h3 className="sof-t">{s.title}</h3>
+                {s.body.map((p, i) => (
+                  <p key={i} className="sof-b">
+                    {p}
+                  </p>
+                ))}
+              </div>
+            </li>
           ))}
-        </div>
+        </ol>
+      </div>
+      <div className="sof-hint">
+        <span>Scroll for more</span>
+        <svg viewBox="0 0 18 8" fill="none">
+          <path d="M0 4h16M12 1l4 3-4 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       </div>
     </section>
   );

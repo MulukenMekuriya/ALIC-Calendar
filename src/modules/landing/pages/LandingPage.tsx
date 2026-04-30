@@ -276,7 +276,7 @@ const LOCATIONS = [
       "Sun 10:30am — Sunday Worship",
       "Tue 7:00pm — Bible Study",
       "Fri 7:00pm — Prayer Night",
-      "Sat 7:00pm — Young Adults",
+      "Sun 7:00pm — Young Adults",
     ],
     caption: "04 · Eisenhower Ave · new 2026",
     photo: "/va-campus.jpg",
