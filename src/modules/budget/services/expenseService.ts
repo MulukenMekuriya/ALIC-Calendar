@@ -19,6 +19,12 @@ import type {
 // Helper to get the budget schema client
 const budgetSchema = () => supabase.schema("budget");
 
+// Emails whose requests skip admin review and route straight to treasury.
+const AUTO_TRANSFER_EMAILS = new Set(["office@addislidetchurch.com"]);
+
+const shouldAutoTransferToTreasury = (email: string | null | undefined) =>
+  !!email && AUTO_TRANSFER_EMAILS.has(email.trim().toLowerCase());
+
 export const expenseService = {
   /**
    * List expense requests with filters
@@ -307,19 +313,33 @@ export const expenseService = {
   ): Promise<ExpenseRequest> {
     const { data: current } = await budgetSchema()
       .from("expense_requests")
-      .select("status")
+      .select("status, requester_email")
       .eq("id", expenseId)
       .single();
 
     const previousStatus = current?.status as ExpenseStatus;
+    const submittedAt = new Date().toISOString();
+    const autoTransfer = shouldAutoTransferToTreasury(current?.requester_email);
 
     const { data, error } = await budgetSchema()
       .from("expense_requests")
-      .update({
-        status: "pending_leader",
-        submitted_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
+      .update(
+        autoTransfer
+          ? {
+              status: "leader_approved",
+              submitted_at: submittedAt,
+              leader_reviewer_id: actorId,
+              leader_reviewed_at: submittedAt,
+              leader_notes:
+                "Auto-transferred to treasury (configured sender)",
+              updated_at: submittedAt,
+            }
+          : {
+              status: "pending_leader",
+              submitted_at: submittedAt,
+              updated_at: submittedAt,
+            }
+      )
       .eq("id", expenseId)
       .select()
       .single();
@@ -330,11 +350,26 @@ export const expenseService = {
       expense_request_id: expenseId,
       action: "submitted",
       previous_status: previousStatus,
-      new_status: "pending_leader",
+      new_status: autoTransfer ? "leader_approved" : "pending_leader",
       actor_id: actorId,
       actor_name: actorName,
-      notes: "Submitted for leader review",
+      notes: autoTransfer
+        ? "Submitted and auto-transferred to treasury (configured sender)"
+        : "Submitted for leader review",
     });
+
+    if (autoTransfer) {
+      await this.addHistory({
+        expense_request_id: expenseId,
+        action: "transferred_to_treasury",
+        previous_status: "pending_leader",
+        new_status: "leader_approved",
+        actor_id: actorId,
+        actor_name: actorName,
+        notes:
+          "Auto-transferred to treasury: requester email is configured for direct treasury routing",
+      });
+    }
 
     return data;
   },
