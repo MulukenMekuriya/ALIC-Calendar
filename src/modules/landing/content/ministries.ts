@@ -214,7 +214,7 @@ export const MINISTRIES: Ministry[] = [
       en: "For those moved to serve the whole person: body, mind, and spirit.",
     },
     description: {
-      en: "Holistic evangelism and community service across the DMV and Ethiopia: health care, education, family counseling, small business creation, and capacity building.",
+      en: "Our mission is to spread the Gospel of Jesus Christ holistically by evangelizing cities and villages with the power of the Kingdom of God. We are dedicated to reaching communities with the least access to the Good News by establishing healthy, mission-oriented churches and equipping missionaries for both spiritual and children's ministry. By creating opportunities for our members to actively participate in outreach, we serve our neighbors through healthcare, education, counseling, and economic empowerment. Through strategic partnerships and faithful stewardship, we strive to transform lives and multiply the impact of the Gospel in every community we reach.",
     },
     meets: { en: "Year-round · project-based" },
     location: { en: "Local and international" },
@@ -275,14 +275,14 @@ export const MINISTRIES: Ministry[] = [
   {
     key: "bible-school",
     published: true,
-    featured: false,
+    featured: true,
     category: "worship",
-    name: { en: "ALIC Bible School" },
+    name: { en: "ALIC Bible School (ABS)" },
     forWhom: {
       en: "For believers who want to deepen their study of Scripture and theology.",
     },
     description: {
-      en: "ALIC's accredited Bible school. Open to members and the wider community.",
+      en: "Driven by a commitment to Christ-centeredness and excellence, we envision a biblically enlightened community that deeply understands and lives out the Word of God. Our mission is to equip the church through Spirit-led, Scripture-rooted theological education that empowers every member to serve with a servanthood-attitude. By remaining mission-focused, we strive to foster a practical faith that honors God and reflects His love in everything we do.",
     },
     meets: null,
     location: null,
@@ -410,6 +410,30 @@ export const MINISTRIES: Ministry[] = [
       "Scope (pre-marital? marriage retreats? counseling?)",
       "Lead contact name + email + photo",
       "Amharic name + translation",
+    ],
+  },
+  {
+    key: "welcoming",
+    published: true,
+    featured: true,
+    category: "community",
+    name: { en: "Welcoming Team", am: "የእንግዶች መቀበያ ቡድን" },
+    forWhom: {
+      en: "For first-time visitors and anyone returning — so you feel valued from the moment you arrive.",
+    },
+    description: {
+      en: "Our Welcoming Team creates an atmosphere of warmth and care for everyone joining us for worship. Visiting for the first time? We'd love to meet you, help you get settled, and connect you with our follow-up team to help you find your place in our church family.",
+    },
+    meets: { en: "Sundays · before and after worship" },
+    location: { en: "Both campuses · lobby" },
+    campuses: ["md", "va"],
+    ctaLabel: { en: "Plan a visit" },
+    ctaHref: "/locations",
+    photo: "/Welcome Team.png",
+    leader: { name: null, role: null, email: null, photo: null },
+    needsBeforeLaunch: [
+      "Welcoming Team lead contact per campus",
+      "Amharic translation of forWhom + description",
     ],
   },
   {

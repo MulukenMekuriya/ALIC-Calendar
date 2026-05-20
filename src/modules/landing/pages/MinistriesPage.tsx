@@ -95,7 +95,11 @@ function FeaturedCard({
     <article className={`min-card${reverse ? " min-card--rev" : ""}`}>
       <div className="min-card__media">
         <PhotoSlot
-          label={`${pick(m.name, "en")} — placeholder for real church photo`}
+          label={
+            m.photo
+              ? pick(m.name, "en")
+              : `${pick(m.name, "en")} — placeholder for real church photo`
+          }
           src={m.photo ?? undefined}
           className="min-card__photo"
           paper

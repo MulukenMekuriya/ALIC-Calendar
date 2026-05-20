@@ -2162,8 +2162,9 @@
 
 .landing-root .min-card__media { position: sticky; top: 100px; }
 .landing-root .min-card__photo { aspect-ratio: 4/5; }
+.landing-root .min-card__photo .photo-slot__img { object-fit: contain; }
 .landing-root .min-card__num {
-  position: absolute; top: 18px; left: 18px;
+  position: absolute; bottom: 18px; right: 18px;
   font-family: var(--font-serif); font-style: italic;
   font-size: 28px; color: var(--paper);
   background: rgba(6,16,28,0.55);
