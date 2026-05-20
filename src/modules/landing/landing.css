@@ -588,6 +588,18 @@
   font-family: var(--font-mono); font-size: 11px;
   letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-on-paper);
 }
+.landing-root .sg__time-campus--btn {
+  display: inline-flex; align-items: center; gap: 10px;
+  align-self: start; padding: 10px 16px; border-radius: 999px;
+  background: var(--text-on-paper); color: var(--paper);
+  font-weight: 700; text-decoration: none;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.landing-root .sg__time-campus--btn:hover {
+  background: var(--accent, var(--text-on-paper));
+  transform: translateY(-1px);
+}
+.landing-root .sg__time-campus--btn svg { width: 14px; height: 14px; }
 .landing-root .sg__time-list { display: flex; flex-direction: column; gap: 4px; color: var(--text-on-paper-dim); }
 .landing-root .sg__time-list strong {
   color: var(--text-on-paper); font-weight: 600;
@@ -2163,6 +2175,15 @@
 .landing-root .min-card__media { position: sticky; top: 100px; }
 .landing-root .min-card__photo { aspect-ratio: 4/5; }
 .landing-root .min-card__photo .photo-slot__img { object-fit: contain; }
+.landing-root .min-card__photo:has(.photo-slot__img) {
+  aspect-ratio: auto; padding: 26px 26px 44px;
+}
+.landing-root .min-card__photo:has(.photo-slot__img) .photo-slot__img {
+  position: static; width: 100%; height: auto; display: block;
+}
+.landing-root .min-card__photo.min-card__photo--multi:has(.photo-slot__img) {
+  aspect-ratio: 3/2; padding: 0;
+}
 .landing-root .min-card__num {
   position: absolute; bottom: 18px; right: 18px;
   font-family: var(--font-serif); font-style: italic;

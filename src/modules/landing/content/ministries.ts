@@ -69,6 +69,53 @@ export interface Ministry {
 export const MINISTRIES: Ministry[] = [
   /* ── FEATURED — order here drives page order ─────────── */
   {
+    key: "bible-school",
+    published: true,
+    featured: true,
+    category: "worship",
+    name: { en: "ALIC Bible School (ABS)" },
+    forWhom: {
+      en: "For believers who want to deepen their study of Scripture and theology.",
+    },
+    description: {
+      en: "Driven by a commitment to Christ-centeredness and excellence, we envision a biblically enlightened community that deeply understands and lives out the Word of God. Our mission is to equip the church through Spirit-led, Scripture-rooted theological education that empowers every member to serve with a servanthood-attitude. By remaining mission-focused, we strive to foster a practical faith that honors God and reflects His love in everything we do.",
+    },
+    meets: null,
+    location: null,
+    campuses: ["md", "va"],
+    ctaLabel: { en: "Visit ALIC Bible School" },
+    ctaHref: "https://sites.google.com/alicbibleschool.com/abs",
+    photo: null,
+    leader: { name: null, role: null, email: null, photo: null },
+    needsBeforeLaunch: [
+      "Confirm if class schedule should be surfaced here or stay on the Bible School site",
+    ],
+  },
+  {
+    key: "welcoming",
+    published: true,
+    featured: true,
+    category: "community",
+    name: { en: "Welcoming Team", am: "የእንግዶች መቀበያ ቡድን" },
+    forWhom: {
+      en: "For first-time visitors and anyone returning — so you feel valued from the moment you arrive.",
+    },
+    description: {
+      en: "Our Welcoming Team creates an atmosphere of warmth and care for everyone joining us for worship. Visiting for the first time? We'd love to meet you, help you get settled, and connect you with our follow-up team to help you find your place in our church family.",
+    },
+    meets: { en: "Sundays · before and after worship" },
+    location: { en: "Both campuses · lobby" },
+    campuses: ["md", "va"],
+    ctaLabel: { en: "Plan a visit" },
+    ctaHref: "/locations",
+    photo: "/Welcome Team.png",
+    leader: { name: null, role: null, email: null, photo: null },
+    needsBeforeLaunch: [
+      "Welcoming Team lead contact per campus",
+      "Amharic translation of forWhom + description",
+    ],
+  },
+  {
     key: "childrens",
     // Published with brief-sourced copy. `meets` is intentionally null until
     // Sunday School times and age groupings are confirmed — the page hides
@@ -272,29 +319,6 @@ export const MINISTRIES: Ministry[] = [
     leader: { name: null, role: null, email: null, photo: null },
     needsBeforeLaunch: [],
   },
-  {
-    key: "bible-school",
-    published: true,
-    featured: true,
-    category: "worship",
-    name: { en: "ALIC Bible School (ABS)" },
-    forWhom: {
-      en: "For believers who want to deepen their study of Scripture and theology.",
-    },
-    description: {
-      en: "Driven by a commitment to Christ-centeredness and excellence, we envision a biblically enlightened community that deeply understands and lives out the Word of God. Our mission is to equip the church through Spirit-led, Scripture-rooted theological education that empowers every member to serve with a servanthood-attitude. By remaining mission-focused, we strive to foster a practical faith that honors God and reflects His love in everything we do.",
-    },
-    meets: null,
-    location: null,
-    campuses: ["md", "va"],
-    ctaLabel: { en: "Visit ALIC Bible School" },
-    ctaHref: "https://sites.google.com/alicbibleschool.com/abs",
-    photo: null,
-    leader: { name: null, role: null, email: null, photo: null },
-    needsBeforeLaunch: [
-      "Confirm if class schedule should be surfaced here or stay on the Bible School site",
-    ],
-  },
 
   /* ── ALL MINISTRIES grid — [VERIFY] holding pattern ──── */
   {
@@ -410,30 +434,6 @@ export const MINISTRIES: Ministry[] = [
       "Scope (pre-marital? marriage retreats? counseling?)",
       "Lead contact name + email + photo",
       "Amharic name + translation",
-    ],
-  },
-  {
-    key: "welcoming",
-    published: true,
-    featured: true,
-    category: "community",
-    name: { en: "Welcoming Team", am: "የእንግዶች መቀበያ ቡድን" },
-    forWhom: {
-      en: "For first-time visitors and anyone returning — so you feel valued from the moment you arrive.",
-    },
-    description: {
-      en: "Our Welcoming Team creates an atmosphere of warmth and care for everyone joining us for worship. Visiting for the first time? We'd love to meet you, help you get settled, and connect you with our follow-up team to help you find your place in our church family.",
-    },
-    meets: { en: "Sundays · before and after worship" },
-    location: { en: "Both campuses · lobby" },
-    campuses: ["md", "va"],
-    ctaLabel: { en: "Plan a visit" },
-    ctaHref: "/locations",
-    photo: "/Welcome Team.png",
-    leader: { name: null, role: null, email: null, photo: null },
-    needsBeforeLaunch: [
-      "Welcoming Team lead contact per campus",
-      "Amharic translation of forWhom + description",
     ],
   },
   {

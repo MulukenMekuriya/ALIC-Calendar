@@ -201,7 +201,9 @@ function SundayGatherings() {
 
           <div className="sg__times reveal" data-delay="3">
             <div className="sg__time-row">
-              <div className="sg__time-campus">Maryland · Silver Spring</div>
+              <Link to="/locations#md" className="sg__time-campus sg__time-campus--btn">
+                Maryland · Silver Spring <ArrowIcon />
+              </Link>
               <div className="sg__time-list">
                 <div>
                   <strong>10:00 AM</strong> &nbsp;— Morning Prayer
@@ -218,7 +220,9 @@ function SundayGatherings() {
               </div>
             </div>
             <div className="sg__time-row">
-              <div className="sg__time-campus">Virginia · Alexandria</div>
+              <Link to="/locations#va" className="sg__time-campus sg__time-campus--btn">
+                Virginia · Alexandria <ArrowIcon />
+              </Link>
               <div className="sg__time-list">
                 <div>
                   <strong>9:30 AM</strong> &nbsp;— Morning Prayer
@@ -226,12 +230,15 @@ function SundayGatherings() {
                 <div>
                   <strong>10:30 AM</strong> &nbsp;— Sunday Worship
                 </div>
+                <div>
+                  <strong>7:00 PM</strong> &nbsp;— Young Adults
+                </div>
               </div>
             </div>
           </div>
 
           <div className="sg__cta reveal" data-delay="4">
-            <Link to="/connect" className="btn-dark-pill">
+            <Link to="/locations" className="btn-dark-pill">
               Plan your visit <ArrowIcon />
             </Link>
           </div>

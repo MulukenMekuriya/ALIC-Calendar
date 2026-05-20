@@ -67,7 +67,7 @@ const CAMPUSES = [
           ["Young Adults", "7:00p–9:00p"],
         ],
       },
-      { day: "Tuesday", items: [["Bible Study", "7:00p–9:00p"]] },
+      { day: "Tuesday", items: [["Midweek Service", "7:00p–9:00p"]] },
       { day: "Friday", items: [["Prayer Night", "7:00p–11:00p"]] },
     ],
   },
@@ -268,7 +268,7 @@ function ScheduleTable() {
               All times Eastern. Services begin streaming at service start.
               Tap the link on the day-of to join the live broadcast.
             </p>
-            <Link to="/connect" className="btn btn--ghost btn--sm">
+            <Link to="/locations" className="btn btn--ghost btn--sm">
               Plan your visit
             </Link>
           </div>

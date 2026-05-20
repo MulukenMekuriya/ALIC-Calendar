@@ -5,6 +5,7 @@ import LandingFooter from "../components/LandingFooter";
 import PhotoSlot from "../components/PhotoSlot";
 import ArrowIcon from "../components/ArrowIcon";
 import { useI18n } from "../components/useI18n";
+import { useSlideshow } from "../components/useSlideshow";
 import {
   MINISTRIES,
   CATEGORY_LABELS,
@@ -80,6 +81,52 @@ function Hero({ lang }: { lang: Lang }) {
    Featured ministries (large cards)
    ─────────────────────────────────────────────────────── */
 
+/* Bundle ministry photo folders at build time so Vite resolves them to
+   hashed asset URLs — no need to worry about spaces/parens in filenames. */
+const absModules = import.meta.glob<string>(
+  "/public/ABS/*.{jpg,jpeg,png,webp,JPG,JPEG,PNG,WEBP}",
+  { eager: true, import: "default", query: "?url" },
+);
+const MINISTRY_PHOTOS: Record<string, string[]> = {
+  "bible-school": Object.values(absModules),
+};
+
+function MinistrySlideshow({
+  photos,
+  caption,
+}: {
+  photos: string[];
+  caption: string;
+}) {
+  const idx = useSlideshow(photos.length);
+  return (
+    <div
+      className="photo-slot photo-slot--paper min-card__photo min-card__photo--multi"
+      data-caption={caption}
+    >
+      {photos.map((src, i) => (
+        <img
+          key={src}
+          src={src}
+          alt={caption}
+          className="photo-slot__img"
+          loading={i === 0 ? "eager" : "lazy"}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            opacity: i === idx ? 1 : 0,
+            transition: "opacity 1s ease",
+          }}
+        />
+      ))}
+      <div className="photo-slot__frame" />
+    </div>
+  );
+}
+
 function FeaturedCard({
   m,
   index,
@@ -94,16 +141,23 @@ function FeaturedCard({
   return (
     <article className={`min-card${reverse ? " min-card--rev" : ""}`}>
       <div className="min-card__media">
-        <PhotoSlot
-          label={
-            m.photo
-              ? pick(m.name, "en")
-              : `${pick(m.name, "en")} — placeholder for real church photo`
-          }
-          src={m.photo ?? undefined}
-          className="min-card__photo"
-          paper
-        />
+        {MINISTRY_PHOTOS[m.key]?.length ? (
+          <MinistrySlideshow
+            photos={MINISTRY_PHOTOS[m.key]}
+            caption={pick(m.name, "en")}
+          />
+        ) : (
+          <PhotoSlot
+            label={
+              m.photo
+                ? pick(m.name, "en")
+                : `${pick(m.name, "en")} — placeholder for real church photo`
+            }
+            src={m.photo ?? undefined}
+            className="min-card__photo"
+            paper
+          />
+        )}
         <span className="min-card__num">0{index + 1}</span>
       </div>
 
