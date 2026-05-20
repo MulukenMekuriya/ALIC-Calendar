@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import LandingNav from "../components/LandingNav";
 import LandingFooter from "../components/LandingFooter";
@@ -332,17 +332,8 @@ function Locations() {
                   </div>
                 ))}
               </div>
-              <div className="loc__pastor">
-                <div className="loc__pastor-avatar photo-slot photo-slot--tight">
-                  <div className="photo-slot__frame" />
-                </div>
-                <div>
-                  <div className="loc__pastor-name">{l.pastor}</div>
-                  <div className="loc__pastor-title">{l.pastorTitle}</div>
-                </div>
-              </div>
               <div className="loc__cta">
-                <span>Get directions</span>
+                <span>Plan your visit</span>
                 <ArrowIcon />
               </div>
             </Link>
@@ -352,150 +343,6 @@ function Locations() {
     </section>
   );
 }
-
-/* ── Story Strip ── */
-const STORY = [
-  {
-    year: "2008",
-    tag: "Genesis",
-    title: "A small group in Washington, DC.",
-    body: "Our story began in September 2008 as a small group gathering in Washington, DC — a handful of Ethiopian families meeting to pray, sing, and open Scripture in their first language.",
-    caption: "01 · The first gathering, DC · 2008",
-    subject: "Apartment living room · first prayer meeting",
-    tint: "era-08",
-  },
-  {
-    year: "2009",
-    tag: "Ripley St",
-    title: "1010 Ripley St, Silver Spring.",
-    body: "We moved to 1010 Ripley St, Silver Spring, MD 20910 — a home we would stay in for over a decade. Through ups and downs, God's mercy and provision carried us.",
-    caption: "02 · 1010 Ripley St, Silver Spring",
-    subject: "Exterior · Ripley St sanctuary",
-    tint: "era-09",
-  },
-  {
-    year: "2014",
-    tag: "Alexandria",
-    title: "A second campus in Virginia.",
-    body: "Weekday worship and prayer began in Arlington, VA — a humble start for members in two home cells in Alexandria. That seed has since grown into seven home cells across Virginia.",
-    caption: "03 · Weekday prayer, Arlington",
-    subject: "Home cell gathering · Arlington",
-    tint: "era-14",
-  },
-  {
-    year: "2021",
-    tag: "Our own home",
-    title: "11961 Tech Rd, Silver Spring.",
-    body: "In June 2021 we purchased our own building — 11961 Tech Rd, Silver Spring, MD 20904. After thirteen years of renting, the Maryland family finally had a home of its own.",
-    caption: "04 · Tech Rd building, 2021",
-    subject: "Keys handover · Tech Rd",
-    tint: "era-21",
-  },
-  {
-    year: "2026",
-    tag: "Today",
-    title: "New home in Alexandria, VA.",
-    body: "The Virginia campus moved into its own building — 2730 Eisenhower Ave, Alexandria, VA 22314. About 30 home cells in Maryland, 10 in Virginia, and a family that keeps growing.",
-    caption: "05 · 2730 Eisenhower Ave, Alexandria · 2026",
-    subject: "New sanctuary · Eisenhower Ave",
-    tint: "era-26",
-  },
-];
-
-function StoryStrip() {
-  const { t } = useI18n();
-  const [active, setActive] = useState(0);
-  const ref = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    function onScroll() {
-      if (!ref.current) return;
-      const items = ref.current.querySelectorAll(".story__item");
-      const mid = window.innerHeight / 2;
-      let bestIdx = 0,
-        bestDist = Infinity;
-      items.forEach((el, i) => {
-        const r = el.getBoundingClientRect();
-        const c = r.top + r.height / 2;
-        const d = Math.abs(c - mid);
-        if (d < bestDist) {
-          bestDist = d;
-          bestIdx = i;
-        }
-      });
-      setActive(bestIdx);
-    }
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  return (
-    <section className="story" id="story" ref={ref}>
-      <div className="container-tight">
-        <div className="story__head reveal">
-          <span className="eyebrow">{t("story.eyebrow")}</span>
-          <h2 className="story__title">
-            From a <em>small group</em>
-            <br /> to a family of thousands.
-          </h2>
-        </div>
-      </div>
-
-      <div className="story__body">
-        <div className="story__photo-col">
-          <div className="story__photo-stack">
-            {STORY.map((s, i) => (
-              <div
-                key={i}
-                className={`story__photo photo-slot story__photo--${s.tint} ${i === active ? "is-active" : ""}`}
-                data-caption={s.caption}
-                style={{
-                  opacity: i === active ? 1 : 0,
-                  zIndex: i === active ? 2 : 1,
-                }}
-              >
-                <div className="photo-slot__tag">
-                  {s.year} · {s.subject}
-                </div>
-                <div className="photo-slot__frame" />
-                <div className="story__photo-subject">
-                  <span className="story__photo-subject-k">Photo</span>
-                  <span className="story__photo-subject-v">{s.subject}</span>
-                </div>
-                <div className="story__photo-overlay" />
-              </div>
-            ))}
-            <div className="story__year-badge">
-              <span className="story__year-badge-num">
-                {STORY[active].year}
-              </span>
-              <span className="story__year-badge-tag">{STORY[active].tag}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="story__text-col">
-          {STORY.map((s, i) => (
-            <div
-              key={i}
-              className={`story__item ${i === active ? "is-active" : ""}`}
-            >
-              <div className="story__item-meta">
-                <span className="story__item-year">{s.year}</span>
-                <span className="story__item-bar" />
-                <span className="story__item-tag">{s.tag}</span>
-              </div>
-              <h3 className="story__item-title">{s.title}</h3>
-              <p className="story__item-body">{s.body}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 
 /* ── Watch / Sermons ── */
 const WATCH_CHANNELS = [
@@ -526,8 +373,7 @@ function Watch() {
           </div>
           <h2 className="watch__title mask" data-delay="1">
             <span>
-              Every Sunday, <em>live</em>.<br />
-              Every other day, <em>on demand.</em>
+              Watch <em>live</em> transmission.
             </span>
           </h2>
         </div>
@@ -595,118 +441,6 @@ function Watch() {
   );
 }
 
-/* ── Connect / Plan Visit ── */
-function Connect() {
-  const { t } = useI18n();
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    alert("Thank you — we will reach out shortly.");
-  };
-
-  const whenOptions = [
-    t("connect.when.thisSun"),
-    t("connect.when.nextSun"),
-    t("connect.when.month"),
-    t("connect.when.exploring"),
-  ];
-
-  return (
-    <section className="connect" id="plan-visit">
-      <div className="connect__bg">
-        <div className="connect__orb connect__orb--1 drift-slow" />
-        <div
-          className="connect__orb connect__orb--2 drift-slow"
-          style={{ animationDelay: "-10s" }}
-        />
-      </div>
-
-      <div className="container">
-        <div className="connect__grid">
-          <div className="connect__lead">
-            <div className="reveal">
-              <span className="eyebrow eyebrow--gold">{t("connect.eyebrow")}</span>
-            </div>
-            <h2 className="connect__title mask" data-delay="1">
-              <span>{t("connect.title.1")}</span>
-            </h2>
-            <h2
-              className="connect__title connect__title--2 mask"
-              data-delay="2"
-            >
-              <span>
-                <em>{t("connect.title.2")}</em>
-              </span>
-            </h2>
-            <p className="connect__lede reveal" data-delay="3">
-              {t("connect.lede")}
-            </p>
-          </div>
-
-          <form
-            className="connect__form reveal"
-            data-delay="2"
-            onSubmit={handleSubmit}
-          >
-            <div className="connect__form-head">
-              <span className="eyebrow eyebrow--plain eyebrow--gold">
-                {t("connect.formHead")}
-              </span>
-              <span className="connect__form-num">01 / 04</span>
-            </div>
-
-            <div className="connect__field">
-              <label>{t("connect.name")}</label>
-              <input type="text" placeholder="Abebe Bikila" />
-            </div>
-
-            <div className="connect__field-row">
-              <div className="connect__field">
-                <label>{t("connect.email")}</label>
-                <input type="email" placeholder="you@example.com" />
-              </div>
-              <div className="connect__field">
-                <label>{t("connect.campus")}</label>
-                <select defaultValue="">
-                  <option value="" disabled>
-                    Choose one
-                  </option>
-                  <option>Maryland — Silver Spring</option>
-                  <option>Virginia — Alexandria</option>
-                  <option>Either / online</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="connect__field">
-              <label>{t("connect.when")}</label>
-              <div className="connect__chips">
-                {whenOptions.map((c) => (
-                  <label key={c} className="connect__chip">
-                    <input type="radio" name="when" />
-                    <span>{c}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="btn btn--gold btn--lg connect__submit"
-            >
-              {t("cta.saveSeat")} <ArrowIcon />
-            </button>
-
-            <p className="connect__fine">
-              {t("connect.fine")}{" "}
-              <Link to="/locations"> {t("connect.seeTimes")} →</Link>
-            </p>
-          </form>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 /* ── Page ── */
 export default function LandingPage() {
   useReveal();
@@ -726,9 +460,7 @@ export default function LandingPage() {
       <Hero />
       <SundayGatherings />
       <Locations />
-      <StoryStrip />
       <Watch />
-      <Connect />
       </main>
       <LandingFooter />
     </div>

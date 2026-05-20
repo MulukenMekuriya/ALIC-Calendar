@@ -29,19 +29,17 @@ function GiveHero() {
       <div className="container-wide gv-hero__inner">
         <div className="gv-hero__rule">
           <span>I.</span>
-          <span>AN ACT OF WORSHIP</span>
-          <span>—</span>
-          <span>2 COR. 9:7</span>
+          <span>GIVE</span>
         </div>
         <h1 className="gv-hero__title">
-          <span>Give as</span>
-          <em>you have</em>
-          <span>decided in</span>
-          <u>your heart.</u>
+          <span>Give</span>
+          <em>Online.</em>
         </h1>
         <div className="gv-hero__footer">
           <p className="gv-hero__lede">
-            A gift is a sentence in a long family story. Yours helps us keep the doors open, the lights on Sunday, and the gospel moving — in Silver Spring, Alexandria, and every place our missionaries carry it.
+            Your generosity helps us continue serving our church family,
+            supporting missions, and reaching communities with the gospel.
+            Thank you for partnering with us through giving.
           </p>
           <div className="gv-hero__chips">
             <span className="gv-chip">TAX-DEDUCTIBLE</span>
@@ -73,16 +71,10 @@ function OfferingPlate() {
           <aside>
             <div className="op-aside__sig">II.</div>
             <div className="op-aside__label">THE OFFERING</div>
-            <h2 className="op-aside__h">Place your gift<br />on the plate.</h2>
+            <h2 className="op-aside__h">Give Online.</h2>
             <p className="op-aside__p">
               Secured by tithe.ly. Receipts sent immediately. Recurring gifts can be paused or edited anytime from your member portal.
             </p>
-            <div className="op-verse">
-              <div className="op-verse__body">
-                Each of you should give what you have decided in your heart to give, not reluctantly or under compulsion, for God loves a cheerful giver.
-              </div>
-              <div className="op-verse__cite">— 2 CORINTHIANS 9:7</div>
-            </div>
           </aside>
 
           {/* Right: plate / envelope */}
@@ -201,7 +193,7 @@ function OtherWays() {
           <div>
             <div className="op-aside__sig" style={{ color: "var(--accent)" }}>III.</div>
             <div className="op-aside__label">OTHER WAYS</div>
-            <h2>Not a donate button?<br />Still an act of worship.</h2>
+            <h2>Other ways to give.</h2>
           </div>
           <p>PayPal, Zelle, Venmo, text, check, or in person — pick whatever is easiest. Every gift is tax-deductible.</p>
         </div>

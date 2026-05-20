@@ -21,19 +21,19 @@ const I18N = {
     "cta.sendMessage": "Send message",
 
     // Hero
-    "hero.eyebrow": "Addis Lidet Int'l Church · Since 2008",
+    "hero.eyebrow": "Addis Lidet Int'l Church",
     "hero.title.1": "Welcome to",
     "hero.title.2a": "Addis Lidet",
     "hero.title.2b": "Int'l Church.",
-    "hero.caption": "Est. 2008 · International Church",
-    "hero.lede": "Two campuses. One family. Worshiping since 2008.",
+    "hero.caption": "International Church",
+    "hero.lede": "Two campuses. One family.",
     "hero.cta": "Plan your visit",
     "hero.watch": "Watch the latest",
 
     // Sunday Gatherings
     "sg.eyebrow": "On Sunday · እሁድ",
     "sg.title": "Sunday gatherings.",
-    "sg.body": "Sunday is our family table. We sing in the language our parents sang in, we open Scripture in the language our kids think in, and we make room for both generations to hear the Spirit together. Everyone is welcome — visitor, skeptic, longtime believer, brand-new seeker.",
+    "sg.body": "Addis Lidet International Church is a vibrant Ethiopian community and Christ-centered Church serving the Washington metropolitan area. With locations in Silver Spring, MD, and Alexandria, VA, the church is dedicated to biblical teaching, discipleship, and holistic outreach through worship services and diverse family-focused ministries.",
     "sg.cta": "Plan your visit",
 
     // Locations
@@ -50,7 +50,7 @@ const I18N = {
 
     // Watch
     "watch.eyebrow": "Watch",
-    "watch.title": "Every Sunday, live. Every other day, on demand.",
+    "watch.title": "Watch live transmission.",
     "watch.fullLibrary": "Full sermon library",
 
     // Connect
@@ -88,7 +88,7 @@ const I18N = {
 
     // Footer
     "footer.tag":
-      "A community of believers gathering in Silver Spring and Alexandria — to worship Jesus, grow together, and carry the gospel forward.",
+      "A vibrant Ethiopian community and Christ-centered Church serving the Washington metropolitan area.",
     "footer.rights": "© 2026 Addis Lidet International Church",
     "footer.sub": "Silver Spring, MD · Alexandria, VA",
     "footer.visit": "Visit",
@@ -115,19 +115,19 @@ const I18N = {
     "cta.sendMessage": "መልዕክት ላክ",
 
     // Hero
-    "hero.eyebrow": "አዲስ ልደት ዓለም አቀፍ ቤተክርስቲያን · ከ 2008 ጀምሮ",
+    "hero.eyebrow": "አዲስ ልደት ዓለም አቀፍ ቤተክርስቲያን",
     "hero.title.1": "እንኳን ደህና መጡ",
     "hero.title.2a": "አዲስ ልደት",
     "hero.title.2b": "ዓለም አቀፍ ቤተክርስቲያን።",
-    "hero.caption": "ከ 2008 ጀምሮ · ዓለም አቀፍ ቤተክርስቲያን",
-    "hero.lede": "ሁለት ቅርንጫፎች። አንድ ቤተሰብ። ከ2008 ጀምሮ በአማርኛ ስብሰባ።",
+    "hero.caption": "ዓለም አቀፍ ቤተክርስቲያን",
+    "hero.lede": "ሁለት ቅርንጫፎች። አንድ ቤተሰብ።",
     "hero.cta": "ጉብኝትዎን ያቅዱ",
     "hero.watch": "የቅርብ ጊዜ ስብከት ይመልከቱ",
 
     // Sunday Gatherings
     "sg.eyebrow": "እሁድ · On Sunday",
     "sg.title": "የእሁድ ስብሰባዎች።",
-    "sg.body": "እሁድ ቤተሰባዊ ጠረጴዛችን ነው። ወላጆቻችን በሚዘምሩበት ቋንቋ እንዘምራለን፣ ልጆቻችን በሚያስቡበት ቋንቋ መጽሐፍ ቅዱስን እንከፍታለን፣ እና ሁለቱም ትውልዶች መንፈስ ቅዱስን አብረው እንዲሰሙ ቦታ እንሰጣለን።",
+    "sg.body": "አዲስ ልደት ዓለም አቀፍ ቤተክርስቲያን በዋሽንግተን ዲሲ አካባቢ የሚገኝ ሕያው የኢትዮጵያውያን ማኅበር እና በክርስቶስ ላይ የተመሰረተ ቤተክርስቲያን ነው። በሲልቨር ስፕሪንግ፣ ሜሪላንድ እና በአሌክሳንድሪያ፣ ቨርጂኒያ ቅርንጫፎች ያሉት ሲሆን፣ ለመጽሐፍ ቅዱሳዊ ትምህርት፣ ለደቀ መዝሙርነት እና ለቤተሰብ ተኮር አገልግሎቶች ራሱን ሰጥቷል።",
     "sg.cta": "ጉብኝትዎን ያቅዱ",
 
     // Locations
@@ -144,7 +144,7 @@ const I18N = {
 
     // Watch
     "watch.eyebrow": "ይመልከቱ",
-    "watch.title": "በየእሁድ፣ በቀጥታ። በየቀኑ፣ በፍላጎት።",
+    "watch.title": "በቀጥታ ስርጭት ይመልከቱ።",
     "watch.fullLibrary": "ሙሉ የስብከት ቤተ-መጽሐፍት",
 
     // Connect
@@ -182,7 +182,7 @@ const I18N = {
 
     // Footer
     "footer.tag":
-      "የኢየሱስ ክርስቶስን ወንጌል የምታውጅ እና ቁርጥ ያሉ ደቀመዛሙርትን የምታሳድግ ቤተክርስቲያን እናያለን።",
+      "ዋሽንግተን አካባቢን የምታገለግል ሕያው የኢትዮጵያውያን ማኅበረሰብ እና ክርስቶስ-ተኮር ቤተክርስቲያን።",
     "footer.rights": "© 2026 አዲስ ልደት ዓለም አቀፍ ቤተክርስቲያን",
     "footer.sub": "Silver Spring, MD · Alexandria, VA",
     "footer.visit": "ይጎብኙ",

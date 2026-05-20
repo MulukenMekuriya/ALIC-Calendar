@@ -1072,15 +1072,16 @@
 .landing-root .tl-hint svg { width: 18px; height: 8px; }
 
 /* Vision & Mission */
-.landing-root .vm { padding: 120px 0; background: var(--ink); }
+.landing-root .vm { padding: 120px 0; background: var(--paper); color: var(--text-on-paper); }
+.landing-root .vm .eyebrow { color: var(--text-on-paper-muted); }
 .landing-root .vm__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
 .landing-root .vm__card {
-  padding: 48px; border: 1px solid var(--paper-hair);
-  background: var(--ink-2); border-radius: 12px;
+  padding: 48px; border: 1px solid rgba(17, 24, 39, 0.08);
+  background: var(--paper-2); border-radius: 12px;
   transition: border-color 0.3s, box-shadow 0.3s;
 }
 .landing-root .vm__card:hover {
-  border-color: rgba(58,123,213,0.25);
+  border-color: rgba(58,123,213,0.35);
   box-shadow: 0 8px 40px rgba(58,123,213,0.08);
 }
 .landing-root .vm__num {
@@ -1088,16 +1089,16 @@
   color: var(--gold); line-height: 1; margin-bottom: 20px;
 }
 .landing-root .vm__body {
-  font-size: 20px; line-height: 1.6; color: var(--paper-dim); font-weight: 300;
+  font-size: 20px; line-height: 1.6; color: var(--text-on-paper-dim); font-weight: 300;
 }
 .landing-root .vm__body em { font-style: italic; color: var(--gold); }
 .landing-root .vm__am {
   margin-top: 24px; font-family: var(--font-geez); font-size: 16px;
-  line-height: 1.7; color: var(--paper-muted);
+  line-height: 1.7; color: var(--text-on-paper-muted);
 }
 .landing-root .vm__list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 14px; }
-.landing-root .vm__list li { font-size: 16px; line-height: 1.6; color: var(--paper-dim); border-top: 1px solid var(--paper-hair); padding-top: 14px; }
-.landing-root .vm__list b { color: var(--gold); font-weight: 500; }
+.landing-root .vm__list li { font-size: 16px; line-height: 1.6; color: var(--text-on-paper-dim); border-top: 1px solid rgba(17, 24, 39, 0.08); padding-top: 14px; }
+.landing-root .vm__list b { color: var(--gold-deep); font-weight: 500; }
 
 /* Statement of Faith */
 .landing-root .sof { padding: 120px 0 96px; background: var(--ink); border-top: 1px solid var(--paper-hair); overflow: hidden; }
@@ -1248,6 +1249,27 @@
 }
 .landing-root .bf-b { font-size: 13.5px; line-height: 1.6; color: var(--text-on-paper-dim); margin: 0; }
 
+/* Forward Vision 2026–2030 */
+.landing-root .fv { padding: 140px 0; background: var(--ink); color: var(--paper); }
+.landing-root .fv__head { max-width: 900px; margin: 0 0 48px; }
+.landing-root .fv__head .eyebrow { color: var(--gold-bright); }
+.landing-root .fv__title {
+  font-family: var(--font-serif); font-size: clamp(30px, 5vw, 64px);
+  font-weight: 400; letter-spacing: -0.025em; margin: 18px 0 0; line-height: 1.05;
+}
+.landing-root .fv__title em { font-style: italic; color: var(--gold); }
+.landing-root .fv__body {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 48px;
+  max-width: 1100px;
+}
+.landing-root .fv__body p {
+  font-size: 16px; line-height: 1.75; color: var(--paper-dim); margin: 0;
+}
+@media (max-width: 900px) {
+  .landing-root .fv__body { grid-template-columns: 1fr; gap: 24px; }
+  .landing-root .fv { padding: 80px 0; }
+}
+
 /* Leadership */
 .landing-root .lead { padding: 140px 0; background: var(--paper); color: var(--text-on-paper); }
  .landing-root .lead .eyebrow { color: var(--text-on-paper-muted); }
@@ -1260,7 +1282,7 @@
   font-weight: 400; letter-spacing: -0.025em; margin: 18px 0 0;
 }
 .landing-root .lead__lede { font-size: 16px; line-height: 1.7; color: var(--text-on-paper-dim); max-width: 480px; }
-.landing-root .lead__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; }
+.landing-root .lead__grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; }
 .landing-root .leader__photo { aspect-ratio: 4/5; }
 .landing-root .leader__body { padding-top: 20px; }
 .landing-root .leader__role {
@@ -1651,10 +1673,18 @@
 
 .landing-root .sched__items { display: flex; flex-direction: column; gap: 10px; }
 .landing-root .sched__item {
-  display: grid; grid-template-columns: 140px 1fr 80px;
+  display: grid; grid-template-columns: 140px 1fr 80px auto;
   gap: 20px; font-size: 15px; align-items: baseline;
   padding: 4px 0;
 }
+.landing-root .sched__live {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--gold-deep);
+  text-decoration: none; border-bottom: 1px solid currentColor;
+  padding-bottom: 1px; transition: color 160ms ease;
+  white-space: nowrap;
+}
+.landing-root .sched__live:hover { color: var(--gold-bright); }
 
 /* Campus badge — subtle pill */
 .landing-root .sched__campus {
@@ -1841,6 +1871,17 @@
 
 /* Connect form */
 .landing-root .cf-section { padding: 140px 0; background: var(--ink); color: var(--paper); }
+.landing-root .cf-section--full { min-height: 100vh; }
+.landing-root .cf-locations { display: flex; flex-direction: column; gap: 28px; margin-top: 8px; }
+.landing-root .cf-location { padding: 22px 0; border-top: 1px solid rgba(255,255,255,0.10); }
+.landing-root .cf-location:last-child { border-bottom: 1px solid rgba(255,255,255,0.10); }
+.landing-root .cf-location__head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+.landing-root .cf-location__name { font-family: var(--font-serif); font-size: 22px; color: var(--paper); }
+.landing-root .cf-location__state { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--paper-muted); }
+.landing-root .cf-location__addr { font-size: 14.5px; line-height: 1.55; color: var(--paper-dim); margin-bottom: 10px; }
+.landing-root .cf-location__contact { font-size: 14px; color: var(--paper); margin-bottom: 12px; }
+.landing-root .cf-location__cta { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-bright); text-decoration: none; border-bottom: 1px solid currentColor; padding-bottom: 1px; }
+.landing-root .cf-location__cta:hover { color: var(--gold); }
 .landing-root .cf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start; }
 .landing-root .cf-contact-title { font-family: var(--font-serif); font-size: clamp(28px, 5vw, 72px); font-weight: 400; letter-spacing: -0.025em; margin: 18px 0 20px; color: var(--paper); }
 .landing-root .cf-contact-p { font-size: 16px; line-height: 1.7; color: var(--paper-dim); margin: 0 0 36px; max-width: 440px; }

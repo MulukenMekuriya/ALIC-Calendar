@@ -78,10 +78,10 @@ export const MINISTRIES: Ministry[] = [
     category: "lifestage",
     name: { en: "Children's Ministry", am: "የልጆች አገልግሎት" },
     forWhom: {
-      en: "For kids to know Jesus, learn the Bible, and grow in a fun, safe environment.",
+      en: "Childhood is a season of wonders — from preschool through middle school.",
     },
     description: {
-      en: "Sunday School during worship at both campuses. Addis Lidet believes deeply in raising the next generation of disciples, and this ministry is the heart of that calling.",
+      en: "We believe every moment is an opportunity to see God at work. Our mission is to partner with families to help children know, love, and follow Jesus. Through kindness, patient guidance, and the teaching of God's Word, we strive to plant seeds of faith that will grow for a lifetime. More than just lessons, we aim to be a living example of Christ's grace — showing children His love through our actions, our prayers, and our community.",
     },
     meets: null, // [VERIFY] confirm exact times per age group
     location: { en: "Both campuses · children's wing" },
@@ -107,10 +107,10 @@ export const MINISTRIES: Ministry[] = [
     category: "lifestage",
     name: { en: "Youth Ministry", am: "የወጣቶች አገልግሎት" },
     forWhom: {
-      en: "For middle and high school students navigating faith, friendship, and identity in the real world.",
+      en: "A place for youth to grow in faith, build lasting friendships, and serve Jesus together.",
     },
     description: {
-      en: "Discipleship, mentorship, and a community of peers walking with Christ through the middle and high school years.",
+      en: "We're a welcoming, Christ-centered community where young people are encouraged to ask questions, discover God's purpose, and live out their faith. Our mission is to lead young people into a growing relationship with Jesus Christ, equip them to live boldly for God, and send them to serve family, church, and the world with courage and compassion.",
     },
     meets: null, // [VERIFY] confirm meeting cadence per campus
     location: { en: "Both campuses" },
@@ -157,15 +157,15 @@ export const MINISTRIES: Ministry[] = [
     published: true,
     featured: true,
     category: "lifestage",
-    name: { en: "Young Adult Ministry", am: "የጎልማሶች አገልግሎት" },
+    name: { en: "True Vine Young Adult English Service", am: "የጎልማሶች አገልግሎት" },
     forWhom: {
-      en: "For college students and young professionals navigating faith, career, and identity.",
+      en: "A multicultural, English-speaking ministry open to people from all backgrounds.",
     },
     description: {
-      en: "A community of college students and young professionals walking through the questions of work, calling, relationships, and faith, in both English and Amharic.",
+      en: "True Vine Ministry gathers young adults each week for worship, the Word, and community in English. Weekly services are held every Sunday from 4:00 p.m. to 7:00 p.m.",
     },
     meets: {
-      en: "Sunday evenings 6:30–9:00 PM · Silver Spring · Sunday evenings 7:00–9:00 PM · Alexandria",
+      en: "Sunday 4:00–7:00 PM · Silver Spring · Sunday evenings 7:00–9:00 PM · Alexandria",
     },
     location: { en: "Both campuses" },
     campuses: ["md", "va"],

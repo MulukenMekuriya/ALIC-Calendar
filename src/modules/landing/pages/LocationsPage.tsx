@@ -80,12 +80,6 @@ function LocHero() {
         <div className="eyebrow" style={{ marginBottom: 36 }}>
           Locations · አድራሻ
         </div>
-        <h1 className="loc-hero__title">
-          <span>Two cities.</span>
-          <span>
-            One <em>family.</em>
-          </span>
-        </h1>
         <div className="loc-hero__foot">
           <p className="loc-hero__lede">
             Whichever campus you call home, the welcome is the same. Plan your
@@ -167,14 +161,6 @@ function Campus({ c }: { c: (typeof CAMPUSES)[number] }) {
                 </dd>
               </div>
               <div>
-                <dt>Shepherd</dt>
-                <dd>
-                  {c.pastor}
-                  <br />
-                  <span className="cmp__dim">{c.role}</span>
-                </dd>
-              </div>
-              <div>
                 <dt>Watch &amp; follow</dt>
                 <dd>
                   <a
@@ -241,26 +227,25 @@ function Campus({ c }: { c: (typeof CAMPUSES)[number] }) {
   );
 }
 
-const SCHEDULE = [
+const LIVE_EVENTS: {
+  day: string;
+  items: { campus: string; what: string; when: string; liveUrl: string }[];
+}[] = [
   {
     day: "Sunday",
     items: [
-      ["Silver Spring", "Morning Prayer", "10:00a"],
-      ["Silver Spring", "Sunday Worship", "11:00a"],
-      ["Silver Spring", "Young Adult", "6:30p"],
-      ["Alexandria", "Morning Prayer", "9:30a"],
-      ["Alexandria", "Sunday Worship", "10:30a"],
-      ["Alexandria", "Young Adult", "7:00p"],
-    ],
-  },
-  { day: "Tuesday", items: [["Alexandria", "Midweek Teaching", "7:00p"]] },
-  { day: "Wednesday", items: [["Silver Spring", "Midweek Service", "6:30p"]] },
-  { day: "Thursday", items: [["Silver Spring", "Thursday Prayer", "10:00a"]] },
-  {
-    day: "Friday",
-    items: [
-      ["Alexandria", "Prayer Night", "7:00p"],
-      ["Silver Spring", "Overnight Prayer", "8:30p"],
+      {
+        campus: "Silver Spring",
+        what: "Sunday Worship",
+        when: "11:00a",
+        liveUrl: "https://www.youtube.com/@addislidetmedia/streams",
+      },
+      {
+        campus: "Alexandria",
+        what: "Sunday Worship",
+        when: "10:30a",
+        liveUrl: "https://www.youtube.com/@AddisLidetVirginia/streams",
+      },
     ],
   },
 ];
@@ -271,7 +256,7 @@ function ScheduleTable() {
       <div className="container-wide">
         <header className="sched__head">
           <div>
-            <div className="eyebrow">Weekly schedule</div>
+            <div className="eyebrow">Live transmission</div>
             <h2 className="sched__title">
               When services
               <br />
@@ -280,8 +265,8 @@ function ScheduleTable() {
           </div>
           <div className="sched__head-right">
             <p className="sched__lede">
-              All times Eastern. Services begin streaming at service start and
-              replays post within 24&nbsp;hours across both campuses.
+              All times Eastern. Services begin streaming at service start.
+              Tap the link on the day-of to join the live broadcast.
             </p>
             <Link to="/connect" className="btn btn--ghost btn--sm">
               Plan your visit
@@ -290,15 +275,23 @@ function ScheduleTable() {
         </header>
 
         <ul className="sched__list">
-          {SCHEDULE.map((r, i) => (
+          {LIVE_EVENTS.map((r, i) => (
             <li key={i} className="sched__row">
               <div className="sched__day">{r.day}</div>
               <div className="sched__items">
                 {r.items.map((it, j) => (
                   <div key={j} className="sched__item">
-                    <span className="sched__campus">{it[0]}</span>
-                    <span className="sched__what">{it[1]}</span>
-                    <span className="sched__when">{it[2]}</span>
+                    <span className="sched__campus">{it.campus}</span>
+                    <span className="sched__what">{it.what}</span>
+                    <span className="sched__when">{it.when}</span>
+                    <a
+                      href={it.liveUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="sched__live"
+                    >
+                      Watch live →
+                    </a>
                   </div>
                 ))}
               </div>
@@ -326,7 +319,7 @@ function LocCTA() {
           Not local?
         </div>
         <h2 className="loc-cta__title">
-          Stream with us this <em>Sunday.</em>
+          Watch <em>Live.</em>
         </h2>
         <div className="loc-cta__actions">
           <a

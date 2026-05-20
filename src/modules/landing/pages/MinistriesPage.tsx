@@ -618,7 +618,6 @@ const MinistriesPage = () => {
 
   const visible = useMemo(() => MINISTRIES.filter((m) => m.published), []);
   const featured = useMemo(() => visible.filter((m) => m.featured), [visible]);
-  const rest = useMemo(() => visible.filter((m) => !m.featured), [visible]);
 
   return (
     <div className="landing-root">
@@ -627,8 +626,6 @@ const MinistriesPage = () => {
         <Hero lang={lang} />
         <FeaturedSection ministries={featured} lang={lang} />
         <Testimonials lang={lang} />
-        <CategorizedGrid ministries={rest} lang={lang} />
-        <ConnectForm ministries={visible} lang={lang} />
         <LocationFooter lang={lang} />
       </main>
       <LandingFooter />
