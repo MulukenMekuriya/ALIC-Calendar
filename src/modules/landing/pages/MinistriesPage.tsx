@@ -87,8 +87,13 @@ const absModules = import.meta.glob<string>(
   "/public/ABS/*.{jpg,jpeg,png,webp,JPG,JPEG,PNG,WEBP}",
   { eager: true, import: "default", query: "?url" },
 );
+const kidsModules = import.meta.glob<string>(
+  "/public/kids/*.{jpg,jpeg,png,webp,JPG,JPEG,PNG,WEBP}",
+  { eager: true, import: "default", query: "?url" },
+);
 const MINISTRY_PHOTOS: Record<string, string[]> = {
   "bible-school": Object.values(absModules),
+  childrens: Object.values(kidsModules),
 };
 
 function MinistrySlideshow({
