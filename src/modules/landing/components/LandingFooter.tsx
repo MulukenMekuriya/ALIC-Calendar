@@ -79,7 +79,11 @@ export default function LandingFooter() {
             <button className={lang === 'en' ? 'active' : ''} onClick={() => setLang('en')}>EN</button>
             <button className={lang === 'am' ? 'active' : ''} onClick={() => setLang('am')}>አማ</button>
           </div>
-          <span>{t('footer.sub') || 'Silver Spring, MD · Alexandria, VA'}</span>
+          <span>
+            <Link to="/locations#md">Silver Spring, MD</Link>
+            {' · '}
+            <Link to="/locations#va">Alexandria, VA</Link>
+          </span>
         </div>
       </div>
     </footer>

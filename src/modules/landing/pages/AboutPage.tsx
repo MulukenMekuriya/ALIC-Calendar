@@ -278,25 +278,21 @@ const TEAM = [
   {
     name: "Pastor Mekashaw Shimelash",
     role: "Senior Pastor",
-    b: "ALIC's lead shepherd and founding voice. Oversees both campuses, preaches weekly, and stewards the vision God placed in a DC apartment in 2008.",
     src: "/Pr. Mekashaw.JPEG",
   },
   {
     name: "Pastor Elias Getaneh",
-    role: "Pastor · Alexandria, VA",
-    b: "Shepherds the Virginia congregation — from two families in Arlington to a campus of its own across the Potomac.",
+    role: "Pastor",
     src: "/Pastor Elu.jpeg",
   },
   {
     name: "Pastor Biniam Aboye",
-    role: "Pastor · Silver Spring, MD",
-    b: "Walks closely with the Silver Spring congregation, supporting teaching, care, and day-to-day ministry.",
+    role: "Pastor",
     src: "/Pr. Bini.JPEG",
   },
   {
     name: "Teacher Worede Zinabu",
-    role: "Teacher · Alexandria, VA",
-    b: "Serves the congregation through Bible teaching and discipleship, grounding believers in the Word across both campuses.",
+    role: "Teacher",
     src: "/Wade.jpeg",
   },
 ];
@@ -326,7 +322,6 @@ function Leadership() {
               <div className="leader__body">
                 <div className="leader__role">{p.role}</div>
                 <h3 className="leader__name">{p.name}</h3>
-                <p className="leader__b">{p.b}</p>
               </div>
             </article>
           ))}

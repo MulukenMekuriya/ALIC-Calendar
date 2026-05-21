@@ -1,9 +1,23 @@
-import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import LandingNav from "../components/LandingNav";
 import LandingFooter from "../components/LandingFooter";
 import PhotoSlot from "../components/PhotoSlot";
 import ArrowIcon from "../components/ArrowIcon";
 import "../landing.css";
+
+function useHashScroll() {
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (!hash) return;
+    const id = hash.slice(1);
+    requestAnimationFrame(() => {
+      document
+        .getElementById(id)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [hash]);
+}
 
 const CAMPUSES = [
   {
@@ -339,19 +353,22 @@ function LocCTA() {
   );
 }
 
-const LocationsPage = () => (
-  <div className="landing-root">
-    <LandingNav />
-    <main id="main-content">
-      <LocHero />
-      {CAMPUSES.map((c) => (
-        <Campus key={c.id} c={c} />
-      ))}
-      <ScheduleTable />
-      <LocCTA />
-    </main>
-    <LandingFooter />
-  </div>
-);
+const LocationsPage = () => {
+  useHashScroll();
+  return (
+    <div className="landing-root">
+      <LandingNav />
+      <main id="main-content">
+        <LocHero />
+        {CAMPUSES.map((c) => (
+          <Campus key={c.id} c={c} />
+        ))}
+        <ScheduleTable />
+        <LocCTA />
+      </main>
+      <LandingFooter />
+    </div>
+  );
+};
 
 export default LocationsPage;
