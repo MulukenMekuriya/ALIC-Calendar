@@ -303,17 +303,8 @@ function Leadership() {
       <div className="container-wide">
         <div className="lead__head">
           <div>
-            <div className="eyebrow">Fulltime Ministers · እረኞቻችን</div>
-            <h2 className="lead__title">
-              The people
-              <br />
-              praying for you.
-            </h2>
+            <h2 className="lead__title">Fulltime Ministers</h2>
           </div>
-          <p className="lead__lede">
-            Our pastors lead with open doors. Reach out any time — to meet, to
-            pray, or to walk with you through a hard season.
-          </p>
         </div>
         <div className="lead__grid">
           {TEAM.map((p) => (
