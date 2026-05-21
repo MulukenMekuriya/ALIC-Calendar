@@ -1,27 +1,17 @@
-import { useState } from "react";
 import LandingNav from "../components/LandingNav";
 import LandingFooter from "../components/LandingFooter";
-import ArrowIcon from "../components/ArrowIcon";
 import "../landing.css";
 
-const FUNDS: Record<string, { label: string; sub: string; color: string }> = {
-  general:     { label: "General Fund",         sub: "Where needed most",          color: "var(--gold)" },
-  missions:    { label: "ALIC Mission",          sub: "Ethiopia & East Africa",     color: "var(--accent-soft)" },
-  building:    { label: "Building Fund",         sub: "Tech Road renovation",       color: "#4caf8a" },
-  benevolence: { label: "Benevolence",           sub: "Families in crisis",         color: "var(--cream)" },
-  youth:       { label: "Youth & Young Adult",   sub: "Next generation",            color: "var(--gold-bright)" },
-};
+type Way = { code: string; t: string; b: string; href?: string };
 
-const OTHER_WAYS = [
-  { code: "PP–01",   t: "PayPal",                  b: "Donate with debit or credit card via PayPal · @addislidetchurch" },
+const OTHER_WAYS: Way[] = [
+  { code: "PP–01",   t: "PayPal",                  b: "Donate with debit or credit card via PayPal · @addislidetchurch", href: "https://www.paypal.com/paypalme/addislidetchurch?country.x=US&locale.x=en_US" },
   { code: "ZEL–02",  t: "Zelle",                   b: "Send directly from your bank app · (240) 505-5310" },
-  { code: "VEN–03",  t: "Venmo",                   b: "Quick mobile giving · @Addis-Lidet" },
+  { code: "VEN–03",  t: "Venmo",                   b: "Quick mobile giving · @Addis-Lidet", href: "https://account.venmo.com/u/Addis-Lidet" },
   { code: "TXT–04",  t: "Text to give",            b: "Text your dollar amount to +1 (888) 494-6651 · first-time givers will be prompted to register a card." },
   { code: "CHK–05",  t: "Mail a check",            b: "Payable to \"Addis Lidet Int. Church\" · 11961 Tech Rd, Silver Spring, MD 20906." },
   { code: "IN–06",   t: "In person",               b: "Drop your gift in the offering box at either campus during service. No envelope required — our finance team will issue a receipt." },
 ];
-
-const PRESET_AMOUNTS = [25, 50, 100, 250, 500, 1000];
 
 function GiveHero() {
   return (
@@ -52,146 +42,13 @@ function GiveHero() {
   );
 }
 
-function OfferingPlate() {
-  const [amount, setAmount] = useState(100);
-  const [custom, setCustom] = useState("");
-  const [freq, setFreq] = useState("once");
-  const [fund, setFund] = useState("general");
-
-  const effective = custom ? parseFloat(custom) || 0 : amount;
-  const multiplier: Record<string, number> = { once: 1, weekly: 52, monthly: 12 };
-  const annual = effective * multiplier[freq];
-  const year = new Date().getFullYear();
-
-  return (
-    <section className="op-section">
-      <div className="container-wide">
-        <div className="op-layout">
-          {/* Left: liturgical column */}
-          <aside>
-            <div className="op-aside__sig">II.</div>
-            <div className="op-aside__label">THE OFFERING</div>
-            <h2 className="op-aside__h">Give Online.</h2>
-            <p className="op-aside__p">
-              Secured by tithe.ly. Receipts sent immediately. Recurring gifts can be paused or edited anytime from your member portal.
-            </p>
-          </aside>
-
-          {/* Right: plate / envelope */}
-          <div className="op-plate">
-            <div className="op-plate__top">
-              <div>
-                <div className="op-plate__eyebrow">Gift slip · 01-{year}</div>
-                <div className="op-plate__title">Offering</div>
-              </div>
-              <div className="op-plate__seal" aria-hidden="true">
-                <div className="op-plate__seal-text">ADDIS LIDET<br />INT'L CHURCH</div>
-                <div className="op-plate__seal-mark">A</div>
-              </div>
-            </div>
-
-            <form onSubmit={(e) => e.preventDefault()} className="op-form">
-              {/* Frequency */}
-              <div className="op-row">
-                <label className="op-row__label">Frequency</label>
-                <div className="op-freq">
-                  {[{ v: "once", l: "One-time" }, { v: "weekly", l: "Weekly" }, { v: "monthly", l: "Monthly" }].map((o) => (
-                    <button key={o.v} type="button" className={`op-freq__btn${freq === o.v ? " is-on" : ""}`} onClick={() => setFreq(o.v)}>
-                      {o.l}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Fund */}
-              <div className="op-row">
-                <label className="op-row__label">Designate</label>
-                <div className="op-funds">
-                  {Object.entries(FUNDS).map(([k, f]) => (
-                    <button
-                      key={k} type="button"
-                      className={`op-fund${fund === k ? " is-on" : ""}`}
-                      style={{ "--fund-color": f.color } as React.CSSProperties}
-                      onClick={() => setFund(k)}
-                    >
-                      <span className="op-fund__dot" style={{ background: f.color }} />
-                      <span className="op-fund__label">{f.label}</span>
-                      <span className="op-fund__sub">{f.sub}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Amount */}
-              <div className="op-row">
-                <label className="op-row__label">Amount</label>
-                <div className="op-amts">
-                  {PRESET_AMOUNTS.map((a) => (
-                    <button key={a} type="button"
-                      className={`op-amt${amount === a && !custom ? " is-on" : ""}`}
-                      onClick={() => { setAmount(a); setCustom(""); }}
-                    >
-                      <span className="op-amt__cur">$</span>{a}
-                    </button>
-                  ))}
-                </div>
-                <div className="op-custom">
-                  <span className="op-custom__prefix">$</span>
-                  <input
-                    type="text" inputMode="decimal"
-                    placeholder="Enter a different amount"
-                    value={custom}
-                    onChange={(e) => setCustom(e.target.value.replace(/[^\d.]/g, ""))}
-                  />
-                </div>
-              </div>
-
-              {/* Summary */}
-              <div className="op-summary">
-                <div className="op-summary__row">
-                  <span>Gift</span>
-                  <span>${effective.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
-                </div>
-                <div className="op-summary__row">
-                  <span>Frequency</span>
-                  <span style={{ textTransform: "capitalize" }}>{freq}</span>
-                </div>
-                <div className="op-summary__row">
-                  <span>Fund</span>
-                  <span>{FUNDS[fund].label}</span>
-                </div>
-                {freq !== "once" && effective > 0 && (
-                  <div className="op-summary__total">
-                    <span>Annual impact</span>
-                    <span>${annual.toLocaleString()}</span>
-                  </div>
-                )}
-              </div>
-
-              <button type="submit" className="op-submit" disabled={effective <= 0}>
-                <span>Place {freq === "once" ? "this gift" : `recurring ${freq} gift`}</span>
-                <ArrowIcon />
-              </button>
-
-              <div className="op-foot">
-                <span>TITHE.LY · STRIPE · SSL</span>
-                <span>RECEIPT WITHIN MINUTES</span>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function OtherWays() {
   return (
     <section className="ow-section">
       <div className="container-wide">
         <div className="ow-header">
           <div>
-            <div className="op-aside__sig" style={{ color: "var(--accent)" }}>III.</div>
+            <div className="op-aside__sig" style={{ color: "var(--accent)" }}>II.</div>
             <div className="op-aside__label">OTHER WAYS</div>
             <h2>Other ways to give.</h2>
           </div>
@@ -204,14 +61,29 @@ function OtherWays() {
             <span>NOTES</span>
             <span />
           </div>
-          {OTHER_WAYS.map((r, i) => (
-            <div key={i} className="ow-ledger__row">
-              <span className="ow-code">{r.code}</span>
-              <span className="ow-method">{r.t}</span>
-              <span className="ow-notes">{r.b}</span>
-              <span className="ow-arrow">→</span>
-            </div>
-          ))}
+          {OTHER_WAYS.map((r, i) => {
+            const inner = (
+              <>
+                <span className="ow-code">{r.code}</span>
+                <span className="ow-method">{r.t}</span>
+                <span className="ow-notes">{r.b}</span>
+                <span className="ow-arrow">→</span>
+              </>
+            );
+            return r.href ? (
+              <a
+                key={i}
+                href={r.href}
+                target="_blank"
+                rel="noreferrer"
+                className="ow-ledger__row ow-ledger__row--link"
+              >
+                {inner}
+              </a>
+            ) : (
+              <div key={i} className="ow-ledger__row">{inner}</div>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -223,7 +95,6 @@ const GivePage = () => (
     <LandingNav />
     <main id="main-content">
       <GiveHero />
-      <OfferingPlate />
       <OtherWays />
     </main>
     <LandingFooter />

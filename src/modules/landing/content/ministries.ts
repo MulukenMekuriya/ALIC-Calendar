@@ -71,7 +71,7 @@ export const MINISTRIES: Ministry[] = [
   {
     key: "bible-school",
     published: true,
-    featured: true,
+    featured: false,
     category: "worship",
     name: { en: "ALIC Bible School (ABS)" },
     forWhom: {
@@ -94,7 +94,7 @@ export const MINISTRIES: Ministry[] = [
   {
     key: "welcoming",
     published: true,
-    featured: true,
+    featured: false,
     category: "community",
     name: { en: "Welcoming Team", am: "የእንግዶች መቀበያ ቡድን" },
     forWhom: {
@@ -116,32 +116,29 @@ export const MINISTRIES: Ministry[] = [
     ],
   },
   {
-    key: "childrens",
-    // Published with brief-sourced copy. `meets` is intentionally null until
-    // Sunday School times and age groupings are confirmed — the page hides
-    // the Meets row when meets is null, so nothing fabricated is displayed.
+    key: "young-adult",
     published: true,
     featured: true,
     category: "lifestage",
-    name: { en: "Children's Ministry", am: "የልጆች አገልግሎት" },
+    name: { en: "True Vine Young Adult English Service", am: "የጎልማሶች አገልግሎት" },
     forWhom: {
-      en: "Childhood is a season of wonders — from preschool through middle school.",
+      en: "A multicultural, English-speaking ministry open to people from all backgrounds.",
     },
     description: {
-      en: "We believe every moment is an opportunity to see God at work. Our mission is to partner with families to help children know, love, and follow Jesus. Through kindness, patient guidance, and the teaching of God's Word, we strive to plant seeds of faith that will grow for a lifetime. More than just lessons, we aim to be a living example of Christ's grace — showing children His love through our actions, our prayers, and our community.",
+      en: "True Vine Ministry gathers young adults each week for worship, the Word, and community in English. Weekly services are held every Sunday from 4:00 p.m. to 7:00 p.m.",
     },
-    meets: null, // [VERIFY] confirm exact times per age group
-    location: { en: "Both campuses · children's wing" },
+    meets: {
+      en: "Sunday 4:00–7:00 PM · Silver Spring · Sunday evenings 7:00–9:00 PM · Alexandria",
+    },
+    location: { en: "Both campuses" },
     campuses: ["md", "va"],
-    ctaLabel: { en: "Learn more" },
+    ctaLabel: { en: "Join us" },
     ctaHref: "/connect",
     photo: null,
     leader: { name: null, role: null, email: null, photo: null },
     needsBeforeLaunch: [
-      "[VERIFY] Sunday School meeting times per campus",
-      "[VERIFY] Age groups / classroom breakdown (nursery, preschool, elementary?)",
-      "Children's Ministry director name + email + photo",
-      "Real photo of the children's space",
+      "Lead pastor / coordinator name + photo + email",
+      "A real photo from a recent gathering",
       "Amharic translation of forWhom + description",
     ],
   },
@@ -175,9 +172,39 @@ export const MINISTRIES: Ministry[] = [
     ],
   },
   {
-    key: "home-cells",
+    key: "childrens",
+    // Published with brief-sourced copy. `meets` is intentionally null until
+    // Sunday School times and age groupings are confirmed — the page hides
+    // the Meets row when meets is null, so nothing fabricated is displayed.
     published: true,
     featured: true,
+    category: "lifestage",
+    name: { en: "Children's Ministry", am: "የልጆች አገልግሎት" },
+    forWhom: {
+      en: "Childhood is a season of wonders — from preschool through middle school.",
+    },
+    description: {
+      en: "We believe every moment is an opportunity to see God at work. Our mission is to partner with families to help children know, love, and follow Jesus. Through kindness, patient guidance, and the teaching of God's Word, we strive to plant seeds of faith that will grow for a lifetime. More than just lessons, we aim to be a living example of Christ's grace — showing children His love through our actions, our prayers, and our community.",
+    },
+    meets: null, // [VERIFY] confirm exact times per age group
+    location: { en: "Both campuses · children's wing" },
+    campuses: ["md", "va"],
+    ctaLabel: { en: "Learn more" },
+    ctaHref: "/connect",
+    photo: null,
+    leader: { name: null, role: null, email: null, photo: null },
+    needsBeforeLaunch: [
+      "[VERIFY] Sunday School meeting times per campus",
+      "[VERIFY] Age groups / classroom breakdown (nursery, preschool, elementary?)",
+      "Children's Ministry director name + email + photo",
+      "Real photo of the children's space",
+      "Amharic translation of forWhom + description",
+    ],
+  },
+  {
+    key: "home-cells",
+    published: true,
+    featured: false,
     category: "community",
     name: { en: "Home Cells / Bible Study", am: "የመጽሐፍ ቅዱስ ጥናት" },
     forWhom: {
@@ -200,36 +227,9 @@ export const MINISTRIES: Ministry[] = [
     ],
   },
   {
-    key: "young-adult",
-    published: true,
-    featured: true,
-    category: "lifestage",
-    name: { en: "True Vine Young Adult English Service", am: "የጎልማሶች አገልግሎት" },
-    forWhom: {
-      en: "A multicultural, English-speaking ministry open to people from all backgrounds.",
-    },
-    description: {
-      en: "True Vine Ministry gathers young adults each week for worship, the Word, and community in English. Weekly services are held every Sunday from 4:00 p.m. to 7:00 p.m.",
-    },
-    meets: {
-      en: "Sunday 4:00–7:00 PM · Silver Spring · Sunday evenings 7:00–9:00 PM · Alexandria",
-    },
-    location: { en: "Both campuses" },
-    campuses: ["md", "va"],
-    ctaLabel: { en: "Join us" },
-    ctaHref: "/connect",
-    photo: null,
-    leader: { name: null, role: null, email: null, photo: null },
-    needsBeforeLaunch: [
-      "Lead pastor / coordinator name + photo + email",
-      "A real photo from a recent gathering",
-      "Amharic translation of forWhom + description",
-    ],
-  },
-  {
     key: "prayer",
     published: true,
-    featured: true,
+    featured: false,
     category: "worship",
     name: { en: "Prayer Ministry", am: "የጸሎት አገልግሎት" },
     forWhom: { en: "For those hungry to seek God in His presence." },
@@ -254,7 +254,7 @@ export const MINISTRIES: Ministry[] = [
   {
     key: "alic-mission",
     published: true,
-    featured: true,
+    featured: false,
     category: "outreach",
     name: { en: "ALIC Mission", am: "የአዲስ ልደት ተልዕኮ" },
     forWhom: {

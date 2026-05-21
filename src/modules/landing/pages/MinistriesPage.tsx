@@ -87,13 +87,8 @@ const absModules = import.meta.glob<string>(
   "/public/ABS/*.{jpg,jpeg,png,webp,JPG,JPEG,PNG,WEBP}",
   { eager: true, import: "default", query: "?url" },
 );
-const kidsModules = import.meta.glob<string>(
-  "/public/kids/*.{jpg,jpeg,png,webp,JPG,JPEG,PNG,WEBP}",
-  { eager: true, import: "default", query: "?url" },
-);
 const MINISTRY_PHOTOS: Record<string, string[]> = {
   "bible-school": Object.values(absModules),
-  childrens: Object.values(kidsModules),
 };
 
 function MinistrySlideshow({
@@ -143,28 +138,31 @@ function FeaturedCard({
 }) {
   const reverse = index % 2 === 1;
   const isExternal = /^https?:/i.test(m.ctaHref);
+  const hasPhotos = (MINISTRY_PHOTOS[m.key]?.length ?? 0) > 0 || Boolean(m.photo);
   return (
-    <article className={`min-card${reverse ? " min-card--rev" : ""}`}>
-      <div className="min-card__media">
-        {MINISTRY_PHOTOS[m.key]?.length ? (
-          <MinistrySlideshow
-            photos={MINISTRY_PHOTOS[m.key]}
-            caption={pick(m.name, "en")}
-          />
-        ) : (
-          <PhotoSlot
-            label={
-              m.photo
-                ? pick(m.name, "en")
-                : `${pick(m.name, "en")} — placeholder for real church photo`
-            }
-            src={m.photo ?? undefined}
-            className="min-card__photo"
-            paper
-          />
-        )}
-        <span className="min-card__num">0{index + 1}</span>
-      </div>
+    <article
+      className={`min-card${reverse ? " min-card--rev" : ""}${
+        hasPhotos ? "" : " min-card--solo"
+      }`}
+    >
+      {hasPhotos && (
+        <div className="min-card__media">
+          {MINISTRY_PHOTOS[m.key]?.length ? (
+            <MinistrySlideshow
+              photos={MINISTRY_PHOTOS[m.key]}
+              caption={pick(m.name, "en")}
+            />
+          ) : (
+            <PhotoSlot
+              label={pick(m.name, "en")}
+              src={m.photo ?? undefined}
+              className="min-card__photo"
+              paper
+            />
+          )}
+          <span className="min-card__num">0{index + 1}</span>
+        </div>
+      )}
 
       <div className="min-card__body">
         <header className="min-card__head">
