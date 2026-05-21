@@ -287,10 +287,6 @@ function ScheduleTable() {
             </h2>
           </div>
           <div className="sched__head-right">
-            <p className="sched__lede">
-              All times Eastern. Services begin streaming at service start.
-              Tap the link on the day-of to join the live broadcast.
-            </p>
             <Link to="/locations" className="btn btn--ghost btn--sm">
               Plan your visit
             </Link>
