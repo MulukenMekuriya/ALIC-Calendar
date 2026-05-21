@@ -29,7 +29,7 @@ export default function LandingFooter() {
               <img src="/alic-logo.png" alt="" className="logo-img" aria-hidden="true" />
               <span className="logo-text">
                 <span className="logo-text__1">Addis Lidet</span>
-                <span className="logo-text__2">Int'l Church · Since 2008</span>
+                <span className="logo-text__2">Int'l Church</span>
               </span>
             </Link>
             <p className="footer__tag">{t('footer.tag')}</p>

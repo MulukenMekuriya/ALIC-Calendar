@@ -350,7 +350,7 @@ function MissionStrip() {
             <p className="ms__p">
               ALIC Global Mission supports church planting, discipleship, and
               community outreach across Ethiopia and Sub-Saharan Africa, rooted
-              in the same gospel that has guided our church since 2008.
+              in the same gospel that has guided our church.
             </p>
             <a
               href="https://addislidetchurch.org/alic-mission/"
