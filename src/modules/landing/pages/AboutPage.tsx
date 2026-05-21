@@ -80,8 +80,8 @@ function VisionMission() {
               Mission · ተልዕኮ
             </div>
             <p className="vm__body">
-              Teaching, Living, and Proclaiming the Word of God — empowered by
-              the Holy Spirit.
+              Teaching, Living, and Proclaiming the Word of God empowered by the
+              Holy Spirit.
             </p>
           </div>
         </div>

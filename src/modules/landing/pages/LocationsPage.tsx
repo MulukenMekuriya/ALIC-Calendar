@@ -1,10 +1,19 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import LandingNav from "../components/LandingNav";
 import LandingFooter from "../components/LandingFooter";
 import PhotoSlot from "../components/PhotoSlot";
 import ArrowIcon from "../components/ArrowIcon";
 import "../landing.css";
+
+function shuffle<T>(arr: readonly T[]): T[] {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 function useHashScroll() {
   const { hash } = useLocation();
@@ -355,12 +364,13 @@ function LocCTA() {
 
 const LocationsPage = () => {
   useHashScroll();
+  const campuses = useMemo(() => shuffle(CAMPUSES), []);
   return (
     <div className="landing-root">
       <LandingNav />
       <main id="main-content">
         <LocHero />
-        {CAMPUSES.map((c) => (
+        {campuses.map((c) => (
           <Campus key={c.id} c={c} />
         ))}
         <ScheduleTable />

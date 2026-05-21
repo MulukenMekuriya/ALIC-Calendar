@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import LandingNav from "../components/LandingNav";
 import LandingFooter from "../components/LandingFooter";
@@ -291,8 +291,18 @@ const LOCATIONS = [
   },
 ];
 
+function shuffle<T>(arr: readonly T[]): T[] {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 function Locations() {
   const { t } = useI18n();
+  const locations = useMemo(() => shuffle(LOCATIONS), []);
   return (
     <section className="locs" id="locations">
       <div className="container">
@@ -308,7 +318,7 @@ function Locations() {
         </div>
 
         <div className="locs__grid">
-          {LOCATIONS.map((l, i) => (
+          {locations.map((l, i) => (
             <Link
               key={l.key}
               to="/locations"
