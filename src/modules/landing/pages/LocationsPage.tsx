@@ -275,7 +275,7 @@ const LIVE_EVENTS: {
 
 function ScheduleTable() {
   return (
-    <section className="sched">
+    <section className="sched" id="schedule">
       <div className="container-wide">
         <header className="sched__head">
           <div>

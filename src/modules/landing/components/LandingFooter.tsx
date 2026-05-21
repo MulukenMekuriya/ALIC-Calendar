@@ -44,9 +44,9 @@ export default function LandingFooter() {
           <div>
             <h5>{t('footer.visit')}</h5>
             <ul>
-              <li><Link to="/locations">Silver Spring, MD</Link></li>
-              <li><Link to="/locations">Alexandria, VA</Link></li>
-              <li><Link to="/locations">Service Times</Link></li>
+              <li><Link to="/locations#md">Silver Spring, MD</Link></li>
+              <li><Link to="/locations#va">Alexandria, VA</Link></li>
+              <li><Link to="/locations#schedule">Service Times</Link></li>
               <li><Link to="/locations">Directions</Link></li>
             </ul>
           </div>

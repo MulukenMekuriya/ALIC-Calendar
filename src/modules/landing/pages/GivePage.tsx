@@ -31,11 +31,6 @@ function GiveHero() {
             supporting missions, and reaching communities with the gospel.
             Thank you for partnering with us through giving.
           </p>
-          <div className="gv-hero__chips">
-            <span className="gv-chip">TAX-DEDUCTIBLE</span>
-            <span className="gv-chip">501(c)(3)</span>
-            <span className="gv-chip">EIN 26-3519442</span>
-          </div>
         </div>
       </div>
     </section>
