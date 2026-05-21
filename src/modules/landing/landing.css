@@ -1182,6 +1182,27 @@
   font-size: 13.5px; line-height: 1.65; color: var(--paper-dim); margin: 0 0 10px;
 }
 .landing-root .sof-b:last-child { margin-bottom: 0; }
+.landing-root .sof-nav {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  z-index: 3;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: var(--paper);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background .2s, border-color .2s;
+  backdrop-filter: blur(4px);
+}
+.landing-root .sof-nav:hover {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.32);
+}
+.landing-root .sof-nav:focus-visible {
+  outline: 2px solid var(--gold); outline-offset: 2px;
+}
+.landing-root .sof-nav--prev { left: 8px; }
+.landing-root .sof-nav--next { right: 8px; }
+.landing-root .sof-nav svg { width: 12px; height: 12px; }
 .landing-root .sof-hint {
   display: flex; align-items: center; gap: 10px;
   margin: 18px var(--gutter, 40px) 0;

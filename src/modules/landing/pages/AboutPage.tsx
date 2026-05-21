@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 import LandingNav from "../components/LandingNav";
 import LandingFooter from "../components/LandingFooter";
@@ -188,6 +189,12 @@ const ARTICLES_OF_FAITH: { ref: string; title: string; body: string[] }[] = [
 ];
 
 function ArticlesOfFaith() {
+  const listRef = useRef<HTMLOListElement>(null);
+  const scrollByCard = (dir: 1 | -1) => {
+    const el = listRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * 354, behavior: "smooth" });
+  };
   return (
     <section className="sof">
       <div className="container-wide">
@@ -203,7 +210,27 @@ function ArticlesOfFaith() {
       </div>
       <div className="sof-track">
         <div className="sof-rail" />
-        <ol className="sof-list">
+        <button
+          type="button"
+          className="sof-nav sof-nav--prev"
+          aria-label="Scroll left"
+          onClick={() => scrollByCard(-1)}
+        >
+          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+            <path d="M8 1 3 6l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          className="sof-nav sof-nav--next"
+          aria-label="Scroll right"
+          onClick={() => scrollByCard(1)}
+        >
+          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+            <path d="M4 1 9 6l-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <ol className="sof-list" ref={listRef}>
           {ARTICLES_OF_FAITH.map((s) => (
             <li key={s.ref} className="sof-item">
               <div className="sof-node">
@@ -330,7 +357,7 @@ function MissionStrip() {
         <div className="ms__grid">
           <div>
             <div className="eyebrow" style={{ marginBottom: 18 }}>
-              ALIC Global Mission · አገልግሎት
+              ALIC Global Mission
             </div>
             <h2 className="ms__title">
               <span>ALIC Global</span>
@@ -343,14 +370,15 @@ function MissionStrip() {
               community outreach across Ethiopia and Sub-Saharan Africa, rooted
               in the same gospel that has guided our church.
             </p>
-            <a
-              href="https://addislidetchurch.org/alic-mission/"
-              target="_blank"
-              rel="noreferrer"
+            <button
+              type="button"
+              disabled
+              aria-disabled="true"
               className="btn btn--primary btn--lg"
+              style={{ opacity: 0.4, cursor: "not-allowed" }}
             >
               Learn about ALIC Global Mission <ArrowIcon />
-            </a>
+            </button>
           </div>
           <div className="ms__figs">
             {[
@@ -404,10 +432,10 @@ const AboutPage = () => (
     <LandingNav />
     <main id="main-content">
       <AboutHero />
+      <Leadership />
       <VisionMission />
       <ArticlesOfFaith />
       <ForwardVision />
-      <Leadership />
       <MissionStrip />
       <AboutCTA />
     </main>
