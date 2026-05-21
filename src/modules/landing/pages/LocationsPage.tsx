@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import LandingNav from "../components/LandingNav";
 import LandingFooter from "../components/LandingFooter";
 import PhotoSlot from "../components/PhotoSlot";
@@ -286,11 +286,6 @@ function ScheduleTable() {
               stream <em>live.</em>
             </h2>
           </div>
-          <div className="sched__head-right">
-            <Link to="/locations" className="btn btn--ghost btn--sm">
-              Plan your visit
-            </Link>
-          </div>
         </header>
 
         <ul className="sched__list">
@@ -327,37 +322,6 @@ function ScheduleTable() {
   );
 }
 
-function LocCTA() {
-  return (
-    <section className="loc-cta">
-      <div className="container-wide loc-cta__inner">
-        <div
-          className="eyebrow"
-          style={{ marginBottom: 20, color: "var(--cream-muted)" }}
-        >
-          Not local?
-        </div>
-        <h2 className="loc-cta__title">
-          Watch <em>Live.</em>
-        </h2>
-        <div className="loc-cta__actions">
-          <a
-            href="https://www.youtube.com/@addislidetmedia"
-            target="_blank"
-            rel="noreferrer"
-            className="btn btn--cream btn--lg"
-          >
-            Watch live
-          </a>
-          <Link to="/connect" className="btn btn--ghost-cream btn--lg">
-            Find your community
-          </Link>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 const LocationsPage = () => {
   useHashScroll();
   const campuses = useMemo(() => shuffle(CAMPUSES), []);
@@ -370,7 +334,6 @@ const LocationsPage = () => {
           <Campus key={c.id} c={c} />
         ))}
         <ScheduleTable />
-        <LocCTA />
       </main>
       <LandingFooter />
     </div>
