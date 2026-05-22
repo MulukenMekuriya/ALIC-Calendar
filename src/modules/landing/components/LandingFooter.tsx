@@ -58,7 +58,7 @@ export default function LandingFooter() {
               <li><Link to="/ministries">Ministries</Link></li>
               <li><Link to="/connect">Get Connected</Link></li>
               <li><a href="https://sites.google.com/alicbibleschool.com/abs" target="_blank" rel="noreferrer">ALIC Bible School</a></li>
-              <li><a href="https://addislidetchurch.org/alic-mission/" target="_blank" rel="noreferrer">ALIC Mission</a></li>
+              <li><Link to="/mission">Global Mission</Link></li>
             </ul>
           </div>
 

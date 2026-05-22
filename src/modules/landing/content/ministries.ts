@@ -267,7 +267,7 @@ export const MINISTRIES: Ministry[] = [
     location: { en: "Local and international" },
     campuses: ["md", "va"],
     ctaLabel: { en: "Learn more" },
-    ctaHref: "https://addislidetchurch.org/alic-mission/",
+    ctaHref: "/mission",
     photo: null,
     leader: { name: null, role: null, email: null, photo: null },
     needsBeforeLaunch: [

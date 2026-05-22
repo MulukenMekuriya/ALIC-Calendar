@@ -19,6 +19,7 @@ import {
   AboutPage,
   LocationsPage,
   MinistriesPage,
+  MissionPage,
   ConnectPage,
   GivePage,
 } from "@/modules/landing";
@@ -122,6 +123,7 @@ const App = () => (
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/locations" element={<LocationsPage />} />
                 <Route path="/ministries" element={<MinistriesPage />} />
+                <Route path="/mission" element={<MissionPage />} />
                 <Route path="/connect" element={<ConnectPage />} />
                 <Route path="/give" element={<GivePage />} />
                 <Route path="/auth" element={<Auth />} />

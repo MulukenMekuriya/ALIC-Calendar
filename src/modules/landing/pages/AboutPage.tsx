@@ -370,15 +370,9 @@ function MissionStrip() {
               community outreach across Ethiopia and Sub-Saharan Africa, rooted
               in the same gospel that has guided our church.
             </p>
-            <button
-              type="button"
-              disabled
-              aria-disabled="true"
-              className="btn btn--primary btn--lg"
-              style={{ opacity: 0.4, cursor: "not-allowed" }}
-            >
+            <Link to="/mission" className="btn btn--primary btn--lg">
               Learn about ALIC Global Mission <ArrowIcon />
-            </button>
+            </Link>
           </div>
           <div className="ms__figs">
             {[
