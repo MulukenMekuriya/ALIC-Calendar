@@ -4,6 +4,7 @@ import LandingNav from "../components/LandingNav";
 import LandingFooter from "../components/LandingFooter";
 import ArrowIcon from "../components/ArrowIcon";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 import "../landing.css";
 
 function useHashScroll() {
@@ -82,9 +83,13 @@ function ConnectForm() {
     const name = values.name.trim();
     const email = values.email.trim();
     if (!name || !email) {
-      setStatus({
-        kind: "error",
-        message: "Please share your first name and email so we can follow up.",
+      const message =
+        "Please share your first name and email so we can follow up.";
+      setStatus({ kind: "error", message });
+      toast({
+        title: "Missing details",
+        description: message,
+        variant: "destructive",
       });
       return;
     }
@@ -118,12 +123,20 @@ function ConnectForm() {
       setValues({ name: "", email: "", phone: "", note: "" });
       setCampus("");
       setRole("new");
+      toast({
+        title: "Message sent",
+        description:
+          "Thanks! A pastor or ministry lead will follow up as soon as possible.",
+      });
     } catch (err) {
       console.error("Failed to send connect message:", err);
-      setStatus({
-        kind: "error",
-        message:
-          "Sorry — we couldn't send your message. Please try again, or email hello@addislidet.org.",
+      const message =
+        "Sorry — we couldn't send your message. Please try again, or email hello@addislidet.org.";
+      setStatus({ kind: "error", message });
+      toast({
+        title: "Couldn't send message",
+        description: message,
+        variant: "destructive",
       });
     }
   };
@@ -145,7 +158,7 @@ function ConnectForm() {
             <h2 className="cf-contact-title">Let's talk.</h2>
             <p className="cf-contact-p">
               We read every message personally. A pastor or ministry lead will
-              follow up within two business days — no mailing list, no spam.
+              follow up as soon as possible — no mailing list, no spam.
             </p>
 
             <div className="cf-locations">
@@ -283,7 +296,7 @@ function ConnectForm() {
                 }}
               >
                 Thanks — your message is on the way. A pastor or ministry lead
-                will follow up within two business days.
+                will follow up as soon as possible.
               </p>
             )}
             {status.kind === "error" && (
