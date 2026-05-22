@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import LandingNav from "../components/LandingNav";
 import LandingFooter from "../components/LandingFooter";
 import ArrowIcon from "../components/ArrowIcon";
+import { supabase } from "@/integrations/supabase/client";
 import "../landing.css";
 
 function useHashScroll() {
@@ -51,6 +52,18 @@ const CONNECT_ROLES = [
   { v: "prayer", l: "Request prayer" },
 ];
 
+const CAMPUS_LABELS: Record<string, string> = {
+  md: "Maryland — Silver Spring",
+  va: "Virginia — Alexandria",
+  online: "Either / online",
+};
+
+type SubmitStatus =
+  | { kind: "idle" }
+  | { kind: "submitting" }
+  | { kind: "success" }
+  | { kind: "error"; message: string };
+
 function ConnectForm() {
   const [role, setRole] = useState("new");
   const [campus, setCampus] = useState("");
@@ -60,11 +73,62 @@ function ConnectForm() {
     phone: "",
     note: "",
   });
+  const [status, setStatus] = useState<SubmitStatus>({ kind: "idle" });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert("Thanks! (Demo form — not yet live.)");
+    if (status.kind === "submitting") return;
+
+    const name = values.name.trim();
+    const email = values.email.trim();
+    if (!name || !email) {
+      setStatus({
+        kind: "error",
+        message: "Please share your first name and email so we can follow up.",
+      });
+      return;
+    }
+
+    setStatus({ kind: "submitting" });
+
+    const roleLabel =
+      CONNECT_ROLES.find((r) => r.v === role)?.l ?? role;
+    const campusLabel = campus ? CAMPUS_LABELS[campus] ?? campus : "";
+
+    try {
+      const { error } = await supabase.functions.invoke(
+        "send-connect-message",
+        {
+          body: {
+            role,
+            roleLabel,
+            name,
+            email,
+            phone: values.phone.trim(),
+            campus,
+            campusLabel,
+            note: values.note.trim(),
+          },
+        }
+      );
+
+      if (error) throw error;
+
+      setStatus({ kind: "success" });
+      setValues({ name: "", email: "", phone: "", note: "" });
+      setCampus("");
+      setRole("new");
+    } catch (err) {
+      console.error("Failed to send connect message:", err);
+      setStatus({
+        kind: "error",
+        message:
+          "Sorry — we couldn't send your message. Please try again, or email hello@addislidet.org.",
+      });
+    }
   };
+
+  const submitting = status.kind === "submitting";
 
   return (
     <section id="form" className="cf-section cf-section--full">
@@ -200,9 +264,40 @@ function ConnectForm() {
               />
             </label>
 
-            <button type="submit" className="cf-submit">
-              Send message <ArrowIcon />
+            <button
+              type="submit"
+              className="cf-submit"
+              disabled={submitting}
+              aria-busy={submitting}
+            >
+              {submitting ? "Sending…" : "Send message"} <ArrowIcon />
             </button>
+
+            {status.kind === "success" && (
+              <p
+                role="status"
+                style={{
+                  marginTop: 16,
+                  color: "var(--ink-muted, #9ca3af)",
+                  fontSize: 14,
+                }}
+              >
+                Thanks — your message is on the way. A pastor or ministry lead
+                will follow up within two business days.
+              </p>
+            )}
+            {status.kind === "error" && (
+              <p
+                role="alert"
+                style={{
+                  marginTop: 16,
+                  color: "#fca5a5",
+                  fontSize: 14,
+                }}
+              >
+                {status.message}
+              </p>
+            )}
           </form>
         </div>
       </div>
