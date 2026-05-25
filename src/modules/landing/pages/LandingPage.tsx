@@ -190,11 +190,6 @@ function SundayGatherings() {
 
         <div className="sg__text">
           <span className="eyebrow eyebrow--dark">{t("sg.eyebrow")}</span>
-          <h2 className="mask" data-delay="1">
-            <span>
-              {t("sg.title")}
-            </span>
-          </h2>
           <p className="sg__body reveal" data-delay="2">
             {t("sg.body")}
           </p>
