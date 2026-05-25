@@ -98,11 +98,11 @@ const sundayModules = import.meta.glob<string>(
 );
 const SUNDAY_PHOTOS = Object.values(sundayModules);
 
-const kidsModules = import.meta.glob<string>(
-  "/public/kids/*.{jpg,jpeg,png,webp}",
+const childrenModules = import.meta.glob<string>(
+  "/public/children/*.{jpg,jpeg,png,webp}",
   { eager: true, import: "default", query: "?url" },
 );
-const KIDS_PHOTOS = Object.values(kidsModules);
+const CHILDREN_PHOTOS = Object.values(childrenModules);
 
 const yaModules = import.meta.glob<string>(
   "/public/young-adults/*.{jpg,jpeg,png,webp}",
@@ -113,7 +113,7 @@ const YA_PHOTOS = Object.values(yaModules);
 function SundayGatherings() {
   const { t } = useI18n();
   const photoIdx = useSlideshow(SUNDAY_PHOTOS.length);
-  const kidsIdx = useSlideshow(KIDS_PHOTOS.length);
+  const childrenIdx = useSlideshow(CHILDREN_PHOTOS.length);
   const yaIdx = useSlideshow(YA_PHOTOS.length);
 
   return (
@@ -144,13 +144,13 @@ function SundayGatherings() {
           </div>
           <div
             className="photo-slot sg__photo sg__photo--2"
-            data-caption="Kids ministry"
+            data-caption="Children ministry"
           >
-            {KIDS_PHOTOS.map((src, i) => (
+            {CHILDREN_PHOTOS.map((src, i) => (
               <img
                 key={src}
                 src={src}
-                alt="Kids ministry"
+                alt="Children ministry"
                 className="photo-slot__img sg__slideshow-img" loading="lazy"
                 style={{
                   position: "absolute",
@@ -158,7 +158,7 @@ function SundayGatherings() {
                   width: "100%",
                   height: "100%",
                   objectFit: "cover",
-                  opacity: i === kidsIdx ? 1 : 0,
+                  opacity: i === childrenIdx ? 1 : 0,
                   transition: "opacity 1s ease",
                 }}
               />
