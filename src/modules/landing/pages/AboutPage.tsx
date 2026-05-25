@@ -325,8 +325,8 @@ const TEAM = [
     name: "Pastor Elias Getaneh",
     role: "Pastor",
     src: "/Pastor Elu.jpeg",
-    focus: "center 22%",
-    scale: 1.25,
+    focus: "center 60%",
+    scale: 1.55,
   },
   {
     name: "Pastor Biniam Aboye",

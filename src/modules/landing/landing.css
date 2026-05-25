@@ -1389,12 +1389,7 @@
   transform: scale(var(--leader-scale, 1));
   transform-origin: var(--leader-focus, center top);
 }
-.landing-root .leader__photo::after {
-  background: linear-gradient(to top, rgba(8, 12, 24, 0.78) 0%, rgba(8, 12, 24, 0.55) 40%, rgba(8, 12, 24, 0) 100%);
-  padding: 32px 18px 14px;
-  bottom: 0; left: 0; right: 0;
-  color: #fff;
-}
+.landing-root .leader__photo::after { display: none; }
 .landing-root .leader__body { padding-top: 20px; }
 .landing-root .leader__role {
   font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em;
