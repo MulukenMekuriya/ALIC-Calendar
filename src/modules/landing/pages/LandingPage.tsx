@@ -194,42 +194,77 @@ function SundayGatherings() {
             {t("sg.body")}
           </p>
 
-          <div className="sg__times reveal" data-delay="3">
-            <div className="sg__time-row">
-              <Link to="/locations#md" className="sg__time-campus sg__time-campus--btn">
-                Maryland · Silver Spring <ArrowIcon />
+          <div className="sg__campuses reveal" data-delay="3">
+            <article className="sg__campus">
+              <header className="sg__campus-head">
+                <span className="sg__campus-region">Maryland</span>
+                <h3 className="sg__campus-city">Silver Spring</h3>
+                <a
+                  href="https://maps.apple.com/?q=11961+Tech+Rd+Silver+Spring+MD+20904"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="sg__campus-addr"
+                >
+                  11961 Tech Rd <ArrowIcon />
+                </a>
+              </header>
+              <ul className="sg__schedule">
+                <li className="sg__schedule-row sg__schedule-row--primary">
+                  <span className="sg__schedule-time">11:00 AM</span>
+                  <span className="sg__schedule-label">Sunday Worship</span>
+                </li>
+                <li className="sg__schedule-row">
+                  <span className="sg__schedule-time">10:00 AM</span>
+                  <span className="sg__schedule-label">Morning Prayer</span>
+                </li>
+                <li className="sg__schedule-row">
+                  <span className="sg__schedule-time">4:00 PM</span>
+                  <span className="sg__schedule-label">TrueVine (English)</span>
+                </li>
+                <li className="sg__schedule-row">
+                  <span className="sg__schedule-time">6:30 PM</span>
+                  <span className="sg__schedule-label">Young Adult</span>
+                </li>
+              </ul>
+              <Link to="/locations#md" className="sg__campus-link">
+                Campus details <ArrowIcon />
               </Link>
-              <div className="sg__time-list">
-                <div>
-                  <strong>10:00 AM</strong> &nbsp;— Morning Prayer
+            </article>
+
+            <article className="sg__campus">
+              <header className="sg__campus-head">
+                <div className="sg__campus-region-row">
+                  <span className="sg__campus-region">Virginia</span>
+                  <span className="sg__campus-badge">New · 2026</span>
                 </div>
-                <div>
-                  <strong>11:00 AM</strong> &nbsp;— Sunday Worship
-                </div>
-                <div>
-                  <strong>4:00 PM</strong> &nbsp;— TrueVine (English)
-                </div>
-                <div>
-                  <strong>6:30 PM</strong> &nbsp;— Young Adult
-                </div>
-              </div>
-            </div>
-            <div className="sg__time-row">
-              <Link to="/locations#va" className="sg__time-campus sg__time-campus--btn">
-                Virginia · Alexandria <ArrowIcon />
+                <h3 className="sg__campus-city">Alexandria</h3>
+                <a
+                  href="https://maps.apple.com/?q=2730+Eisenhower+Ave+Alexandria+VA+22314"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="sg__campus-addr"
+                >
+                  2730 Eisenhower Ave <ArrowIcon />
+                </a>
+              </header>
+              <ul className="sg__schedule">
+                <li className="sg__schedule-row sg__schedule-row--primary">
+                  <span className="sg__schedule-time">10:30 AM</span>
+                  <span className="sg__schedule-label">Sunday Worship</span>
+                </li>
+                <li className="sg__schedule-row">
+                  <span className="sg__schedule-time">9:30 AM</span>
+                  <span className="sg__schedule-label">Morning Prayer</span>
+                </li>
+                <li className="sg__schedule-row">
+                  <span className="sg__schedule-time">7:00 PM</span>
+                  <span className="sg__schedule-label">Young Adults</span>
+                </li>
+              </ul>
+              <Link to="/locations#va" className="sg__campus-link">
+                Campus details <ArrowIcon />
               </Link>
-              <div className="sg__time-list">
-                <div>
-                  <strong>9:30 AM</strong> &nbsp;— Morning Prayer
-                </div>
-                <div>
-                  <strong>10:30 AM</strong> &nbsp;— Sunday Worship
-                </div>
-                <div>
-                  <strong>7:00 PM</strong> &nbsp;— Young Adults
-                </div>
-              </div>
-            </div>
+            </article>
           </div>
 
           <div className="sg__cta reveal" data-delay="4">

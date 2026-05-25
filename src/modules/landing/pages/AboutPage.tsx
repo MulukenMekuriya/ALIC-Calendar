@@ -217,7 +217,13 @@ function ArticlesOfFaith() {
           onClick={() => scrollByCard(-1)}
         >
           <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
-            <path d="M8 1 3 6l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d="M8 1 3 6l5 5"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </button>
         <button
@@ -227,7 +233,13 @@ function ArticlesOfFaith() {
           onClick={() => scrollByCard(1)}
         >
           <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
-            <path d="M4 1 9 6l-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d="M4 1 9 6l-5 5"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </button>
         <ol className="sof-list" ref={listRef}>
@@ -305,22 +317,30 @@ const TEAM = [
   {
     name: "Pastor Mekashaw Shimelash",
     role: "Senior Pastor",
-    src: "/Pr. Mekashaw.JPEG",
+    src: "/Pr. Mekashaw.jpeg",
+    focus: "center 20%",
+    scale: 1,
   },
   {
     name: "Pastor Elias Getaneh",
     role: "Pastor",
     src: "/Pastor Elu.jpeg",
+    focus: "center 22%",
+    scale: 1.25,
   },
   {
     name: "Pastor Biniam Aboye",
     role: "Pastor",
-    src: "/Pr. Bini.JPEG",
+    src: "/Pr. Bini.jpeg",
+    focus: "center 22%",
+    scale: 1,
   },
   {
     name: "Teacher Worede Zinabu",
     role: "Teacher",
     src: "/Wade.jpeg",
+    focus: "center 18%",
+    scale: 1.3,
   },
 ];
 
@@ -336,7 +356,15 @@ function Leadership() {
         <div className="lead__grid">
           {TEAM.map((p) => (
             <article key={p.name}>
-              <PhotoSlot label={p.name} src={p.src} className="leader__photo" />
+              <PhotoSlot
+                label={p.name}
+                src={p.src}
+                className="leader__photo"
+                style={{
+                  ["--leader-focus" as string]: p.focus,
+                  ["--leader-scale" as string]: String(p.scale),
+                }}
+              />
               <div className="leader__body">
                 <div className="leader__role">{p.role}</div>
                 <h3 className="leader__name">{p.name}</h3>
