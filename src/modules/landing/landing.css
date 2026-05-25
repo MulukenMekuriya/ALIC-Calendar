@@ -212,24 +212,66 @@
 .landing-root .nav__burger.is-open .nav__burger-line:nth-child(2) { opacity: 0; }
 .landing-root .nav__burger.is-open .nav__burger-line:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
 
-/* Mobile menu overlay */
-.landing-root .nav__mobile {
-  position: fixed; inset: 0; top: 0;
-  background: rgba(3,8,16,0.96); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-  z-index: 99; display: flex; align-items: center; justify-content: center;
-  opacity: 0; pointer-events: none; transition: opacity 0.35s cubic-bezier(.2,.7,.2,1);
+/* Mobile menu — slide-in side sheet. Scrim + sheet are siblings of .nav so
+   they're not trapped inside .nav's containing block (created by its
+   backdrop-filter). Solid sheet background so iframes can't bleed through. */
+.landing-root .nav__scrim {
+  position: fixed; inset: 0;
+  background: rgba(3,8,16,0.6);
+  z-index: 140;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s cubic-bezier(.2,.7,.2,1);
 }
-.landing-root .nav__mobile.is-open { opacity: 1; pointer-events: auto; }
-.landing-root .nav__mobile-links {
-  display: flex; flex-direction: column; align-items: center; gap: 8px;
+.landing-root .nav__scrim.is-open { opacity: 1; pointer-events: auto; }
+
+.landing-root .nav__sheet {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: min(82vw, 360px);
+  background: #060d18;
+  border-left: 1px solid rgba(249,250,251,0.06);
+  box-shadow: -24px 0 60px rgba(0,0,0,0.45);
+  z-index: 150;
+  display: flex; flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(.2,.7,.2,1);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
-.landing-root .nav__mobile-link {
-  font-family: var(--font-serif); font-size: 32px; font-weight: 300;
-  color: var(--paper-dim); padding: 12px 24px; transition: color 0.2s;
+.landing-root .nav__sheet.is-open { transform: translateX(0); }
+
+.landing-root .nav__sheet-head {
+  display: flex; justify-content: flex-end; align-items: center;
+  padding: 18px 18px 4px;
+}
+.landing-root .nav__sheet-close {
+  appearance: none; background: none; border: 1px solid rgba(249,250,251,0.12);
+  width: 40px; height: 40px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--paper-dim); cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.landing-root .nav__sheet-close:hover {
+  color: var(--paper); border-color: rgba(249,250,251,0.24);
+  background: rgba(249,250,251,0.04);
+}
+
+.landing-root .nav__sheet-links {
+  display: flex; flex-direction: column; align-items: stretch;
+  padding: 12px 28px 32px;
+  gap: 2px;
+}
+.landing-root .nav__sheet-link {
+  font-family: var(--font-serif); font-size: 26px; font-weight: 300;
+  color: var(--paper-dim); padding: 14px 4px;
   letter-spacing: -0.01em;
+  transition: color 0.2s, transform 0.2s;
 }
-.landing-root .nav__mobile-link:hover,
-.landing-root .nav__mobile-link.active { color: var(--gold-bright); }
+.landing-root .nav__sheet-link:hover,
+.landing-root .nav__sheet-link.active { color: var(--gold-bright); }
+.landing-root .nav__sheet-divider {
+  display: block; height: 1px; background: rgba(249,250,251,0.08);
+  margin: 14px 0 10px;
+}
 .landing-root .lang-toggle {
   display: inline-flex; align-items: center;
   font-family: var(--font-mono); font-size: 11px;

@@ -26,6 +26,14 @@ export default function LandingNav() {
     return () => { document.body.style.overflow = ''; };
   }, [menuOpen]);
 
+  // Close on Escape
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
+
   const toggleMenu = useCallback(() => setMenuOpen((v) => !v), []);
 
   const links = [
@@ -78,20 +86,46 @@ export default function LandingNav() {
             </button>
           </div>
         </div>
-
-        {/* Mobile menu overlay */}
-        <div className={`nav__mobile${menuOpen ? ' is-open' : ''}`}>
-          <div className="nav__mobile-links">
-            {links.map(l => (
-              <Link key={l.key} to={l.to} className={`nav__mobile-link${isActive(l.to) ? ' active' : ''}`}>
-                {l.label}
-              </Link>
-            ))}
-            <Link to="/give" className="nav__mobile-link">{t('cta.give')}</Link>
-            <Link to="/auth" className="nav__mobile-link">Log in</Link>
-          </div>
-        </div>
       </nav>
+
+      {/* Mobile menu — slide-in side sheet. Rendered as sibling of <nav> so
+          backdrop-filter on .nav doesn't trap its fixed positioning inside
+          the navbar's containing block. */}
+      <div
+        className={`nav__scrim${menuOpen ? ' is-open' : ''}`}
+        onClick={() => setMenuOpen(false)}
+        aria-hidden="true"
+      />
+      <aside
+        className={`nav__sheet${menuOpen ? ' is-open' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Site menu"
+        aria-hidden={!menuOpen}
+      >
+        <div className="nav__sheet-head">
+          <button
+            type="button"
+            className="nav__sheet-close"
+            onClick={() => setMenuOpen(false)}
+            aria-label="Close menu"
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M4 4l12 12M16 4L4 16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+        <nav className="nav__sheet-links" aria-label="Primary">
+          {links.map(l => (
+            <Link key={l.key} to={l.to} className={`nav__sheet-link${isActive(l.to) ? ' active' : ''}`}>
+              {l.label}
+            </Link>
+          ))}
+          <span className="nav__sheet-divider" aria-hidden="true" />
+          <Link to="/give" className="nav__sheet-link">{t('cta.give')}</Link>
+          <Link to="/auth" className="nav__sheet-link">Log in</Link>
+        </nav>
+      </aside>
     </>
   );
 }
