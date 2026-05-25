@@ -128,10 +128,10 @@ export const MINISTRIES: Ministry[] = [
       en: "True Vine Ministry gathers young adults each week for worship, the Word, and community in English. Weekly services are held every Sunday from 4:00 p.m. to 7:00 p.m.",
     },
     meets: {
-      en: "Sunday 4:00–7:00 PM · Silver Spring · Sunday evenings 7:00–9:00 PM · Alexandria",
+      en: "Sunday 4:00–7:00 PM",
     },
-    location: { en: "Both campuses" },
-    campuses: ["md", "va"],
+    location: { en: "Silver Spring, MD" },
+    campuses: ["md"],
     ctaLabel: { en: "Join us" },
     ctaHref: "/connect",
     photo: null,
