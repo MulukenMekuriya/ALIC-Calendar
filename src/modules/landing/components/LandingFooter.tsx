@@ -1,6 +1,21 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useI18n } from './useI18n';
+
+/** Returns true when the viewport is below the mobile breakpoint. Used to
+ *  decide whether to render the footer link groups as collapsible <details>
+ *  or as always-open sections. Server-safe initial value (false). */
+function useIsMobile(maxWidth = 980) {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${maxWidth}px)`);
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, [maxWidth]);
+  return isMobile;
+}
 
 
 function IconFB() {
@@ -27,6 +42,10 @@ function IconChevron() {
 
 export default function LandingFooter() {
   const { t, lang, setLang } = useI18n();
+  const isMobile = useIsMobile();
+  // On desktop, force every group open so its <ul> renders; on mobile, omit
+  // the prop so the user can toggle freely (collapsed by default).
+  const accProps = isMobile ? {} : { open: true };
   return (
     <footer className="footer">
       <div className="container-wide">
@@ -48,7 +67,7 @@ export default function LandingFooter() {
             </div>
           </div>
 
-          <details className="footer__acc">
+          <details className="footer__acc" {...accProps}>
             <summary>
               <h5>{t('footer.visit')}</h5>
               <IconChevron />
@@ -61,7 +80,7 @@ export default function LandingFooter() {
             </ul>
           </details>
 
-          <details className="footer__acc">
+          <details className="footer__acc" {...accProps}>
             <summary>
               <h5>{t('footer.explore')}</h5>
               <IconChevron />
@@ -75,7 +94,7 @@ export default function LandingFooter() {
             </ul>
           </details>
 
-          <details className="footer__acc">
+          <details className="footer__acc" {...accProps}>
             <summary>
               <h5>{t('footer.contact')}</h5>
               <IconChevron />

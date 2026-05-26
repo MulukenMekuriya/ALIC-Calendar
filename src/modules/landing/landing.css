@@ -996,7 +996,6 @@
   cursor: default;
 }
 .landing-root .footer__acc > summary::-webkit-details-marker { display: none; }
-.landing-root .footer__acc > ul { display: block; }  /* desktop: always show */
 .landing-root .footer__acc-chev {
   display: none;
   color: var(--paper-muted);
