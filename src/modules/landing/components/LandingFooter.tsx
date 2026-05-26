@@ -17,6 +17,13 @@ function IconYT() {
     </svg>
   );
 }
+function IconChevron() {
+  return (
+    <svg className="footer__acc-chev" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+      <path d="M3 5l4 4 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 export default function LandingFooter() {
   const { t, lang, setLang } = useI18n();
@@ -41,18 +48,24 @@ export default function LandingFooter() {
             </div>
           </div>
 
-          <div>
-            <h5>{t('footer.visit')}</h5>
+          <details className="footer__acc">
+            <summary>
+              <h5>{t('footer.visit')}</h5>
+              <IconChevron />
+            </summary>
             <ul>
               <li><Link to="/locations#md">Silver Spring, MD</Link></li>
               <li><Link to="/locations#va">Alexandria, VA</Link></li>
               <li><Link to="/locations#schedule">Service Times</Link></li>
               <li><Link to="/locations">Directions</Link></li>
             </ul>
-          </div>
+          </details>
 
-          <div>
-            <h5>{t('footer.explore')}</h5>
+          <details className="footer__acc">
+            <summary>
+              <h5>{t('footer.explore')}</h5>
+              <IconChevron />
+            </summary>
             <ul>
               <li><Link to="/about">About</Link></li>
               <li><Link to="/ministries">Ministries</Link></li>
@@ -60,17 +73,20 @@ export default function LandingFooter() {
               <li><a href="https://sites.google.com/alicbibleschool.com/abs" target="_blank" rel="noreferrer">ALIC Bible School</a></li>
               <li><Link to="/mission">Global Mission</Link></li>
             </ul>
-          </div>
+          </details>
 
-          <div>
-            <h5>{t('footer.contact')}</h5>
+          <details className="footer__acc">
+            <summary>
+              <h5>{t('footer.contact')}</h5>
+              <IconChevron />
+            </summary>
             <ul>
               <li><Link to="/connect">Contact Form</Link></li>
               <li><Link to="/connect">Prayer Request</Link></li>
               <li><Link to="/auth">Members Login</Link></li>
               <li><Link to="/give">Give Online</Link></li>
             </ul>
-          </div>
+          </details>
         </div>
 
         <div className="footer__bottom">

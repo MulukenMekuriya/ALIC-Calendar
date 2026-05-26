@@ -987,6 +987,22 @@
 .landing-root .footer__social a:hover { color: var(--gold); }
 .landing-root .footer__tag { margin-top: 20px; max-width: 360px; color: var(--paper-dim); font-size: 14px; }
 
+/* Accordion footer link groups — collapse on mobile, always-open on desktop.
+   Desktop behavior: rendered as plain block, chevron hidden, content always
+   visible (CSS-forced regardless of the details element's open state). */
+.landing-root .footer__acc { display: block; }
+.landing-root .footer__acc > summary {
+  list-style: none;
+  cursor: default;
+}
+.landing-root .footer__acc > summary::-webkit-details-marker { display: none; }
+.landing-root .footer__acc > ul { display: block; }  /* desktop: always show */
+.landing-root .footer__acc-chev {
+  display: none;
+  color: var(--paper-muted);
+  transition: transform 0.25s ease;
+}
+
 /* ======================================================
    RESPONSIVE
    ====================================================== */
@@ -1025,8 +1041,30 @@
   .landing-root .connect__grid { grid-template-columns: 1fr; gap: 40px; }
   .landing-root .connect__form { padding: 28px 24px; }
   .landing-root .connect__field-row { grid-template-columns: 1fr; }
-  .landing-root .footer__grid { grid-template-columns: 1fr 1fr; gap: 40px; }
+  .landing-root .footer__grid { grid-template-columns: 1fr; gap: 0; }
   .landing-root .footer__bottom { flex-direction: column; align-items: flex-start; gap: 12px; }
+
+  /* Footer accordion — mobile */
+  .landing-root .footer__acc {
+    border-top: 1px solid rgba(249,250,251,0.06);
+  }
+  .landing-root .footer__acc:first-of-type { margin-top: 32px; }
+  .landing-root .footer__acc:last-of-type {
+    border-bottom: 1px solid rgba(249,250,251,0.06);
+  }
+  .landing-root .footer__acc > summary {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 0; cursor: pointer;
+  }
+  .landing-root .footer__acc > summary h5 { margin-bottom: 0; }
+  .landing-root .footer__acc-chev { display: block; }
+  .landing-root .footer__acc[open] .footer__acc-chev { transform: rotate(180deg); }
+  .landing-root .footer__acc:not([open]) > ul { display: none; }
+  .landing-root .footer__acc > ul {
+    padding: 4px 0 18px;
+  }
+  .landing-root .footer__acc > ul li { margin-bottom: 14px; font-size: 15px; }
+  .landing-root .footer__acc > ul li:last-child { margin-bottom: 0; }
 }
 
 /* ── Small mobile ── */
@@ -1040,7 +1078,7 @@
   .landing-root .story__photo-col { height: 45vh; }
   .landing-root .connect__chips { gap: 6px; }
   .landing-root .connect__chip span { padding: 8px 12px; font-size: 11px; }
-  .landing-root .footer__grid { grid-template-columns: 1fr; gap: 32px; }
+  .landing-root .footer__grid { grid-template-columns: 1fr; gap: 0; }
   .landing-root .footer__bottom { flex-direction: column; align-items: flex-start; }
 }
 
@@ -2943,8 +2981,7 @@
   .landing-root .min-quote blockquote p { font-size: 17px; }
 
   /* Footer */
-  .landing-root .footer__grid { grid-template-columns: 1fr; }
-  .landing-root .footer h5 { margin-bottom: 14px; }
+  .landing-root .footer__grid { grid-template-columns: 1fr; gap: 0; }
 
   /* Connect form fields — slightly smaller */
   .landing-root .connect__field input,
