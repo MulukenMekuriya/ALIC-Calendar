@@ -1042,7 +1042,11 @@
   .landing-root .connect__form { padding: 28px 24px; }
   .landing-root .connect__field-row { grid-template-columns: 1fr; }
   .landing-root .footer__grid { grid-template-columns: 1fr; gap: 0; }
-  .landing-root .footer__bottom { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .landing-root .footer__bottom {
+    flex-direction: column; align-items: center;
+    gap: 20px; padding-top: 28px; text-align: center;
+  }
+  .landing-root .footer__bottom .lang-toggle button { padding: 8px 14px; }
 
   /* Footer accordion — mobile */
   .landing-root .footer__acc {
@@ -1079,7 +1083,6 @@
   .landing-root .connect__chips { gap: 6px; }
   .landing-root .connect__chip span { padding: 8px 12px; font-size: 11px; }
   .landing-root .footer__grid { grid-template-columns: 1fr; gap: 0; }
-  .landing-root .footer__bottom { flex-direction: column; align-items: flex-start; }
 }
 
 /* ======================================================
