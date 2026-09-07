@@ -174,3 +174,50 @@ describe("canAny / canAll", () => {
     expect(canAll(caps, ["members.read", "members.write"])).toBe(false);
   });
 });
+
+describe("the giving pair", () => {
+  it("gives a giving_admin the ledger and nothing else", () => {
+    const caps = resolveCapabilities({
+      isOrgAdmin: false,
+      grants: [grant(MD, "giving_admin")],
+      organizationId: MD,
+    });
+    expect(can(caps, "giving.read")).toBe(true);
+    expect(can(caps, "giving.write")).toBe(true);
+    // A treasurer is not a directory user. The giving screens get donor names
+    // from SECURITY DEFINER functions precisely so this stays false.
+    expect(can(caps, "members.read")).toBe(false);
+    expect(can(caps, "kids.read")).toBe(false);
+  });
+
+  it("gives a giving_viewer read but not write", () => {
+    const caps = resolveCapabilities({
+      isOrgAdmin: false,
+      grants: [grant(MD, "giving_viewer")],
+      organizationId: MD,
+    });
+    expect(can(caps, "giving.read")).toBe(true);
+    expect(can(caps, "giving.write")).toBe(false);
+  });
+
+  it("does not let a members or leadership role reach the ledger", () => {
+    for (const role of ["members_admin", "members_viewer", "leadership_viewer"] as const) {
+      const caps = resolveCapabilities({
+        isOrgAdmin: false,
+        grants: [grant(MD, role)],
+        organizationId: MD,
+      });
+      expect(can(caps, "giving.read")).toBe(false);
+      expect(can(caps, "giving.write")).toBe(false);
+    }
+  });
+
+  it("does not leak a giving grant across branches", () => {
+    const caps = resolveCapabilities({
+      isOrgAdmin: false,
+      grants: [grant(MD, "giving_admin")],
+      organizationId: VA,
+    });
+    expect(caps.size).toBe(0);
+  });
+});

@@ -91,3 +91,10 @@ verify_jwt = false
 # the service-role key as a bearer token rather than a user JWT.
 [functions.send-kids-notification]
 verify_jwt = false
+
+# Called by Stripe, which has no Supabase JWT to send. Its own authentication
+# is the Stripe-Signature header, verified against STRIPE_WEBHOOK_SECRET inside
+# the function; an unsigned or stale request is rejected with a 400 before it
+# reaches the database.
+[functions.stripe-giving-webhook]
+verify_jwt = false

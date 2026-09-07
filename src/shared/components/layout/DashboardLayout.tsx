@@ -44,6 +44,9 @@ import {
   ArrowRightLeft,
   Trash2,
   BookOpen,
+  HandCoins,
+  UserCircle,
+  Route,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/shared/lib/utils";
@@ -73,6 +76,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const canViewMembers = can("members.read");
   const canViewKids = can("kids.read") || can("kids.write");
   const canRunStation = can("kids.checkin");
+  const canViewGiving = can("giving.read");
   const { currentOrganization } = useOrganization();
   const {
     searchQuery,
@@ -258,12 +262,37 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           },
         ]
       : []),
+    // Gated on the giving capability, NOT on a staff tier, and deliberately
+    // not inside "Financial": giving_admin is additive, so a counter who is
+    // otherwise a plain member holds it, and a section the tier filter strips
+    // would hide the module from exactly those people.
+    ...(canViewGiving
+      ? [
+          {
+            title: "Giving",
+            items: [
+              {
+                name: "Giving",
+                href: "/giving",
+                icon: HandCoins,
+                description: "Gifts, batches and statements",
+              },
+            ],
+          },
+        ]
+      : []),
     // Visible to everyone, like Budget. The page renders the full directory
     // for admins and a self-only view for everyone else; RLS enforces the same
     // split server-side, so the label is a hint rather than the control.
     {
       title: "People",
       items: [
+        {
+          name: "My Church",
+          href: "/my",
+          icon: UserCircle,
+          description: "My household, giving and children",
+        },
         {
           name: "Members",
           href: "/members",
@@ -277,6 +306,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 href: "/members/households",
                 icon: Home,
                 description: "Households and who is in them",
+              },
+              {
+                name: "Follow-up",
+                href: "/workflows",
+                icon: Route,
+                description: "Visitors and anyone owed a call",
               },
             ]
           : []),

@@ -98,6 +98,18 @@ export const PERMISSIONS: {
     label: "Leadership viewer",
     description: "Read-only across Members and Kids, for reports and oversight.",
   },
+  {
+    value: "giving_admin",
+    label: "Giving admin",
+    description:
+      "Record gifts, run imports, post counting batches and issue year-end statements, and see any donor's history. Does NOT include the directory \u2014 the giving screens show a donor's name without it. Every statement run is logged.",
+  },
+  {
+    value: "giving_viewer",
+    label: "Giving viewer",
+    description:
+      "Read the ledger and the fund totals without being able to change anything or issue statements. For a pastor or a board member who needs the numbers.",
+  },
 ];
 
 export const grantKeys = {

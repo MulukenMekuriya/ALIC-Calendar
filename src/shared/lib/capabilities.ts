@@ -28,6 +28,8 @@ export const MINISTRY_ROLES = [
   "kids_leader",
   "kids_volunteer",
   "leadership_viewer",
+  "giving_admin",
+  "giving_viewer",
 ] as const;
 
 export type MinistryRole = (typeof MINISTRY_ROLES)[number];
@@ -40,6 +42,8 @@ export const CAPABILITIES = [
   "kids.write",
   "kids.checkin",
   "kids.override",
+  "giving.read",
+  "giving.write",
 ] as const;
 
 export type Capability = (typeof CAPABILITIES)[number];
@@ -79,6 +83,21 @@ const ROLE_CAPABILITIES: Record<MinistryRole, readonly Capability[]> = {
   kids_leader: ["kids.read", "kids.write", "kids.checkin", "members.read"],
   kids_volunteer: ["kids.checkin"],
   leadership_viewer: ["members.read", "kids.read"],
+  /**
+   * The giving pair.
+   *
+   * Neither carries members.read. A treasurer recording a cheque does not need
+   * the directory, and the giving screens are built so they never ask for it:
+   * every donor name they show arrives through a SECURITY DEFINER function
+   * (church.giving_donations, church.giving_person_search) that returns a name
+   * and nothing else.
+   *
+   * leadership_viewer deliberately does NOT pick up giving.read either.
+   * Reading the directory is not reading the ledger, and what a household
+   * gives is the most sensitive non-medical fact this system stores.
+   */
+  giving_admin: ["giving.read", "giving.write"],
+  giving_viewer: ["giving.read"],
 };
 
 export interface ResolveCapabilitiesInput {

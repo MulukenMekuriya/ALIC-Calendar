@@ -2,6 +2,8 @@
  * Shared constants used across all modules
  */
 
+export { STRIPE_GIVING_URL, GIVING_METHODS_SUMMARY } from "./giving";
+
 // Application-wide constants
 export const APP_NAME = "Church Management System";
 export const APP_SHORT_NAME = "CMS";

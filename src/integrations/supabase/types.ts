@@ -719,6 +719,269 @@ export type Database = {
         }
         Relationships: []
       }
+      donations: {
+        Row: {
+          amount_cents: number
+          batch_id: string | null
+          check_number: string | null
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          donor_email_raw: string | null
+          donor_name_raw: string | null
+          donor_phone_raw: string | null
+          external_reference: string | null
+          fee_cents: number
+          fund_id: string
+          household_id: string | null
+          id: string
+          is_tax_deductible: boolean
+          method: string
+          note: string | null
+          organization_id: string
+          person_id: string | null
+          received_on: string
+          refunded_at: string | null
+          refunded_reason: string | null
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          batch_id?: string | null
+          check_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          donor_email_raw?: string | null
+          donor_name_raw?: string | null
+          donor_phone_raw?: string | null
+          external_reference?: string | null
+          fee_cents?: number
+          fund_id: string
+          household_id?: string | null
+          id?: string
+          is_tax_deductible?: boolean
+          method: string
+          note?: string | null
+          organization_id: string
+          person_id?: string | null
+          received_on: string
+          refunded_at?: string | null
+          refunded_reason?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          batch_id?: string | null
+          check_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          donor_email_raw?: string | null
+          donor_name_raw?: string | null
+          donor_phone_raw?: string | null
+          external_reference?: string | null
+          fee_cents?: number
+          fund_id?: string
+          household_id?: string | null
+          id?: string
+          is_tax_deductible?: boolean
+          method?: string
+          note?: string | null
+          organization_id?: string
+          person_id?: string | null
+          received_on?: string
+          refunded_at?: string | null
+          refunded_reason?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_donations_batch"
+            columns: ["batch_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "giving_batches"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "fk_donations_fund"
+            columns: ["fund_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "giving_funds"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "fk_donations_household"
+            columns: ["household_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "fk_donations_person"
+            columns: ["person_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
+      giving_access_audit: {
+        Row: {
+          action: string
+          actor_name: string | null
+          auth_user_id: string | null
+          created_at: string
+          id: string
+          organization_id: string
+          row_count: number | null
+          subject_household_id: string | null
+          subject_person_id: string | null
+          tax_year: number | null
+        }
+        Insert: {
+          action: string
+          actor_name?: string | null
+          auth_user_id?: string | null
+          created_at?: string
+          id?: string
+          organization_id: string
+          row_count?: number | null
+          subject_household_id?: string | null
+          subject_person_id?: string | null
+          tax_year?: number | null
+        }
+        Update: {
+          action?: string
+          actor_name?: string | null
+          auth_user_id?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string
+          row_count?: number | null
+          subject_household_id?: string | null
+          subject_person_id?: string | null
+          tax_year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "giving_access_audit_subject_household_id_fkey"
+            columns: ["subject_household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "giving_access_audit_subject_person_id_fkey"
+            columns: ["subject_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      giving_batches: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          expected_total_cents: number | null
+          id: string
+          name: string
+          notes: string | null
+          organization_id: string
+          posted_at: string | null
+          posted_by: string | null
+          posted_by_name: string | null
+          received_on: string
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          expected_total_cents?: number | null
+          id?: string
+          name: string
+          notes?: string | null
+          organization_id: string
+          posted_at?: string | null
+          posted_by?: string | null
+          posted_by_name?: string | null
+          received_on?: string
+          source: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          expected_total_cents?: number | null
+          id?: string
+          name?: string
+          notes?: string | null
+          organization_id?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          posted_by_name?: string | null
+          received_on?: string
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      giving_funds: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          is_tax_deductible: boolean
+          name: string
+          organization_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_tax_deductible?: boolean
+          name: string
+          organization_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_tax_deductible?: boolean
+          name?: string
+          organization_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       group_memberships: {
         Row: {
           created_at: string
@@ -3271,6 +3534,266 @@ export type Database = {
           },
         ]
       }
+      workflow_card_activities: {
+        Row: {
+          actor_auth_user: string | null
+          actor_name: string | null
+          assignee_person_id: string | null
+          body: string | null
+          card_id: string
+          created_at: string
+          from_step_id: string | null
+          id: string
+          kind: string
+          organization_id: string
+          to_step_id: string | null
+        }
+        Insert: {
+          actor_auth_user?: string | null
+          actor_name?: string | null
+          assignee_person_id?: string | null
+          body?: string | null
+          card_id: string
+          created_at?: string
+          from_step_id?: string | null
+          id?: string
+          kind: string
+          organization_id: string
+          to_step_id?: string | null
+        }
+        Update: {
+          actor_auth_user?: string | null
+          actor_name?: string | null
+          assignee_person_id?: string | null
+          body?: string | null
+          card_id?: string
+          created_at?: string
+          from_step_id?: string | null
+          id?: string
+          kind?: string
+          organization_id?: string
+          to_step_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_card_activities_assignee_person_id_fkey"
+            columns: ["assignee_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_card_activities_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_card_activities_from_step_id_fkey"
+            columns: ["from_step_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_card_activities_to_step_id_fkey"
+            columns: ["to_step_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_cards: {
+        Row: {
+          assignee_person_id: string | null
+          completed_at: string | null
+          completed_by_name: string | null
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          current_step_id: string | null
+          due_on: string | null
+          entered_step_at: string
+          id: string
+          organization_id: string
+          outcome: string | null
+          person_id: string
+          snooze_until: string | null
+          status: string
+          updated_at: string
+          workflow_id: string
+        }
+        Insert: {
+          assignee_person_id?: string | null
+          completed_at?: string | null
+          completed_by_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          current_step_id?: string | null
+          due_on?: string | null
+          entered_step_at?: string
+          id?: string
+          organization_id: string
+          outcome?: string | null
+          person_id: string
+          snooze_until?: string | null
+          status?: string
+          updated_at?: string
+          workflow_id: string
+        }
+        Update: {
+          assignee_person_id?: string | null
+          completed_at?: string | null
+          completed_by_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          current_step_id?: string | null
+          due_on?: string | null
+          entered_step_at?: string
+          id?: string
+          organization_id?: string
+          outcome?: string | null
+          person_id?: string
+          snooze_until?: string | null
+          status?: string
+          updated_at?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_workflow_cards_assignee"
+            columns: ["assignee_person_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "fk_workflow_cards_person"
+            columns: ["person_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "fk_workflow_cards_step"
+            columns: ["current_step_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_steps"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "fk_workflow_cards_workflow"
+            columns: ["workflow_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
+      workflow_steps: {
+        Row: {
+          created_at: string
+          description: string | null
+          expected_days: number | null
+          id: string
+          is_active: boolean
+          name: string
+          organization_id: string
+          sequence: number
+          updated_at: string
+          workflow_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          expected_days?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+          organization_id: string
+          sequence: number
+          updated_at?: string
+          workflow_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          expected_days?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          organization_id?: string
+          sequence?: number
+          updated_at?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_workflow_steps_workflow"
+            columns: ["workflow_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
+      workflows: {
+        Row: {
+          auto_add_on_status_code: string | null
+          category: string | null
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          default_assignee_person_id: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          auto_add_on_status_code?: string | null
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          default_assignee_person_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          auto_add_on_status_code?: string | null
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          default_assignee_person_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_workflows_default_assignee"
+            columns: ["default_assignee_person_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -3287,6 +3810,24 @@ export type Database = {
           _person_id: string
         }
         Returns: undefined
+      }
+      add_person_to_workflow: {
+        Args: {
+          _assignee_person_id?: string
+          _note?: string
+          _organization_id: string
+          _person_id: string
+          _workflow_id: string
+        }
+        Returns: string
+      }
+      add_workflow_card_note: {
+        Args: { _body: string; _card_id: string }
+        Returns: undefined
+      }
+      advance_workflow_card: {
+        Args: { _card_id: string; _note?: string; _to_step_id?: string }
+        Returns: Json
       }
       age_band_for: {
         Args: {
@@ -3305,10 +3846,19 @@ export type Database = {
         Args: { _as_of?: string; _birth_month: number; _birth_year: number }
         Returns: number
       }
+      assert_giving_admin: {
+        Args: { _organization_id: string }
+        Returns: undefined
+      }
+      assert_giving_reader: {
+        Args: { _organization_id: string }
+        Returns: undefined
+      }
       assert_kids_leader: {
         Args: { _organization_id: string }
         Returns: undefined
       }
+      assert_workflow_actor: { Args: { _card_id: string }; Returns: string }
       assign_classroom_teacher: {
         Args: {
           _is_lead?: boolean
@@ -3366,6 +3916,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      assign_workflow_card: {
+        Args: { _assignee_person_id: string; _card_id: string; _note?: string }
+        Returns: undefined
+      }
       authorize_pickup: {
         Args: { _child_person_id: string; _note?: string; _person_id: string }
         Returns: string
@@ -3377,6 +3931,14 @@ export type Database = {
           linked: number
           skipped: number
         }[]
+      }
+      can_manage_workflows: {
+        Args: { _organization_id: string }
+        Returns: boolean
+      }
+      can_read_workflows: {
+        Args: { _organization_id: string }
+        Returns: boolean
       }
       check_in_children: {
         Args: {
@@ -3504,6 +4066,11 @@ export type Database = {
         }
         Returns: undefined
       }
+      complete_workflow_card: {
+        Args: { _card_id: string; _note?: string; _outcome?: string }
+        Returns: Json
+      }
+      current_profile_name: { Args: never; Returns: string }
       dispatch_kids_notifications: { Args: never; Returns: undefined }
       end_my_shift: { Args: { _kids_session_id: string }; Returns: number }
       end_pickup_permission: {
@@ -3529,6 +4096,151 @@ export type Database = {
         }[]
       }
       generate_pickup_code: { Args: never; Returns: string }
+      giving_batches_list: {
+        Args: { _limit?: number; _organization_id: string }
+        Returns: {
+          created_at: string
+          created_by_name: string
+          entered_total_cents: number
+          expected_total_cents: number
+          gift_count: number
+          id: string
+          name: string
+          notes: string
+          posted_at: string
+          posted_by_name: string
+          received_on: string
+          source: string
+          status: string
+          unmatched_count: number
+          variance_cents: number
+        }[]
+      }
+      giving_donations: {
+        Args: {
+          _batch_id?: string
+          _fund_id?: string
+          _limit?: number
+          _offset?: number
+          _only_unmatched?: boolean
+          _organization_id: string
+          _search?: string
+          _year?: number
+        }
+        Returns: {
+          amount_cents: number
+          batch_id: string
+          batch_name: string
+          batch_status: string
+          check_number: string
+          donor_name: string
+          donor_name_raw: string
+          external_reference: string
+          fee_cents: number
+          fund_id: string
+          fund_name: string
+          household_id: string
+          household_name: string
+          id: string
+          is_tax_deductible: boolean
+          method: string
+          note: string
+          person_id: string
+          received_on: string
+          refunded_at: string
+          source: string
+          total_count: number
+        }[]
+      }
+      giving_fund_totals: {
+        Args: { _organization_id: string; _year: number }
+        Returns: {
+          donor_count: number
+          fund_code: string
+          fund_id: string
+          fund_name: string
+          gift_count: number
+          total_cents: number
+        }[]
+      }
+      giving_import_commit: {
+        Args: { _batch_id: string; _organization_id: string; _rows: Json }
+        Returns: Json
+      }
+      giving_import_dry_run: {
+        Args: { _organization_id: string; _rows: Json }
+        Returns: {
+          amount_cents: number
+          donor_name: string
+          error: string
+          external_reference: string
+          fund_code: string
+          is_duplicate: boolean
+          match_confidence: string
+          matched_name: string
+          matched_person_id: string
+          received_on: string
+          row_number: number
+        }[]
+      }
+      giving_match_donor: {
+        Args: {
+          _email?: string
+          _name?: string
+          _organization_id: string
+          _phone?: string
+        }
+        Returns: {
+          confidence: string
+          display_name: string
+          email: string
+          household_id: string
+          household_name: string
+          person_id: string
+          phone: string
+        }[]
+      }
+      giving_overview: {
+        Args: { _organization_id: string; _year: number }
+        Returns: Json
+      }
+      giving_person_search: {
+        Args: { _limit?: number; _organization_id: string; _term: string }
+        Returns: {
+          display_name: string
+          email: string
+          household_id: string
+          household_name: string
+          person_id: string
+        }[]
+      }
+      giving_phone_key: { Args: { _phone: string }; Returns: string }
+      giving_statement: {
+        Args: {
+          _household_id?: string
+          _organization_id: string
+          _person_id?: string
+          _year: number
+        }
+        Returns: Json
+      }
+      giving_statement_recipients: {
+        Args: { _min_cents?: number; _organization_id: string; _year: number }
+        Returns: {
+          address_line1: string
+          address_line2: string
+          city: string
+          deductible_cents: number
+          email: string
+          gift_count: number
+          household_id: string
+          person_id: string
+          postal_code: string
+          recipient_name: string
+          state: string
+          total_cents: number
+        }[]
+      }
       has_permission_in_org: {
         Args: {
           _organization_id: string
@@ -3768,6 +4480,33 @@ export type Database = {
         Returns: undefined
       }
       my_admin_orgs: { Args: never; Returns: string[] }
+      my_children: {
+        Args: never
+        Returns: {
+          birth_month: number
+          birth_year: number
+          display_name: string
+          grade_name: string
+          household_name: string
+          organization_id: string
+          person_id: string
+        }[]
+      }
+      my_children_check_ins: {
+        Args: { _limit?: number }
+        Returns: {
+          check_in_id: string
+          checked_in_at: string
+          checked_out_at: string
+          child_name: string
+          child_person_id: string
+          picked_up_by_name: string
+          room_name: string
+          service_label: string
+          session_date: string
+          status: string
+        }[]
+      }
       my_current_shift: {
         Args: { _kids_session_id: string }
         Returns: {
@@ -3777,7 +4516,40 @@ export type Database = {
           staffing_id: string
         }[]
       }
+      my_giving: {
+        Args: { _year?: number }
+        Returns: {
+          amount_cents: number
+          fund_name: string
+          id: string
+          is_tax_deductible: boolean
+          method: string
+          note: string
+          received_on: string
+        }[]
+      }
+      my_giving_years: {
+        Args: never
+        Returns: {
+          gift_count: number
+          tax_year: number
+          total_cents: number
+        }[]
+      }
       my_household_ids: { Args: never; Returns: string[] }
+      my_household_members: {
+        Args: never
+        Returns: {
+          display_name: string
+          email: string
+          household_role: string
+          is_child: boolean
+          is_me: boolean
+          is_primary_contact: boolean
+          person_id: string
+          phone: string
+        }[]
+      }
       my_orgs: { Args: never; Returns: string[] }
       my_orgs_with_any: {
         Args: {
@@ -3786,6 +4558,21 @@ export type Database = {
         Returns: string[]
       }
       my_person_ids: { Args: never; Returns: string[] }
+      my_portal_summary: { Args: { _organization_id: string }; Returns: Json }
+      my_workflow_cards: {
+        Args: { _organization_id: string }
+        Returns: {
+          card_id: string
+          due_on: string
+          is_overdue: boolean
+          person_name: string
+          person_phone: string
+          status: string
+          step_name: string
+          workflow_id: string
+          workflow_name: string
+        }[]
+      }
       normalize_pickup_code: { Args: { _raw: string }; Returns: string }
       notify_targets_for_child: {
         Args: {
@@ -3833,6 +4620,7 @@ export type Database = {
           room_id: string
         }[]
       }
+      post_giving_batch: { Args: { _batch_id: string }; Returns: Json }
       preview_profile_backfill: {
         Args: { _organization_id: string }
         Returns: {
@@ -3882,6 +4670,14 @@ export type Database = {
         }[]
       }
       remove_classroom_teacher: { Args: { _id: string }; Returns: undefined }
+      remove_workflow_card: {
+        Args: { _card_id: string; _reason?: string }
+        Returns: undefined
+      }
+      reopen_workflow_card: {
+        Args: { _card_id: string; _note?: string }
+        Returns: undefined
+      }
       reprint_pickup_label: {
         Args: { _batch_id: string; _reason?: string; _shift_token?: string }
         Returns: {
@@ -4004,6 +4800,10 @@ export type Database = {
       }
       set_volunteer_pin: {
         Args: { _pin: string; _volunteer_id: string }
+        Returns: undefined
+      }
+      snooze_workflow_card: {
+        Args: { _card_id: string; _note?: string; _until: string }
         Returns: undefined
       }
       start_my_shift: {
@@ -4308,6 +5108,71 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      wake_snoozed_workflow_cards: {
+        Args: { _organization_id: string }
+        Returns: number
+      }
+      workflow_board: {
+        Args: {
+          _include_closed?: boolean
+          _only_mine?: boolean
+          _organization_id: string
+          _workflow_id: string
+        }
+        Returns: {
+          assignee_name: string
+          assignee_person_id: string
+          card_id: string
+          created_at: string
+          days_in_step: number
+          due_on: string
+          household_name: string
+          is_overdue: boolean
+          last_activity_at: string
+          last_note: string
+          outcome: string
+          person_email: string
+          person_id: string
+          person_name: string
+          person_phone: string
+          snooze_until: string
+          status: string
+          step_id: string
+          step_name: string
+          step_sequence: number
+        }[]
+      }
+      workflow_card_history: {
+        Args: { _card_id: string }
+        Returns: {
+          actor_name: string
+          assignee_name: string
+          body: string
+          created_at: string
+          from_step_name: string
+          id: string
+          kind: string
+          to_step_name: string
+        }[]
+      }
+      workflow_due_date: { Args: { _step_id: string }; Returns: string }
+      workflow_summaries: {
+        Args: { _organization_id: string }
+        Returns: {
+          auto_add_on_status_code: string
+          category: string
+          completed_30d: number
+          description: string
+          is_active: boolean
+          my_count: number
+          name: string
+          open_count: number
+          overdue_count: number
+          snoozed_count: number
+          step_count: number
+          workflow_id: string
+        }[]
+      }
     }
     Enums: {
       module_permission:
@@ -4318,6 +5183,8 @@ export type Database = {
         | "kids_volunteer"
         | "leadership_viewer"
         | "kids_leader"
+        | "giving_admin"
+        | "giving_viewer"
     }
     CompositeTypes: {
       resolved_actor: {
@@ -5238,6 +6105,8 @@ export const Constants = {
         "kids_volunteer",
         "leadership_viewer",
         "kids_leader",
+        "giving_admin",
+        "giving_viewer",
       ],
     },
   },
