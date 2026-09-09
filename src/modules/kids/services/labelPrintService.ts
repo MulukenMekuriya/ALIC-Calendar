@@ -11,6 +11,18 @@
  *
  * With the label printer as the OS default and Chrome launched with
  * --kiosk-printing, iframe.print() emits silently with no dialog.
+ *
+ * ON A TABLET there is no --kiosk-printing, so the OS print sheet appears and a
+ * volunteer taps once to send the job. That is the QL-820NWB's own trade: it is
+ * on the network and speaks AirPrint, which is why the desk chose it and the
+ * DK-1202 die-cut over a USB printer and continuous roll. The layout does not
+ * care — buildLabelDocument pins the page to the die-cut's 62 x 100mm, so the
+ * print sheet opens on a correctly sized page rather than scaling to A4.
+ *
+ * The one thing to watch on iPadOS: Safari has historically printed the TOP
+ * window rather than the frame for iframe.print(). If labels ever come out as a
+ * screenshot of the station, that is the cause, and the fix is to print from a
+ * same-origin blob in a new window on that platform only.
  */
 
 import QRCode from "qrcode";
