@@ -69,7 +69,7 @@ function attemptId(): string {
   );
 }
 import { reduce, initialContext, showsFamilyData, type HouseholdMatch } from "../utils/checkInMachine";
-import { formatSessionDate } from "../utils/sessionDate";
+import { formatSessionDate, formatClockTime } from "../utils/sessionDate";
 import type {
   HouseholdAdultRow,
   HouseholdSearchRow,
@@ -117,6 +117,18 @@ export default function CheckInStationPage() {
   /** Household adults, for "who is dropping off?". */
   const [adults, setAdults] = useState<HouseholdAdultRow[]>([]);
   const [droppedOffBy, setDroppedOffBy] = useState<string | null>(null);
+  /**
+   * The name printed beside the phone number on the tag.
+   *
+   * The adult the desk recorded, and failing that the household — a number
+   * with nothing beside it tells a volunteer who to dial but not who they are
+   * about to reach. `adults` is empty for a household with no adult records on
+   * file, which is exactly when the household name is the only name there is.
+   */
+  const tagContactName = () =>
+    adults.find((a) => a.person_id === droppedOffBy)?.display_name ??
+    ctx.household?.household_name ??
+    null;
   /** A parent has lost their slip and needs a new code. */
   const [reprinting, setReprinting] = useState(false);
   /**
@@ -484,7 +496,7 @@ export default function CheckInStationPage() {
       });
       // Print only AFTER the database has committed. A printed label with no
       // database row is the worst possible outcome.
-      void doPrint(rows[0].pickup_code, rows[0].pickup_token, rows);
+      void doPrint(rows[0].pickup_code, rows[0].pickup_token, rows, tagContactName());
     } catch (err) {
       // errorMessage(), not `err instanceof Error`: supabase puts a PLAIN
       // OBJECT in `error`, so the instanceof test was always false and every
@@ -516,27 +528,35 @@ export default function CheckInStationPage() {
     rows: {
       child_name: string;
       room_name: string | null;
-      tag_number: number;
       allergy_label: string | null;
       guardian_phone?: string | null;
-    }[]
+    }[],
+    /**
+     * The name for the foot of the tag, resolved by the CALLER rather than read
+     * from `droppedOffBy` here. The reprint dialog can be opened for a
+     * different family than the one still sitting in this component's state,
+     * and a tag naming the wrong adult is worse than one naming nobody.
+     */
+    contactName?: string | null
   ) => {
     const qr = await renderQrSvg(token);
     const dateLabel = formatSessionDate(session?.session_date);
+    // Stamped once, so every label in a family's batch carries the same time.
+    const timeLabel = formatClockTime();
     const result = await printLabels(
       rows.map((r) => ({
         childName: r.child_name,
         roomName: r.room_name,
-        tagNumber: r.tag_number,
         allergyLabel: r.allergy_label,
         pickupCode: code,
         serviceLabel: session?.service_label ?? "",
         sessionDate: dateLabel,
+        checkInTime: timeLabel,
+        guardianName: contactName ?? null,
         // The real number, returned by check_in_children specifically for the
         // label. It is deliberately NOT in the search results, which render on
         // screen for every hit — so the full number reaches paper, not the
         // lobby display. Falls back to the masked one if the RPC is older.
-        guardianName: ctx.household?.household_name ?? null,
         guardianPhone: r.guardian_phone ?? ctx.household?.masked_phone ?? null,
       })),
       {
@@ -1083,9 +1103,9 @@ export default function CheckInStationPage() {
                       ctx.checkedIn.map((c) => ({
                         child_name: c.child_name,
                         room_name: c.room_name,
-                        tag_number: c.tag_number,
                         allergy_label: c.allergy_label,
-                      }))
+                      })),
+                      tagContactName()
                     );
                   }
                 }}
@@ -1608,10 +1628,12 @@ export default function CheckInStationPage() {
             rows.map((r) => ({
               child_name: r.child_name,
               room_name: r.room_name,
-              tag_number: r.tag_number,
               allergy_label: r.allergy_label,
               guardian_phone: r.guardian_phone,
-            }))
+            })),
+            // The batch's own household, not this component's state: a reprint
+            // can be for a family it never checked in.
+            rows[0].household_name
           );
         }}
       />
