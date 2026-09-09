@@ -36,3 +36,17 @@ export function parseIsoDate(isoDate: string | null | undefined): Date | null {
   const date = new Date(Number(y), Number(mo) - 1, Number(d));
   return Number.isNaN(date.getTime()) ? null : date;
 }
+
+/**
+ * Render an instant as a wall-clock time, e.g. "10:32 AM".
+ *
+ * This is the one thing in this file that IS an instant, and the exception is
+ * deliberate. Everything above is careful not to treat session_date as a moment
+ * — a calendar day must not shift across a zone boundary. The time a label was
+ * printed is the opposite: a real moment, and the browser's own zone is the
+ * right one to render it in, because the desk, the printer and the volunteer
+ * reading the tag are all standing in it.
+ */
+export function formatClockTime(at: Date = new Date()): string {
+  return at.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}

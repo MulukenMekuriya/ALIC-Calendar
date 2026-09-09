@@ -24,4 +24,4 @@ export {
 } from "./labelTemplate";
 export type { ChildLabelData, ParentLabelData } from "./labelTemplate";
 
-export { formatSessionDate, parseIsoDate } from "./sessionDate";
+export { formatSessionDate, parseIsoDate, formatClockTime } from "./sessionDate";
