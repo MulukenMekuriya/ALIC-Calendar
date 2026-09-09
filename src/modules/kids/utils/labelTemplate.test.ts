@@ -30,6 +30,7 @@ import {
 const CHILD = {
   childName: "Noah Bekele",
   roomName: "Blossom A",
+  tagNumber: 1000,
   pickupCode: "3R6F4T",
   allergyLabel: "Peanut allergy",
   serviceLabel: "9:00 AM Service",
@@ -55,17 +56,22 @@ describe("child label", () => {
     // volunteer looking at a tag wants to know how long the child has been in
     // the room, and the tag number never told them that.
     expect(html).toContain("10:32 AM");
-    expect(html).not.toContain("Tag ");
+    // The tag number sits BESIDE the time, not instead of it. It is the only
+    // thing on the label the live board can be searched by — the pickup code
+    // is stored as an HMAC in a vault that grants SELECT to nobody, so no list
+    // can ever show it. Dropping this from the tag closes the only route from
+    // a tag in a volunteer's hand to a row on a screen.
+    expect(html).toContain("Tag 1000");
   });
 
   it("joins the detail line without stranding a separator", () => {
     // service_label is "" on a session with no name, and the time is optional.
     // Interpolating blindly printed a leading " · " on both.
     expect(buildChildLabel({ ...CHILD, serviceLabel: "" })).toContain(
-      'class="when">Aug 24 · 10:32 AM<'
+      'class="when">Aug 24 · 10:32 AM · Tag 1000<'
     );
     expect(buildChildLabel({ ...CHILD, checkInTime: undefined })).toContain(
-      'class="when">9:00 AM Service · Aug 24<'
+      'class="when">9:00 AM Service · Aug 24 · Tag 1000<'
     );
   });
 
@@ -216,6 +222,20 @@ describe("fitting a landscape card", () => {
    * each have their own way of giving in. These pin WHICH way, because the
    * wrong one is a silent safety failure rather than an ugly label.
    */
+
+  it("shrinks the detail line rather than letting it take a second row", () => {
+    // Four things share this line now, and service_label is free text a church
+    // types when it opens a session. At full size the long-but-realistic
+    // combination wrapped, which cost 1.3mm the card did not have.
+    expect(buildChildLabel(CHILD)).toContain('class="when"');
+    expect(
+      buildChildLabel({
+        ...CHILD,
+        serviceLabel: "11:00 AM Amharic Service",
+        sessionDate: "September 14",
+      })
+    ).toContain('class="when verylong"');
+  });
 
   it("shrinks a long classroom rather than truncating it", () => {
     // The classroom is the whole reason a volunteer picks the tag up, so it is

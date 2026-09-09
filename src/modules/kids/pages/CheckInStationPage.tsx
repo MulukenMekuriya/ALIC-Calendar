@@ -528,6 +528,7 @@ export default function CheckInStationPage() {
     rows: {
       child_name: string;
       room_name: string | null;
+      tag_number: number;
       allergy_label: string | null;
       guardian_phone?: string | null;
     }[],
@@ -547,6 +548,7 @@ export default function CheckInStationPage() {
       rows.map((r) => ({
         childName: r.child_name,
         roomName: r.room_name,
+        tagNumber: r.tag_number,
         allergyLabel: r.allergy_label,
         pickupCode: code,
         serviceLabel: session?.service_label ?? "",
@@ -1103,6 +1105,7 @@ export default function CheckInStationPage() {
                       ctx.checkedIn.map((c) => ({
                         child_name: c.child_name,
                         room_name: c.room_name,
+                        tag_number: c.tag_number,
                         allergy_label: c.allergy_label,
                       })),
                       tagContactName()
@@ -1628,6 +1631,7 @@ export default function CheckInStationPage() {
             rows.map((r) => ({
               child_name: r.child_name,
               room_name: r.room_name,
+              tag_number: r.tag_number,
               allergy_label: r.allergy_label,
               guardian_phone: r.guardian_phone,
             })),
