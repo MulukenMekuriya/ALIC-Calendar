@@ -411,6 +411,27 @@ describe("label CSS", () => {
     // Without this the black bar can print as an empty outline.
     expect(LABEL_CSS).toContain("print-color-adjust: exact");
   });
+
+  it("declares the document's width, so Safari has nothing to shrink", () => {
+    // Safari ignores @page size and scales its own layout onto the paper, so a
+    // document wider than the label prints the label smaller. An iPhone was
+    // putting out roughly 60% cards before this.
+    const htmlBody = LABEL_CSS.slice(
+      LABEL_CSS.indexOf("  html, body {"),
+      LABEL_CSS.indexOf("  body {")
+    );
+    expect(htmlBody).toContain(`width: ${LABEL_PAGE_MM.width}mm;`);
+  });
+
+  it("never fixes the document's height", () => {
+    // One .page per label lives in this body. A body height would hold the
+    // first label and drop the rest of the family's.
+    const htmlBody = LABEL_CSS.slice(
+      LABEL_CSS.indexOf("  html, body {"),
+      LABEL_CSS.indexOf("  body {")
+    );
+    expect(htmlBody).not.toMatch(/^\s*height:/m);
+  });
 });
 
 /**

@@ -223,6 +223,20 @@ export const LABEL_CSS = `
 
   html, body {
     margin: 0; padding: 0; background: #fff;
+    /* PINNED TO THE PAGE WIDTH, for Safari.
+       Chrome derives the page box from @page and never needed this. Safari
+       IGNORES @page size — the paper comes from the print sheet and nothing a
+       stylesheet says can reach it — and then lays the document out in its own
+       viewport and SCALES that layout onto the paper. Anything in the document
+       wider than the label is therefore a shrink factor applied to the label,
+       which is how a 62mm card reached an iPhone's AirPrint at roughly 60% and
+       floated in the middle of a sheet. Declaring the width means the widest
+       thing in the document IS the page, so the fit-to-width pass has nothing
+       left to shrink.
+       WIDTH ONLY, NEVER HEIGHT. The document holds one .page per label, so a
+       fixed body height would push every label after the first out of the body
+       — one family's four children become one label and three blanks. */
+    width: ${LABEL_PAGE_MM.width}mm;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
   body {
