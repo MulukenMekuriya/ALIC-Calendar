@@ -23,6 +23,7 @@ import { PickupPermissionsCard } from "../components/PickupPermissionsCard";
 import { MemberDetailsDialog } from "../components/MemberDetailsDialog";
 import { ServingCard } from "../components/ServingCard";
 import { GroupsCard } from "../components/GroupsCard";
+import { LinkedLoginCard } from "../components/LinkedLoginCard";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
@@ -235,7 +236,7 @@ export default function MemberProfilePage() {
             ))}
           </TabsList>
 
-          <TabsContent value="overview" className="mt-4">
+          <TabsContent value="overview" className="mt-4 space-y-4">
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Details</CardTitle>
@@ -275,6 +276,17 @@ export default function MemberProfilePage() {
                 </CardContent>
               )}
             </Card>
+
+            {/* Whether this person can sign in and see themselves. Sits on the
+                overview because "why is their portal empty?" is a question the
+                office gets, and this is the answer to it. */}
+            <LinkedLoginCard
+              personId={member.id}
+              personName={member.first_name}
+              profileId={member.profile_id}
+              organizationId={orgId}
+              canEdit={canWrite}
+            />
           </TabsContent>
 
           <TabsContent value="family" className="mt-4 space-y-4">

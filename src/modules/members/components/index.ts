@@ -8,3 +8,4 @@ export { MemberDetailsDialog } from "./MemberDetailsDialog";
 export { ServingCard } from "./ServingCard";
 export { GroupsCard } from "./GroupsCard";
 export { FamilyCard } from "./FamilyCard";
+export { LinkedLoginCard } from "./LinkedLoginCard";
