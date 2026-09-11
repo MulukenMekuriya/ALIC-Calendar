@@ -18,6 +18,7 @@ import {
 } from "@/shared/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { MedicalCard } from "../components/MedicalCard";
+import { FamilyCard } from "../components/FamilyCard";
 import { PickupPermissionsCard } from "../components/PickupPermissionsCard";
 import { MemberDetailsDialog } from "../components/MemberDetailsDialog";
 import { ServingCard } from "../components/ServingCard";
@@ -42,7 +43,6 @@ import {
   Users as UsersIcon,
   Archive,
   RotateCcw,
-  Home,
   Pencil,
 } from "lucide-react";
 import { useToast } from "@/shared/hooks/use-toast";
@@ -278,43 +278,16 @@ export default function MemberProfilePage() {
           </TabsContent>
 
           <TabsContent value="family" className="mt-4 space-y-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Home className="h-4 w-4" />
-                  Family relationships
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Each relationship is stored once; the inverse is created
-                  automatically, so both people always agree.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {(member.relationships?.length ?? 0) === 0 ? (
-                  <Empty text="No family relationships recorded." />
-                ) : (
-                  <ul className="divide-y">
-                    {member.relationships!.map((r) => (
-                      <li
-                        key={r.id}
-                        className="flex items-center justify-between py-2 cursor-pointer"
-                        onClick={() => navigate(`/members/${r.related_person.id}`)}
-                      >
-                        <span className="text-sm font-medium flex items-center gap-2">
-                          {r.related_person.is_child && (
-                            <Baby className="h-3.5 w-3.5 text-muted-foreground" />
-                          )}
-                          {r.related_person.first_name} {r.related_person.last_name}
-                        </span>
-                        <Badge variant="outline">
-                          {r.relationship_type?.display_name ?? "Related"}
-                        </Badge>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
+            {/* Reads itself rather than using member.relationships: that embed
+                comes back EMPTY for a member looking at their own record,
+                because person_relationships has no self-read policy. See
+                familyService. */}
+            <FamilyCard
+              personId={member.id}
+              organizationId={orgId}
+              canAdmin={canWrite}
+              isSelf={isOwnRecord}
+            />
           </TabsContent>
 
           <TabsContent value="medical" className="mt-4 space-y-4">
@@ -396,8 +369,4 @@ function Detail({
       </p>
     </div>
   );
-}
-
-function Empty({ text }: { text: string }) {
-  return <p className="text-sm text-muted-foreground py-4 text-center">{text}</p>;
 }

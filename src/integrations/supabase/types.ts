@@ -3806,6 +3806,10 @@ export type Database = {
         Args: { _child: Json; _household_id: string }
         Returns: string
       }
+      assert_family_editor: {
+        Args: { _person_id: string; _related_person_id: string }
+        Returns: string
+      }
       add_person_to_household: {
         Args: {
           _household_id: string
@@ -4483,6 +4487,43 @@ export type Database = {
         Returns: undefined
       }
       my_admin_orgs: { Args: never; Returns: string[] }
+      family_link_candidates: {
+        Args: { _person_id: string; _search?: string }
+        Returns: {
+          already_related: boolean
+          first_name: string
+          household_name: string
+          id: string
+          is_child: boolean
+          last_name: string
+        }[]
+      }
+      my_family: {
+        Args: never
+        Returns: {
+          editable: boolean
+          first_name: string
+          is_child: boolean
+          last_name: string
+          person_id: string
+          related_person_id: string
+          relationship_code: string
+          relationship_id: string
+          relationship_name: string
+        }[]
+      }
+      delete_person_relationship: {
+        Args: { _relationship_id: string }
+        Returns: undefined
+      }
+      set_person_relationship: {
+        Args: {
+          _person_id: string
+          _related_person_id: string
+          _relationship_type_id: string
+        }
+        Returns: string
+      }
       my_children: {
         Args: never
         Returns: {
