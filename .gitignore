@@ -41,3 +41,12 @@ user-credentials.json
 
 # Claude Code agent worktrees (scratch, never source)
 .claude/worktrees/
+
+# Member data exports and the import scripts built from them.
+# The Breeze export carries ~580 people's emails, phones and birthdates. public/
+# is served verbatim at the site root, so an export dropped there is downloadable
+# by anyone with the URL; and git history is far harder to scrub than a file.
+# Keep these locally, never commit them.
+public/*.xlsx
+public/*.csv
+scripts/import-md-members-breeze-*.sql
