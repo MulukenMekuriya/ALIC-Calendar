@@ -232,31 +232,25 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         ]
       : []),
     /*
-     * Kids Ministry is now shown to EVERYONE, which is a change: it used to
-     * appear only for someone holding a kids grant.
+     * Kids Ministry is the MINISTRY's tools, and nothing else.
      *
-     * The section has two quite different halves. "My Children" is a parent's
-     * own record and needs no grant at all — it is served by church.my_children
-     * / my_children_check_ins, SECURITY DEFINER functions scoped through
-     * my_household_ids(), so the database returns one household's children and
-     * nothing else no matter who asks. Deliberately a HISTORY: it shows
-     * finished Sundays and who collected the child, never which room a child is
-     * sitting in right now. A live location behind any login that can be
-     * phished is not a trade a children's ministry should make.
+     * "My Children" used to head this list, which meant a parent with no grant
+     * at all still got a "KIDS MINISTRY" heading in their sidebar with one
+     * self-service link under it — a section named after a module they have no
+     * part in. It now sits under People beside "My Church", where the rest of a
+     * member's own record lives, and this section is grant-only. With no kids
+     * grant it has no items, and the empty-section filter below drops the
+     * heading entirely.
      *
-     * The other two items stay gated on grants — a leader's board and the
-     * station kiosk are staff tools. A kids_volunteer holds kids.checkin but
-     * not kids.read, so they get the station and no dashboard.
+     * Both items stay gated on grants rather than on staff tier, and that
+     * distinction is load-bearing: the church's kids leaders sit at 'member'
+     * tier, so gating these on isStaff would lock every one of them out of the
+     * board and the kiosk. A kids_volunteer holds kids.checkin but not
+     * kids.read, so they get the station and no dashboard.
      */
     {
       title: "Kids Ministry",
       items: [
-        {
-          name: "My Children",
-          href: "/my?tab=children",
-          icon: Backpack,
-          description: "Where my children have been, and who collected them",
-        },
         ...(canViewKids
           ? [
               {
@@ -290,6 +284,23 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           href: "/my",
           icon: UserCircle,
           description: "My household, giving and children",
+        },
+        /*
+         * A parent's own record, needing no grant — served by
+         * church.my_children / my_children_check_ins, SECURITY DEFINER
+         * functions scoped through my_household_ids(), so the database returns
+         * one household's children and nothing else no matter who asks.
+         *
+         * Deliberately a HISTORY: it shows finished Sundays and who collected
+         * the child, never which room a child is sitting in right now. A live
+         * location behind any login that can be phished is not a trade a
+         * children's ministry should make.
+         */
+        {
+          name: "My Children",
+          href: "/my?tab=children",
+          icon: Backpack,
+          description: "Where my children have been, and who collected them",
         },
         /*
          * The DIRECTORY, so it needs members.read.
@@ -372,18 +383,45 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   /**
    * Sections a 'member' has no business seeing.
    *
-   * ProtectedRoute now sends a non-staff tier straight back to /members from
-   * every route in these four, so leaving the links in the sidebar would just
-   * be a row of trapdoors. "People" stays because /members renders their own
-   * record, and "Kids Ministry" stays because it is gated on module grants,
-   * which are additive and independent of the tier.
+   * ProtectedRoute sends a non-staff tier straight back to /members from every
+   * route in the first four, so leaving those links in the sidebar would be a
+   * row of trapdoors. "People" stays because /members renders their own record.
+   *
+   * "Kids Ministry" is here BY INSTRUCTION, and the reasoning is worth keeping
+   * because it is not the obvious one. Kids access is additive and independent
+   * of tier — the church's five Children's Ministry leaders all sit at 'member'
+   * (20260321001600 demoted them there from NULL on purpose), so a tier gate is
+   * precisely the wrong instrument for deciding who runs the nursery. The grant
+   * is what decides that, and the grant is untouched here.
+   *
+   * What saves this from breaking them is that /kids and /checkin are gated on
+   * CAPABILITIES, not staffOnly (see App.tsx) — so this hides the two links and
+   * revokes nothing. A leader on the 'member' tier reaches the live board and
+   * the kiosk by URL exactly as before; they lose the sidebar shortcut.
+   *
+   * If the goal is ever "this person should not run kids at all", the answer is
+   * to take their grant away in the Module Grants panel, not to add a tier gate
+   * here. Deleting the "Kids Ministry" string below restores the links.
    */
-  const STAFF_ONLY_SECTIONS = ["Calendar", "Financial", "Inventory", "Administration"];
-  const visibleSections = isStaff
-    ? navigationSections
-    : navigationSections.filter(
-        (section) => !STAFF_ONLY_SECTIONS.includes(section.title)
-      );
+  const STAFF_ONLY_SECTIONS = [
+    "Calendar",
+    "Financial",
+    "Inventory",
+    "Administration",
+    "Kids Ministry",
+  ];
+  const visibleSections = (
+    isStaff
+      ? navigationSections
+      : navigationSections.filter(
+          (section) => !STAFF_ONLY_SECTIONS.includes(section.title)
+        )
+  )
+    // A section whose every item was gated away is a heading with nothing under
+    // it. "Kids Ministry" is the one that reaches zero in practice — for anyone
+    // without a kids grant — but the rule is general, so no future section can
+    // leave a bare label behind either.
+    .filter((section) => section.items.length > 0);
 
   // Flatten all navigation items for page title lookup
   const allNavItems = visibleSections.flatMap((section) => section.items);
@@ -444,14 +482,35 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     // sections exist to match against.
   }, [location.pathname, isAdmin, isStaff]);
 
-  // Check if a path is active (exact match or starts with for nested routes)
+  /**
+   * Check if a path is active (exact match, or starts-with for nested routes).
+   *
+   * Query-aware, which it has to be: "My Church" (/my) and "My Children"
+   * (/my?tab=children) are the same route and differ only by tab. Comparing
+   * `location.pathname` alone made BOTH highlight at once and neither of them
+   * change when you clicked between them — so clicking "My Children" looked
+   * like a dead link even though it navigated correctly.
+   */
   const isPathActive = (href: string) => {
     if (href === "/dashboard") {
       return location.pathname === href;
     }
-    return (
-      location.pathname === href || location.pathname.startsWith(href + "/")
-    );
+
+    const [path, query] = href.split("?");
+    const onThisRoute =
+      location.pathname === path || location.pathname.startsWith(path + "/");
+    if (!onThisRoute) return false;
+
+    const current = new URLSearchParams(location.search);
+    if (query) {
+      return [...new URLSearchParams(query)].every(
+        ([key, value]) => current.get(key) === value
+      );
+    }
+
+    // A query-less item owns the bare page only. `tab` is the only key any nav
+    // href carries, so a tab in the URL means a sibling item owns this spot.
+    return !current.has("tab");
   };
 
   const renderNavItem = (item: NavItem) => {

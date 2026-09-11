@@ -60,6 +60,7 @@ import {
   Star,
   Phone,
   UserRound,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/shared/contexts/AuthContext";
@@ -87,7 +88,13 @@ export default function HouseholdsPage() {
   const [search, setSearch] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
 
-  const { data: families, isLoading } = useQuery({
+  const {
+    data: families,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: householdKeys.summaries(orgId ?? ""),
     queryFn: () => householdService.summaries(orgId!),
     enabled: !!orgId,
@@ -142,6 +149,13 @@ export default function HouseholdsPage() {
           <div className="flex justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
+        ) : isError ? (
+          /* "We could not ask" is not "there is nothing". This branch used to
+             be missing, so a failed household_summaries call — most often
+             not_permitted, because the RPC's permission list had drifted from
+             the table's — rendered as the cheerful "No families yet" card
+             while the Members page was reporting 516 households. */
+          <FamiliesError error={error} onRetry={() => void refetch()} />
         ) : (families ?? []).length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center space-y-2">
@@ -187,6 +201,46 @@ export default function HouseholdsPage() {
         onClose={() => setOpenId(null)}
       />
     </DashboardLayout>
+  );
+}
+
+/**
+ * A failed load, said out loud.
+ *
+ * Deliberately shows the raw message. The one that actually turns up here is
+ * `not_permitted` from church.household_summaries, and a reader who can see
+ * that word can be told which grant they are missing; "something went wrong"
+ * would have hidden a permission drift for as long as nobody thought to look
+ * in the network tab.
+ */
+function FamiliesError({
+  error,
+  onRetry,
+}: {
+  error: unknown;
+  onRetry: () => void;
+}) {
+  const message = error instanceof Error ? error.message : "Unknown error";
+  const denied = /not_permitted|permission denied|42501/i.test(message);
+
+  return (
+    <Card className="border-destructive/30 bg-destructive/5">
+      <CardContent className="py-10 text-center space-y-3">
+        <AlertTriangle className="h-9 w-9 mx-auto text-destructive" />
+        <p className="font-medium">Could not load families</p>
+        <p className="text-sm text-muted-foreground max-w-md mx-auto">
+          {denied
+            ? "Your account can read the member directory but is not permitted to list households. Ask an administrator for the Members viewer grant."
+            : "The household list did not come back. This is a failure to load, not an empty church."}
+        </p>
+        <p className="text-xs text-muted-foreground/80 font-mono break-all max-w-md mx-auto">
+          {message}
+        </p>
+        <Button variant="outline" size="sm" onClick={onRetry}>
+          Try again
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 
