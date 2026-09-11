@@ -7,6 +7,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import type {
   Member,
   MemberInsert,
@@ -131,6 +132,30 @@ export const memberService = {
 
     if (error && error.code !== NO_ROWS) throw error;
     return data as unknown as MemberWithRelations | null;
+  },
+
+  /**
+   * Amend a member record through church.update_person_details.
+   *
+   * Not a table update: the RPC is what enforces which fields the caller may
+   * set (a member may not archive themselves, flip the is_child flag that
+   * decides who may collect a child, or rewrite their member number) and what
+   * gets written to church.people_history.
+   */
+  async updateDetails(
+    personId: string,
+    patch: Record<string, unknown>
+  ): Promise<Member> {
+    const { data, error } = await church().rpc("update_person_details", {
+      _person_id: personId,
+      // The RPC takes jsonb; the caller builds a plain object of changed
+      // fields. Json's recursive type will not accept Record<string, unknown>
+      // structurally, and widening the caller to Json would push that noise
+      // into every form.
+      _patch: patch as Json,
+    });
+    if (error) throw error;
+    return data as unknown as Member;
   },
 
   async listByHousehold(householdId: string): Promise<Member[]> {

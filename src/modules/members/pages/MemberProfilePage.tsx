@@ -19,6 +19,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { MedicalCard } from "../components/MedicalCard";
 import { PickupPermissionsCard } from "../components/PickupPermissionsCard";
+import { MemberDetailsDialog } from "../components/MemberDetailsDialog";
+import { ServingCard } from "../components/ServingCard";
+import { GroupsCard } from "../components/GroupsCard";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
@@ -36,12 +39,11 @@ import {
   ArrowLeft,
   Loader2,
   Baby,
-  HandHeart,
   Users as UsersIcon,
-  BookOpen,
   Archive,
   RotateCcw,
   Home,
+  Pencil,
 } from "lucide-react";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useAuth } from "@/shared/contexts/AuthContext";
@@ -52,7 +54,6 @@ import {
   useDeactivateMember,
   useReactivateMember,
 } from "../hooks/useMembers";
-import { useMemberServing } from "../hooks/useServing";
 import { displayName, initials } from "../utils/normalize";
 import {
   formatAge,
@@ -64,26 +65,30 @@ import {
 import {
   AGE_BAND_LABELS,
   ADULT_AGE_GROUP_LABELS,
-  SERVICE_INTEREST_STATUS_CONFIG,
 } from "../types";
 
 export default function MemberProfilePage() {
   const { memberId } = useParams<{ memberId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const { currentOrganization } = useOrganization();
   const { can } = useCapabilities();
   const canWrite = isAdmin || can("members.write");
   const orgId = currentOrganization?.id;
 
   const profileQuery = useMemberProfile(memberId);
-  const servingQuery = useMemberServing(memberId);
+  const [editing, setEditing] = useState(false);
   const deactivate = useDeactivateMember();
   const reactivate = useReactivateMember();
   const [confirmArchive, setConfirmArchive] = useState(false);
 
   const member = profileQuery.data;
+  // The office may edit anyone; a member may edit themselves. Which FIELDS
+  // either of them may set is decided by church.update_person_details, not
+  // here — this only chooses whether the button appears.
+  const isOwnRecord = !!member?.profile_id && member.profile_id === user?.id;
+  const canEdit = canWrite || isOwnRecord;
 
   if (profileQuery.isLoading) {
     return (
@@ -182,6 +187,13 @@ export default function MemberProfilePage() {
               )}
             </div>
           </div>
+          <div className="flex items-center gap-2">
+          {canEdit && (
+            <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+              <Pencil className="h-3.5 w-3.5 mr-1" />
+              Edit
+            </Button>
+          )}
           {canWrite && (
             <Button variant="outline" size="sm" onClick={() => setConfirmArchive(true)}>
               {member.is_active ? (
@@ -197,7 +209,18 @@ export default function MemberProfilePage() {
               )}
             </Button>
           )}
+          </div>
         </div>
+
+        {canEdit && (
+          <MemberDetailsDialog
+            member={member}
+            open={editing}
+            onOpenChange={setEditing}
+            canAdmin={canWrite}
+            organizationId={orgId}
+          />
+        )}
 
         <Tabs defaultValue="overview">
           <TabsList className="grid grid-cols-5 w-full sm:w-auto sm:inline-flex">
@@ -315,105 +338,19 @@ export default function MemberProfilePage() {
           </TabsContent>
 
           <TabsContent value="serving" className="mt-4 space-y-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <HandHeart className="h-4 w-4" />
-                  Ministry service
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {servingQuery.isLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                ) : (servingQuery.data?.length ?? 0) === 0 ? (
-                  <Empty text="Not currently serving in any ministry." />
-                ) : (
-                  <ul className="divide-y">
-                    {servingQuery.data!.map((a) => (
-                      <li key={a.id} className="flex items-center justify-between py-2">
-                        <div>
-                          <p className="text-sm font-medium">{a.ministry.name}</p>
-                          {a.start_date && (
-                            <p className="text-xs text-muted-foreground">
-                              Since {a.start_date}
-                            </p>
-                          )}
-                        </div>
-                        <Badge
-                          variant={a.role?.is_leadership_role ? "default" : "secondary"}
-                        >
-                          {a.role?.display_name ?? "Member"}
-                        </Badge>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Wants to serve in</CardTitle>
-                <CardDescription className="text-xs">
-                  Interests that have not yet become an assignment.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {(member.service_interests?.length ?? 0) === 0 ? (
-                  <Empty text="No service interests recorded." />
-                ) : (
-                  <ul className="divide-y">
-                    {member.service_interests!.map((i) => {
-                      const cfg = SERVICE_INTEREST_STATUS_CONFIG[i.status];
-                      return (
-                        <li key={i.id} className="flex items-center justify-between py-2">
-                          <span className="text-sm">{i.interest_level} interest</span>
-                          <Badge className={cfg ? `${cfg.bgColor} ${cfg.color}` : ""} variant="outline">
-                            {cfg?.label ?? i.status}
-                          </Badge>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
+            <ServingCard
+              member={member}
+              organizationId={orgId}
+              canEdit={canWrite}
+            />
           </TabsContent>
 
           <TabsContent value="groups" className="mt-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  Home cell / Bible study
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {(member.group_memberships?.length ?? 0) === 0 ? (
-                  <Empty text="Not in a home cell or Bible study group." />
-                ) : (
-                  <ul className="divide-y">
-                    {member.group_memberships!.map((g) => (
-                      <li key={g.id} className="flex items-center justify-between py-2">
-                        <div>
-                          <p className="text-sm font-medium">{g.group?.name}</p>
-                          {g.group?.meeting_day && (
-                            <p className="text-xs text-muted-foreground capitalize">
-                              Meets {g.group.meeting_day}
-                            </p>
-                          )}
-                        </div>
-                        <Badge
-                          variant={g.role?.is_leadership_role ? "default" : "secondary"}
-                        >
-                          {g.role?.display_name ?? "Member"}
-                        </Badge>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
+            <GroupsCard
+              member={member}
+              organizationId={orgId}
+              canEdit={canWrite}
+            />
           </TabsContent>
         </Tabs>
       </div>

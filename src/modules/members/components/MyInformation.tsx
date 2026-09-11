@@ -41,6 +41,7 @@ import {
   useMyServing,
   useUpdateMyContactDetails,
 } from "../hooks/useMyInformation";
+import { MemberDetailsDialog } from "./MemberDetailsDialog";
 import { displayName } from "../utils/normalize";
 import { formatBirthday, formatAge, yearsSinceAccepted } from "../utils/age";
 
@@ -50,36 +51,8 @@ export function MyInformation({ userId }: { userId: string | undefined }) {
   const me = recordQuery.data;
   const householdQuery = useMyHousehold(me?.id);
   const servingQuery = useMyServing(me?.id);
-  const updateContact = useUpdateMyContactDetails();
-
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const openEdit = () => {
-    setPhone(me?.phone ?? "");
-    setEmail(me?.email ?? "");
-    setIsEditOpen(true);
-  };
-
-  const handleSave = async () => {
-    if (!me) return;
-    setIsSubmitting(true);
-    try {
-      await updateContact.mutateAsync({ personId: me.id, phone, email });
-      toast({ title: "Contact details updated" });
-      setIsEditOpen(false);
-    } catch (error) {
-      toast({
-        title: "Could not save",
-        description: error instanceof Error ? error.message : "Please try again",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const openEdit = () => setIsEditOpen(true);
 
   if (recordQuery.isLoading) {
     return (
@@ -207,50 +180,17 @@ export function MyInformation({ userId }: { userId: string | undefined }) {
         </CardContent>
       </Card>
 
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit contact details</DialogTitle>
-            <DialogDescription>
-              You can update your phone and email. Everything else — your name,
-              birthday and membership status — is maintained by the church office.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="my-phone">Phone</Label>
-              <Input
-                id="my-phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="301-555-0101"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="my-email">Email</Label>
-              <Input
-                id="my-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsEditOpen(false)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={isSubmitting}>
-              {isSubmitting ? "Saving…" : "Save"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* The same form the office uses, with the office-only fields hidden.
+          One field list, one set of rules — a second narrower form here is how
+          the two drift apart. What a member may actually change is enforced by
+          church.update_person_details, not by which inputs are rendered. */}
+      <MemberDetailsDialog
+        member={me}
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
+        canAdmin={false}
+        organizationId={me.organization_id}
+      />
     </div>
   );
 }

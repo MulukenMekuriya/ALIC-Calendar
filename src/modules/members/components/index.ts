@@ -4,3 +4,6 @@
 
 export { MemberTable } from "./MemberTable";
 export { MyInformation } from "./MyInformation";
+export { MemberDetailsDialog } from "./MemberDetailsDialog";
+export { ServingCard } from "./ServingCard";
+export { GroupsCard } from "./GroupsCard";

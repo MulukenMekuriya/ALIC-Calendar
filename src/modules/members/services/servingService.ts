@@ -13,6 +13,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { referenceService } from "./referenceService";
 import type {
   MinistryAssignment,
   MinistryAssignmentInsert,
@@ -23,6 +24,12 @@ import type {
 
 const church = () => supabase.schema("church");
 const budget = () => supabase.schema("budget");
+
+/**
+ * Postgres exclusion_violation. PostgREST returns it as a 400 rather than the
+ * 409 it gives a unique violation, so the code is the only reliable signal.
+ */
+const EXCLUSION_VIOLATION = "23P01";
 
 export interface MinistrySummary {
   ministry_id: string;
@@ -72,21 +79,41 @@ export const servingService = {
     );
   },
 
-  /** Resolve budget.ministries names for a set of assignments. */
+  /**
+   * Resolve ministry names for a set of assignments.
+   *
+   * The name shown is the church's own (church.ministry_aliases, via
+   * referenceService.churchMinistryNames), which is what the pickers offer —
+   * a row that reads "Alic MD Prayer" under a dropdown offering "MD Prayer"
+   * is the same ministry twice. The budget row's name is the fallback for a
+   * ministry the church has no recorded spelling for.
+   */
   async attachMinistryNames(
     assignments: MinistryAssignmentWithMinistry[]
   ): Promise<MinistryAssignmentWithMinistry[]> {
     if (assignments.length === 0) return assignments;
     const ids = [...new Set(assignments.map((a) => a.ministry_id))];
-    const { data, error } = await budget()
-      .from("ministries")
-      .select("id, name")
-      .in("id", ids);
-    if (error) throw error;
-    const byId = new Map((data || []).map((m) => [m.id, m.name]));
+    const [rows, churchNames] = await Promise.all([
+      budget()
+        .from("ministries")
+        .select("id, name")
+        .in("id", ids)
+        .then(({ data, error }) => {
+          if (error) throw error;
+          return data || [];
+        }),
+      referenceService.churchMinistryNames({ ministryIds: ids }),
+    ]);
+    const byId = new Map(rows.map((m) => [m.id, m.name]));
     return assignments.map((a) => ({
       ...a,
-      ministry: { id: a.ministry_id, name: byId.get(a.ministry_id) ?? "Unknown ministry" },
+      ministry: {
+        id: a.ministry_id,
+        name:
+          churchNames.get(a.ministry_id) ??
+          byId.get(a.ministry_id) ??
+          "Unknown ministry",
+      },
     }));
   },
 
@@ -174,14 +201,57 @@ export const servingService = {
       .sort((a, b) => a.ministry_name.localeCompare(b.ministry_name));
   },
 
+  /**
+   * Put somebody into a ministry — or back into one they left today.
+   *
+   * The EXCLUDE constraint (BR-08) forbids two assignments of the same person,
+   * ministry and role over overlapping dates, and its range is INCLUSIVE of
+   * end_date: a row ended on 11 Sep still occupies 11 Sep. So "Remove" followed
+   * by "Add" on the same day — the correction anyone makes after an accidental
+   * click — was rejected outright, as a 23P01 that PostgREST returns as a bare
+   * 400 and the form reported as "they already hold that role".
+   *
+   * They do not hold it; they held it until an hour ago. Re-adding within the
+   * old span is therefore taken as undoing the removal: the original row is
+   * reopened, keeping the start date it has always had, rather than a second
+   * row being stacked on top of it with today's date. A ministry someone left
+   * LAST year does not overlap, never hits this path, and gets a new row with
+   * a new start date, which is the honest record of a genuine return.
+   *
+   * A conflict with an assignment that is still open is left to fail: that one
+   * really is a duplicate, and the message the form shows is correct.
+   */
   async create(assignment: MinistryAssignmentInsert): Promise<MinistryAssignment> {
     const { data, error } = await church()
       .from("ministry_assignments")
       .insert(assignment)
       .select()
       .single();
-    if (error) throw error;
-    return data;
+    if (!error) return data;
+    if (error.code !== EXCLUSION_VIOLATION) throw error;
+
+    const { data: existing, error: lookupError } = await church()
+      .from("ministry_assignments")
+      .select("id, end_date")
+      .eq("person_id", assignment.person_id)
+      .eq("ministry_id", assignment.ministry_id)
+      .eq("ministry_role_id", assignment.ministry_role_id)
+      .order("end_date", { ascending: false });
+    if (lookupError) throw error;
+
+    const ended = (existing || []).filter((a) => a.end_date !== null);
+    if (ended.length === 0 || (existing || []).some((a) => a.end_date === null)) {
+      throw error;
+    }
+
+    const { data: reopened, error: reopenError } = await church()
+      .from("ministry_assignments")
+      .update({ end_date: null, updated_at: new Date().toISOString() })
+      .eq("id", ended[0].id)
+      .select()
+      .single();
+    if (reopenError) throw reopenError;
+    return reopened;
   },
 
   /** End an assignment rather than deleting it, preserving history (MIN-008). */

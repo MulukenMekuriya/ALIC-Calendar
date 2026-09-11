@@ -440,6 +440,7 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean
+          is_serving_ministry: boolean
           leader_id: string | null
           name: string
           organization_id: string
@@ -450,6 +451,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_serving_ministry?: boolean
           leader_id?: string | null
           name: string
           organization_id: string
@@ -460,6 +462,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_serving_ministry?: boolean
           leader_id?: string | null
           name?: string
           organization_id?: string
@@ -4990,6 +4993,55 @@ export type Database = {
       }
       update_my_contact_details: {
         Args: { _email: string; _person_id: string; _phone: string }
+        Returns: {
+          accepted_lord_is_approximate: boolean
+          accepted_lord_month: number | null
+          accepted_lord_year: number | null
+          amharic_name: string | null
+          birth_month: number | null
+          birth_year: number | null
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          deceased: boolean
+          email: string | null
+          first_name: string
+          gender: string | null
+          id: string
+          inactive_reason: string | null
+          is_active: boolean
+          is_child: boolean
+          last_name: string
+          marital_status: string | null
+          member_number: string | null
+          member_since: string | null
+          membership_status_id: string | null
+          merged_into_person_id: string | null
+          middle_name: string | null
+          notes: string | null
+          notify_by_email: boolean
+          notify_by_sms: boolean
+          organization_id: string
+          phone: string | null
+          phone_digits: string | null
+          photo_path: string | null
+          preferred_name: string | null
+          profile_id: string | null
+          school_grade_id: string | null
+          search_name: string | null
+          sms_consent_at: string | null
+          sms_opted_out_at: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "people"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      update_person_details: {
+        Args: { _patch: Json; _person_id: string }
         Returns: {
           accepted_lord_is_approximate: boolean
           accepted_lord_month: number | null

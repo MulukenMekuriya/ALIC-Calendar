@@ -142,3 +142,36 @@ export function useReactivateMember() {
     },
   });
 }
+
+/**
+ * Amend one member record.
+ *
+ * Goes through church.update_person_details rather than a table update, so the
+ * same field rules and the same history rows apply whether an administrator is
+ * editing somebody else or a member is correcting their own name. The RPC
+ * decides what the caller may touch; this hook does not need to know.
+ *
+ * Only the keys present in `patch` are written — an absent key leaves the
+ * existing value alone, an explicit null clears it.
+ */
+export function useUpdatePersonDetails() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      personId,
+      patch,
+    }: {
+      personId: string;
+      patch: Record<string, unknown>;
+    }) => memberService.updateDetails(personId, patch),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: memberKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: memberKeys.detail(data.id) });
+      queryClient.invalidateQueries({ queryKey: memberKeys.profile(data.id) });
+      queryClient.invalidateQueries({ queryKey: memberKeys.stats(data.organization_id) });
+      // A member editing their own record is looking at My Church, not at the
+      // directory, so that cache has to go too.
+      queryClient.invalidateQueries({ queryKey: ["church", "my-information"] });
+    },
+  });
+}
