@@ -47,6 +47,7 @@ import {
   HandCoins,
   UserCircle,
   Route,
+  Backpack,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/shared/lib/utils";
@@ -71,7 +72,7 @@ interface NavSection {
 }
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
-  const { user, isAdmin, isStaff, signOut } = useAuth();
+  const { user, isAdmin, isContributor, isStaff, signOut } = useAuth();
   const { can } = useCapabilities();
   const canViewMembers = can("members.read");
   const canViewKids = can("kids.read") || can("kids.write");
@@ -230,57 +231,54 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           },
         ]
       : []),
-    // Shown to anyone who can see the ministry's records (kids_admin or
-    // leadership_viewer), not only org admins. A kids_volunteer holds
-    // kids.checkin but not kids.read, so they get the station and no dashboard.
-    ...(canViewKids || canRunStation
-      ? [
-          {
-            title: "Kids Ministry",
-            items: [
-              ...(canViewKids
-                ? [
-                    {
-                      name: "Kids Ministry",
-                      href: "/kids",
-                      icon: Baby,
-                      description: "Live board, classrooms and reports",
-                    },
-                  ]
-                : []),
-              ...(canRunStation
-                ? [
-                    {
-                      name: "Check-In Station",
-                      href: "/checkin",
-                      icon: ScanLine,
-                      description: "Open the kiosk",
-                    },
-                  ]
-                : []),
-            ],
-          },
-        ]
-      : []),
-    // Gated on the giving capability, NOT on a staff tier, and deliberately
-    // not inside "Financial": giving_admin is additive, so a counter who is
-    // otherwise a plain member holds it, and a section the tier filter strips
-    // would hide the module from exactly those people.
-    ...(canViewGiving
-      ? [
-          {
-            title: "Giving",
-            items: [
+    /*
+     * Kids Ministry is now shown to EVERYONE, which is a change: it used to
+     * appear only for someone holding a kids grant.
+     *
+     * The section has two quite different halves. "My Children" is a parent's
+     * own record and needs no grant at all — it is served by church.my_children
+     * / my_children_check_ins, SECURITY DEFINER functions scoped through
+     * my_household_ids(), so the database returns one household's children and
+     * nothing else no matter who asks. Deliberately a HISTORY: it shows
+     * finished Sundays and who collected the child, never which room a child is
+     * sitting in right now. A live location behind any login that can be
+     * phished is not a trade a children's ministry should make.
+     *
+     * The other two items stay gated on grants — a leader's board and the
+     * station kiosk are staff tools. A kids_volunteer holds kids.checkin but
+     * not kids.read, so they get the station and no dashboard.
+     */
+    {
+      title: "Kids Ministry",
+      items: [
+        {
+          name: "My Children",
+          href: "/my?tab=children",
+          icon: Backpack,
+          description: "Where my children have been, and who collected them",
+        },
+        ...(canViewKids
+          ? [
               {
-                name: "Giving",
-                href: "/giving",
-                icon: HandCoins,
-                description: "Gifts, batches and statements",
+                name: "Kids Ministry",
+                href: "/kids",
+                icon: Baby,
+                description: "Live board, classrooms and reports",
               },
-            ],
-          },
-        ]
-      : []),
+            ]
+          : []),
+        ...(canRunStation
+          ? [
+              {
+                name: "Check-In Station",
+                href: "/checkin",
+                icon: ScanLine,
+                description: "Open the kiosk",
+              },
+            ]
+          : []),
+      ],
+    },
     // Visible to everyone, like Budget. The page renders the full directory
     // for admins and a self-only view for everyone else; RLS enforces the same
     // split server-side, so the label is a hint rather than the control.
@@ -293,12 +291,25 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           icon: UserCircle,
           description: "My household, giving and children",
         },
-        {
-          name: "Members",
-          href: "/members",
-          icon: UsersRound,
-          description: isAdmin ? "Church directory" : "My information",
-        },
+        /*
+         * The DIRECTORY, so it needs members.read.
+         *
+         * It used to be shown to everyone, rendering a self-only panel inside a
+         * screen built for browsing a church. That is the exact arrangement the
+         * portal replaced — see the redirect comment in App.tsx — so for a plain
+         * member it was a second, worse copy of "My Church". Their own record is
+         * on /my, which is built for it.
+         */
+        ...(canViewMembers
+          ? [
+              {
+                name: "Members",
+                href: "/members",
+                icon: UsersRound,
+                description: isAdmin ? "Church directory" : "Church members",
+              },
+            ]
+          : []),
         ...(canViewMembers
           ? [
               {
@@ -307,11 +318,50 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 icon: Home,
                 description: "Households and who is in them",
               },
+            ]
+          : []),
+        /*
+         * Follow-up is the CONTRIBUTOR tier's tool, by request.
+         *
+         * app_role is exclusive, so this is literal: an admin does not hold
+         * `contributor` and will not see this entry. That is the instruction,
+         * but it is worth knowing it is the effect.
+         *
+         * Nav visibility is not the control. The route still admits anyone with
+         * members.read, and church.workflow_board narrows itself to a person's
+         * OWN cards when they cannot read the module — which is why an assignee
+         * with no grant still works their cards, from /my rather than here.
+         * Hiding the link changes what is offered, not what is permitted.
+         */
+        ...(isContributor
+          ? [
               {
                 name: "Follow-up",
                 href: "/workflows",
                 icon: Route,
                 description: "Visitors and anyone owed a call",
+              },
+            ]
+          : []),
+        /*
+         * Giving lives here rather than in a module of its own, so the sidebar
+         * stays at the five the church actually thinks in: Calendar, Financial,
+         * Inventory, Kids and People.
+         *
+         * It must NOT go under "Financial". giving_admin is an additive grant,
+         * so the person counting the offering is often a plain member with no
+         * staff tier — and STAFF_ONLY_SECTIONS strips Financial for exactly
+         * those people, which would hide the module from its main users.
+         * "People" carries no tier filter, so nesting it here keeps the
+         * capability gate below as the only thing deciding who sees it.
+         */
+        ...(canViewGiving
+          ? [
+              {
+                name: "Giving",
+                href: "/giving",
+                icon: HandCoins,
+                description: "Gifts, batches and statements",
               },
             ]
           : []),

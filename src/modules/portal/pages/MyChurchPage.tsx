@@ -19,6 +19,7 @@
  */
 
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/shared/components/layout/DashboardLayout";
 import {
   Card,
@@ -80,7 +81,25 @@ export default function MyChurchPage() {
   const { user } = useAuth();
   const { currentOrganization } = useOrganization();
   const orgId = currentOrganization?.id;
-  const [tab, setTab] = useState("overview");
+  /*
+   * The tab lives in the URL so the sidebar can link straight to a section —
+   * "Kids Ministry > My Children" points at /my?tab=children. Derived rather
+   * than held in state: `children` and `myCards` arrive asynchronously, and a
+   * useState seeded before they load would keep whichever tab was legal at
+   * mount and ignore the one actually asked for.
+   */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const setTab = (next: string) =>
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        if (next === "overview") p.delete("tab");
+        else p.set("tab", next);
+        return p;
+      },
+      // A tab is not a place you want to press Back through six times.
+      { replace: true }
+    );
 
   const { data: summary, isLoading } = usePortalSummary(orgId);
   const linked = summary?.linked === true;
@@ -95,6 +114,14 @@ export default function MyChurchPage() {
 
   const hasChildren = (children?.length ?? 0) > 0;
   const hasCards = (myCards?.length ?? 0) > 0;
+
+  // Only tabs that are actually rendered; anything else falls back rather than
+  // showing a tab strip with nothing selected.
+  const TABS = ["overview", "household", "giving", "children", "details"];
+  const requested = searchParams.get("tab") ?? "overview";
+  const tab = TABS.includes(requested) || (requested === "followups" && hasCards)
+    ? requested
+    : "overview";
 
   if (isLoading) {
     return (
@@ -151,7 +178,7 @@ export default function MyChurchPage() {
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="household">My household</TabsTrigger>
               <TabsTrigger value="giving">My giving</TabsTrigger>
-              {hasChildren && <TabsTrigger value="children">My children</TabsTrigger>}
+              <TabsTrigger value="children">My children</TabsTrigger>
               {hasCards && <TabsTrigger value="followups">My follow-ups</TabsTrigger>}
               <TabsTrigger value="details">My details</TabsTrigger>
             </TabsList>
@@ -366,8 +393,10 @@ export default function MyChurchPage() {
             </TabsContent>
 
             {/* ------------------------------------------------------------ */}
-            {hasChildren && (
-              <TabsContent value="children" className="mt-4 space-y-4">
+            {/* Always rendered: the sidebar advertises "My Children" to every
+                member, so this must never be a dead link. The empty state
+                inside says so plainly. */}
+            <TabsContent value="children" className="mt-4 space-y-4">
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
@@ -376,6 +405,12 @@ export default function MyChurchPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
+                    {!hasChildren ? (
+                      <p className="px-6 pb-6 text-sm text-muted-foreground">
+                        No children are linked to your household yet. If that is
+                        wrong, the check-in desk can put it right.
+                      </p>
+                    ) : (
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -396,6 +431,7 @@ export default function MyChurchPage() {
                         ))}
                       </TableBody>
                     </Table>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -447,8 +483,7 @@ export default function MyChurchPage() {
                     )}
                   </CardContent>
                 </Card>
-              </TabsContent>
-            )}
+            </TabsContent>
 
             {/* ------------------------------------------------------------ */}
             {hasCards && (
