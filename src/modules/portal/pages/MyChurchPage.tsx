@@ -82,11 +82,13 @@ export default function MyChurchPage() {
   const { currentOrganization } = useOrganization();
   const orgId = currentOrganization?.id;
   /*
-   * The tab lives in the URL so the sidebar can link straight to a section —
-   * "Kids Ministry > My Children" points at /my?tab=children. Derived rather
-   * than held in state: `children` and `myCards` arrive asynchronously, and a
-   * useState seeded before they load would keep whichever tab was legal at
-   * mount and ignore the one actually asked for.
+   * The tab lives in the URL so a section survives a reload and can be linked
+   * to directly. No sidebar item points here any more — "My Children" was a
+   * second entry for a tab this page already had, and was removed — but the
+   * tab strip is still the only way in, so the URL has to carry it. Derived
+   * rather than held in state: `children` and `myCards` arrive asynchronously,
+   * and a useState seeded before they load would keep whichever tab was legal
+   * at mount and ignore the one actually asked for.
    */
   const [searchParams, setSearchParams] = useSearchParams();
   const setTab = (next: string) =>
@@ -393,9 +395,11 @@ export default function MyChurchPage() {
             </TabsContent>
 
             {/* ------------------------------------------------------------ */}
-            {/* Always rendered: the sidebar advertises "My Children" to every
-                member, so this must never be a dead link. The empty state
-                inside says so plainly. */}
+            {/* Always rendered, never gated on hasChildren: `children` arrives
+                asynchronously, so gating would pop the tab into the strip a
+                beat after the page settled, and a household that gains a child
+                should not have to hunt for where its history went. The empty
+                state inside says plainly when there is nothing to show. */}
             <TabsContent value="children" className="mt-4 space-y-4">
                 <Card>
                   <CardHeader className="pb-3">

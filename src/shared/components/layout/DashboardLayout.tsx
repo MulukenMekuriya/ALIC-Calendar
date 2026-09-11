@@ -47,7 +47,6 @@ import {
   HandCoins,
   UserCircle,
   Route,
-  Backpack,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/shared/lib/utils";
@@ -237,10 +236,13 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
      * "My Children" used to head this list, which meant a parent with no grant
      * at all still got a "KIDS MINISTRY" heading in their sidebar with one
      * self-service link under it — a section named after a module they have no
-     * part in. It now sits under People beside "My Church", where the rest of a
-     * member's own record lives, and this section is grant-only. With no kids
-     * grant it has no items, and the empty-section filter below drops the
-     * heading entirely.
+     * part in. It moved under People beside "My Church", and has since gone
+     * altogether: /my already carries a "My children" tab, so the sidebar item
+     * was a second door onto a room the page was already showing. A parent
+     * reaches their children's history through "My Church".
+     *
+     * This section is now grant-only. With no kids grant it has no items, and
+     * the empty-section filter below drops the heading entirely.
      *
      * Both items stay gated on grants rather than on staff tier, and that
      * distinction is load-bearing: the church's kids leaders sit at 'member'
@@ -284,23 +286,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           href: "/my",
           icon: UserCircle,
           description: "My household, giving and children",
-        },
-        /*
-         * A parent's own record, needing no grant — served by
-         * church.my_children / my_children_check_ins, SECURITY DEFINER
-         * functions scoped through my_household_ids(), so the database returns
-         * one household's children and nothing else no matter who asks.
-         *
-         * Deliberately a HISTORY: it shows finished Sundays and who collected
-         * the child, never which room a child is sitting in right now. A live
-         * location behind any login that can be phished is not a trade a
-         * children's ministry should make.
-         */
-        {
-          name: "My Children",
-          href: "/my?tab=children",
-          icon: Backpack,
-          description: "Where my children have been, and who collected them",
         },
         /*
          * The DIRECTORY, so it needs members.read.
@@ -485,32 +470,22 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   /**
    * Check if a path is active (exact match, or starts-with for nested routes).
    *
-   * Query-aware, which it has to be: "My Church" (/my) and "My Children"
-   * (/my?tab=children) are the same route and differ only by tab. Comparing
-   * `location.pathname` alone made BOTH highlight at once and neither of them
-   * change when you clicked between them — so clicking "My Children" looked
-   * like a dead link even though it navigated correctly.
+   * Pathname only. This used to compare the query string too, because "My
+   * Church" (/my) and "My Children" (/my?tab=children) were two sidebar items
+   * on one route: without it both highlighted at once and neither changed when
+   * you clicked between them. "My Children" is gone — it was already a tab on
+   * the page it pointed at — so no nav href carries a query, and matching on
+   * one again would only un-highlight "My Church" the moment a member opened
+   * any of its tabs.
    */
   const isPathActive = (href: string) => {
     if (href === "/dashboard") {
       return location.pathname === href;
     }
 
-    const [path, query] = href.split("?");
-    const onThisRoute =
-      location.pathname === path || location.pathname.startsWith(path + "/");
-    if (!onThisRoute) return false;
-
-    const current = new URLSearchParams(location.search);
-    if (query) {
-      return [...new URLSearchParams(query)].every(
-        ([key, value]) => current.get(key) === value
-      );
-    }
-
-    // A query-less item owns the bare page only. `tab` is the only key any nav
-    // href carries, so a tab in the URL means a sibling item owns this spot.
-    return !current.has("tab");
+    return (
+      location.pathname === href || location.pathname.startsWith(href + "/")
+    );
   };
 
   const renderNavItem = (item: NavItem) => {
