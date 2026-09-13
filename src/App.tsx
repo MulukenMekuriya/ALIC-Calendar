@@ -46,6 +46,9 @@ import {
   HouseholdsPage,
 } from "@/modules/members";
 import { CheckInStationPage, KidsDashboardPage } from "@/modules/kids";
+import { GivingDashboard, GivingImportPage } from "@/modules/giving";
+import { WorkflowsPage } from "@/modules/workflows";
+import { MyChurchPage } from "@/modules/portal";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -162,12 +165,13 @@ const ProtectedRoute = ({
     );
   }
 
-  // Before adminOnly and requireAny. Not to "/" — /members already renders a
-  // self-only "My Information" view for anyone without members.read, so that is
-  // a member's real home in this app, and it keeps them signed in rather than
-  // dumping them back on the public site.
+  // Before adminOnly and requireAny. Not to "/" — that would dump somebody
+  // back on the public site for the crime of being a member. /my is the
+  // portal: their household, their giving, their children's check-ins and
+  // their own contact details. It used to be /members, which rendered a
+  // self-only panel inside a screen built for the directory.
   if (staffOnly && !isStaff) {
-    return <Navigate to="/members" replace />;
+    return <Navigate to="/my" replace />;
   }
 
   if (adminOnly && !isAdmin) {
@@ -357,6 +361,54 @@ const App = () => (
                 />
 
                 {/* 404 */}
+                {/* Giving module routes.
+                    Gated on the giving capability rather than a staff tier: a
+                    counter who is otherwise a plain member holds giving_admin
+                    additively, exactly as a check-in volunteer holds
+                    kids_volunteer, and staffOnly would lock out the people
+                    these screens are for. */}
+                <Route
+                  path="/giving"
+                  element={
+                    <ProtectedRoute requireAny={["giving.read"]} fallbackTo="/my">
+                      <GivingDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/giving/import"
+                  element={
+                    <ProtectedRoute requireAny={["giving.write"]} fallbackTo="/giving">
+                      <GivingImportPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Follow-up workflows. members.read admits the connections
+                    team; a volunteer holding only assigned cards sees them on
+                    /my instead, because church.workflow_board narrows itself
+                    to their own cards when they cannot read the module. */}
+                <Route
+                  path="/workflows"
+                  element={
+                    <ProtectedRoute requireAny={["members.read"]} fallbackTo="/my">
+                      <WorkflowsPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* The member portal. Authentication only — this is the one
+                    internal route every signed-in person is entitled to, and
+                    it is where the other guards send somebody who is not. */}
+                <Route
+                  path="/my"
+                  element={
+                    <ProtectedRoute>
+                      <MyChurchPage />
+                    </ProtectedRoute>
+                  }
+                />
+
                 <Route path="*" element={<NotFound />} />
               </Routes>
               </Suspense>

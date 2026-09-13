@@ -1,10 +1,13 @@
 import LandingNav from "../components/LandingNav";
 import LandingFooter from "../components/LandingFooter";
+import ArrowIcon from "../components/ArrowIcon";
+import { STRIPE_GIVING_URL } from "@/shared/constants/giving";
 import "../landing.css";
 
 type Way = { code: string; t: string; b: string; href?: string };
 
 const OTHER_WAYS: Way[] = [
+  { code: "CRD–00",  t: "Card or bank",            b: "Debit, credit or bank transfer — the fastest way, and the one that costs the church least in fees.", href: STRIPE_GIVING_URL },
   { code: "PP–01",   t: "PayPal",                  b: "Donate with debit or credit card via PayPal · @addislidetchurch", href: "https://www.paypal.com/paypalme/addislidetchurch?country.x=US&locale.x=en_US" },
   { code: "ZEL–02",  t: "Zelle",                   b: "Send directly from your bank app · (240) 505-5310" },
   { code: "VEN–03",  t: "Venmo",                   b: "Quick mobile giving · @Addis-Lidet", href: "https://account.venmo.com/u/Addis-Lidet" },
@@ -31,6 +34,14 @@ function GiveHero() {
             supporting missions, and reaching communities with the gospel.
             Thank you for partnering with us through giving.
           </p>
+          <a
+            href={STRIPE_GIVING_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn--gold btn--lg"
+          >
+            Give with card or bank <ArrowIcon />
+          </a>
         </div>
       </div>
     </section>

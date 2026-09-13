@@ -49,6 +49,17 @@
 export interface ChildLabelData {
   childName: string;
   roomName: string | null;
+  /**
+   * Printed on the detail line as "Tag 1000".
+   *
+   * It is how the LIVE BOARD lists children, and the board is the only route
+   * from a tag in a volunteer's hand to a row on a screen. The pickup code
+   * cannot serve that purpose: it is stored only as an HMAC in a vault table
+   * that grants SELECT to nobody, so no list can ever display it. Take this
+   * off the tag and the route closes — which is exactly what happened when it
+   * was briefly dropped for the time.
+   */
+  tagNumber: number;
   /** Printed down the edge tab. Same code as the parent slip — see the note above. */
   pickupCode: string;
   allergyLabel: string | null;
@@ -58,9 +69,10 @@ export interface ChildLabelData {
   /**
    * Wall-clock time the label was printed, e.g. "10:32 AM", preformatted like
    * sessionDate. At check-in this IS the check-in time; on a reprint it is the
-   * reprint's. It replaced the tag number on the detail line at the ministry's
-   * request — a volunteer looking at a tag wants to know how long the child has
-   * been in the room, which the tag number never told them.
+   * reprint's. Added at the ministry's request — a volunteer looking at a tag
+   * wants to know how long the child has been in the room, which the tag
+   * number never told them. It sits BESIDE the tag number rather than in place
+   * of it; see tagNumber for why that one cannot leave.
    */
   checkInTime?: string;
   /**
@@ -211,6 +223,20 @@ export const LABEL_CSS = `
 
   html, body {
     margin: 0; padding: 0; background: #fff;
+    /* PINNED TO THE PAGE WIDTH, for Safari.
+       Chrome derives the page box from @page and never needed this. Safari
+       IGNORES @page size — the paper comes from the print sheet and nothing a
+       stylesheet says can reach it — and then lays the document out in its own
+       viewport and SCALES that layout onto the paper. Anything in the document
+       wider than the label is therefore a shrink factor applied to the label,
+       which is how a 62mm card reached an iPhone's AirPrint at roughly 60% and
+       floated in the middle of a sheet. Declaring the width means the widest
+       thing in the document IS the page, so the fit-to-width pass has nothing
+       left to shrink.
+       WIDTH ONLY, NEVER HEIGHT. The document holds one .page per label, so a
+       fixed body height would push every label after the first out of the body
+       — one family's four children become one label and three blanks. */
+    width: ${LABEL_PAGE_MM.width}mm;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
   body {
@@ -288,6 +314,8 @@ export const LABEL_CSS = `
   .room.verylong { font-size: 9.5pt; }
   .room.tiny { font-size: 8pt; }
   .when { font-size: 8.5pt; margin-top: 0.2mm; }
+  .when.long { font-size: 7.5pt; }
+  .when.verylong { font-size: 6.5pt; }
 
   /* The rule that CLOSES the child's details, and the one that splits the card
      into a top group and a bottom group. Its margin-bottom: auto eats all the
@@ -478,6 +506,30 @@ const ROOM_TIERS: ReadonlyArray<readonly [string, number]> = [
   ["room tiny", 1.55],      // 8pt — the floor
 ];
 
+/**
+ * The detail line shrinks to stay on ONE line.
+ *
+ * It carries four things now — service, date, time and tag — and the service
+ * label is free text a church types when it opens a session. "11:00 AM Amharic
+ * Service · September 14 · 10:32 AM · Tag 1000" is 60 characters and wrapped to
+ * a second line, which was 1.3mm more than the card had.
+ *
+ * Same treatment as the classroom above, against the same 77mm face: about 51
+ * characters at 8.5pt, 58 at 7.5pt, 67 at 6.5pt. Past the floor it wraps after
+ * all, but two lines of 6.5pt cost less than one extra line of 8.5pt did.
+ */
+const WHEN_TIERS: ReadonlyArray<readonly [string, number]> = [
+  // class suffix, millimetres per character at that size
+  ["when", 1.5],           // 8.5pt
+  ["when long", 1.32],     // 7.5pt
+  ["when verylong", 1.15], // 6.5pt — the floor
+];
+
+function whenClass(detail: string): string {
+  const fits = WHEN_TIERS.find(([, mmPerChar]) => detail.length * mmPerChar <= 77);
+  return (fits ?? WHEN_TIERS[WHEN_TIERS.length - 1])[0];
+}
+
 function roomClass(room: string, hasChip: boolean): string {
   const n = room.trim().length;
   const available = hasChip ? 52 : 77;
@@ -543,7 +595,12 @@ export function buildChildLabel(data: ChildLabelData): string {
   const room = data.roomName ?? "Check-in";
   // Joined rather than interpolated, so an absent service or time does not
   // print a leading or doubled separator.
-  const detail = [data.serviceLabel, data.sessionDate, data.checkInTime]
+  const detail = [
+    data.serviceLabel,
+    data.sessionDate,
+    data.checkInTime,
+    `Tag ${data.tagNumber}`,
+  ]
     .map((part) => (part ?? "").trim())
     .filter(Boolean)
     .join(" · ");
@@ -557,7 +614,7 @@ export function buildChildLabel(data: ChildLabelData): string {
           <div class="${roomClass(room, !!data.isFirstTime)}">${esc(room)}</div>
           ${data.isFirstTime ? `<div class="firsttime">★ FIRST TIME</div>` : ""}
         </div>
-        <div class="when">${esc(detail)}</div>
+        <div class="${whenClass(detail)}">${esc(detail)}</div>
         <div class="rule split"></div>
         ${
           data.allergyLabel

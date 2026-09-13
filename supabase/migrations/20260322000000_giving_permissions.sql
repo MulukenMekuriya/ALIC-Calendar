@@ -1,0 +1,33 @@
+-- =====================================================
+-- Two more module permissions: the giving pair
+-- =====================================================
+--
+-- Alone in its own migration for the same reason 20260321001000 was:
+-- ALTER TYPE ... ADD VALUE cannot be referenced in the transaction that adds
+-- it, so the values have to be committed before the tables and policies in
+-- 20260322000100 can name them.
+--
+-- WHY GIVING NEEDS ITS OWN PAIR RATHER THAN RIDING ON app_role='treasury'.
+-- `treasury` is a TIER on public.user_organizations, and a person holds
+-- exactly one tier per branch — that is the whole reason church.module_grants
+-- exists. The people who count the offering are not necessarily the people who
+-- approve expense requests, and at least one of them (a counter who is
+-- otherwise a plain member) must not be handed the budget module to get there.
+--
+--   giving_admin   record gifts, run imports, post batches, issue statements,
+--                  and see any donor's history.
+--   giving_viewer  totals and reports without donor-level detail on screen.
+--
+-- Donor records are the most sensitive non-medical data in this system: what a
+-- household gives is a fact about that household that most of them would not
+-- share with the person sitting next to them. Neither value is implied by
+-- members_admin, and leadership_viewer deliberately does NOT pick either one
+-- up — reading the directory is not reading the ledger.
+--
+-- Org admin still implies both, consistent with every other module here
+-- (church.my_orgs_with_any unions my_admin_orgs). That is the same product
+-- decision already made for children's medical data, and the same mitigation
+-- applies: every statement run is written to church.giving_access_audit.
+
+ALTER TYPE church.module_permission ADD VALUE IF NOT EXISTS 'giving_admin';
+ALTER TYPE church.module_permission ADD VALUE IF NOT EXISTS 'giving_viewer';
