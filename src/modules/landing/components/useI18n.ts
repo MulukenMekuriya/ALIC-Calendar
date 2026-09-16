@@ -10,7 +10,7 @@ const I18N = {
     "nav.mission": "Mission",
     "nav.connect": "Connect",
     "nav.give": "Give",
-    "nav.login": "Log in",
+    "nav.login": "Members Login",
     "nav.portal": "My Church",
 
     // CTA
@@ -106,7 +106,7 @@ const I18N = {
     "nav.mission": "ተልዕኮ",
     "nav.connect": "ከእኛ ጋር",
     "nav.give": "መዋጮ",
-    "nav.login": "ግባ",
+    "nav.login": "የአባላት መግቢያ",
     "nav.portal": "ቤተ ክርስቲያኔ",
 
     // CTA
