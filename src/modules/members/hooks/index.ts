@@ -9,3 +9,4 @@ export * from "./useReference";
 export * from "./useMyInformation";
 export * from "./useRegisterMember";
 export * from "./useMemberImport";
+export * from "./usePersonPhotos";

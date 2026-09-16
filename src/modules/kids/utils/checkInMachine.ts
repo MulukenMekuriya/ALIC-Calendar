@@ -40,6 +40,14 @@ export interface HouseholdMatch {
 
 export interface CheckedInChild {
   check_in_id: string;
+  /**
+   * Optional because the check-in path builds these rows from
+   * church.check_in_children and the checkout path from
+   * church.station_resolve_pickup; both carry it, but a row reconstructed from
+   * a persisted device state written before this field existed does not.
+   * Only the photograph needs it, and a missing face is initials.
+   */
+  child_person_id?: string;
   child_name: string;
   room_name: string | null;
   tag_number: number;

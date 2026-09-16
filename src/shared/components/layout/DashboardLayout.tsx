@@ -3,7 +3,7 @@ import { useAuth } from "@/shared/contexts/AuthContext";
 import { useOrganization } from "@/shared/contexts/OrganizationContext";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +19,7 @@ import {
 import { Input } from "@/shared/components/ui/input";
 import { useSearch } from "@/shared/contexts/SearchContext";
 import { useCapabilities } from "@/shared/hooks/useCapabilities";
+import { useMyAvatar } from "@/shared/hooks/useMyAvatar";
 import { getLogoSrc } from "@/shared/constants/branding";
 import {
   LogOut,
@@ -72,6 +73,10 @@ interface NavSection {
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { user, isAdmin, isContributor, isStaff, signOut } = useAuth();
+  // The member's own photograph, where the letter used to be. Null for the
+  // many people who have not uploaded one, and for any login with no member
+  // record — both of which fall back to initials.
+  const { data: myAvatarUrl } = useMyAvatar(user?.id);
   const { can } = useCapabilities();
   const canViewMembers = can("members.read");
   const canViewKids = can("kids.read") || can("kids.write");
@@ -651,6 +656,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   className="w-full justify-start p-3 h-auto"
                 >
                   <Avatar className="h-8 w-8">
+                    {myAvatarUrl && <AvatarImage src={myAvatarUrl} alt="Your photo" />}
                     <AvatarFallback className="text-xs">
                       {getUserInitials(user?.email)}
                     </AvatarFallback>
@@ -776,6 +782,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   {isAdmin && <Badge variant="secondary">Admin</Badge>}
                 </div>
                 <Avatar className="h-8 w-8 hidden sm:flex">
+                  {myAvatarUrl && <AvatarImage src={myAvatarUrl} alt="Your photo" />}
                   <AvatarFallback className="text-xs">
                     {getUserInitials(user?.email)}
                   </AvatarFallback>

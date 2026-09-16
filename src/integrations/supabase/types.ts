@@ -3007,6 +3007,50 @@ export type Database = {
           },
         ]
       }
+      person_photos: {
+        Row: {
+          created_at: string
+          id: string
+          is_primary: boolean
+          organization_id: string
+          person_id: string
+          slot: number
+          storage_path: string
+          uploaded_by: string | null
+          uploaded_by_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          organization_id: string
+          person_id: string
+          slot: number
+          storage_path: string
+          uploaded_by?: string | null
+          uploaded_by_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          organization_id?: string
+          person_id?: string
+          slot?: number
+          storage_path?: string
+          uploaded_by?: string | null
+          uploaded_by_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_person_photos_person"
+            columns: ["person_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
       person_relationships: {
         Row: {
           created_at: string
@@ -4585,6 +4629,26 @@ export type Database = {
           total_cents: number
         }[]
       }
+      add_person_photo: {
+        Args: { _make_primary?: boolean; _person_id: string; _storage_path: string }
+        Returns: Database["church"]["Tables"]["person_photos"]["Row"]
+      }
+      can_manage_photos_of: { Args: { _person_id: string }; Returns: boolean }
+      can_view_photos_of: { Args: { _person_id: string }; Returns: boolean }
+      delete_person_photo: { Args: { _photo_id: string }; Returns: string }
+      has_live_kids_shift_in: { Args: { _organization_id: string }; Returns: boolean }
+      person_photos_for: {
+        Args: { _person_ids: string[] }
+        Returns: {
+          is_primary: boolean
+          person_id: string
+          photo_id: string
+          slot: number
+          storage_path: string
+        }[]
+      }
+      set_primary_photo: { Args: { _photo_id: string }; Returns: undefined }
+      uuid_or_null: { Args: { _text: string }; Returns: string }
       i_am_an_adult_of: { Args: { _household_id: string }; Returns: boolean }
       join_group: { Args: { _group_id: string }; Returns: string }
       join_ministry: { Args: { _ministry_id: string }; Returns: string }

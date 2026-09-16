@@ -24,9 +24,11 @@ import { MemberDetailsDialog } from "../components/MemberDetailsDialog";
 import { ServingCard } from "../components/ServingCard";
 import { GroupsCard } from "../components/GroupsCard";
 import { LinkedLoginCard } from "../components/LinkedLoginCard";
+import { PersonAvatar } from "../components/PersonAvatar";
+import { PersonPhotoManager } from "../components/PersonPhotoManager";
+import { usePersonPhotos, primaryPhotoUrl } from "../hooks/usePersonPhotos";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
-import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +41,7 @@ import {
 } from "@/shared/components/ui/alert-dialog";
 import {
   ArrowLeft,
+  Camera,
   Loader2,
   Baby,
   Users as UsersIcon,
@@ -55,7 +58,7 @@ import {
   useDeactivateMember,
   useReactivateMember,
 } from "../hooks/useMembers";
-import { displayName, initials } from "../utils/normalize";
+import { displayName } from "../utils/normalize";
 import {
   formatAge,
   formatBirthday,
@@ -85,6 +88,7 @@ export default function MemberProfilePage() {
   const [confirmArchive, setConfirmArchive] = useState(false);
 
   const member = profileQuery.data;
+  const { data: photos } = usePersonPhotos([member?.id]);
   // The office may edit anyone; a member may edit themselves. Which FIELDS
   // either of them may set is decided by church.update_person_details, not
   // here — this only chooses whether the button appears.
@@ -163,9 +167,11 @@ export default function MemberProfilePage() {
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <Avatar className="h-14 w-14">
-            <AvatarFallback className="text-lg">{initials(member)}</AvatarFallback>
-          </Avatar>
+          <PersonAvatar
+            url={primaryPhotoUrl(photos, member.id)}
+            name={displayName(member)}
+            size="lg"
+          />
           <div className="flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
               {displayName(member)}
@@ -287,6 +293,32 @@ export default function MemberProfilePage() {
               organizationId={orgId}
               canEdit={canWrite}
             />
+
+            {/* Photographs, up to three. For a child this is also where the
+                consent gets recorded — see the header of 20260322090000 — so
+                the office adding a face here is making the same statement a
+                parent makes by uploading one from My Church. */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Camera className="h-4 w-4" />
+                  Photos
+                </CardTitle>
+                <CardDescription>
+                  {member.is_child
+                    ? "Shown to the children's team and to the check-in desk while a shift is open."
+                    : "Shown beside this person's name to the office and to their own household."}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <PersonPhotoManager
+                  personId={member.id}
+                  personName={displayName(member)}
+                  isChild={member.is_child}
+                  canEdit={canWrite}
+                />
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="family" className="mt-4 space-y-4">

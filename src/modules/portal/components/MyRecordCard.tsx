@@ -36,15 +36,20 @@ import {
   CardTitle,
 } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
-import { Loader2, Pencil, UserRound } from "lucide-react";
-import { useMyRecord } from "@/modules/members/hooks";
-import { MemberDetailsDialog } from "@/modules/members/components";
+import { Camera, Loader2, Pencil, UserRound } from "lucide-react";
+import { useMyRecord, usePersonPhotos, primaryPhotoUrl } from "@/modules/members/hooks";
+import {
+  MemberDetailsDialog,
+  PersonAvatar,
+  PersonPhotoManager,
+} from "@/modules/members/components";
 import { displayName } from "@/modules/members/utils";
 import { formatBirthday, formatAge, yearsSinceAccepted } from "@/modules/members/utils";
 
 export function MyRecordCard({ userId }: { userId: string | undefined }) {
   const recordQuery = useMyRecord(userId);
   const me = recordQuery.data;
+  const { data: photos } = usePersonPhotos([me?.id]);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
   if (recordQuery.isLoading) {
@@ -67,14 +72,24 @@ export function MyRecordCard({ userId }: { userId: string | undefined }) {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-3">
-            <div>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <UserRound className="h-4 w-4" />
-                {displayName(me)}
-              </CardTitle>
-              <CardDescription className="text-xs mt-1">
-                Your record in the church directory
-              </CardDescription>
+            <div className="flex items-start gap-3">
+              {/* The photo sits on the record it belongs to, not in a section
+                  of its own: it is one more thing the church has written down
+                  about this person. */}
+              <PersonAvatar
+                url={primaryPhotoUrl(photos, me.id)}
+                name={displayName(me)}
+                size="lg"
+              />
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <UserRound className="h-4 w-4" />
+                  {displayName(me)}
+                </CardTitle>
+                <CardDescription className="text-xs mt-1">
+                  Your record in the church directory
+                </CardDescription>
+              </div>
             </div>
             <Button variant="outline" size="sm" onClick={() => setIsEditOpen(true)}>
               <Pencil className="h-3.5 w-3.5 mr-1" />
@@ -91,6 +106,21 @@ export function MyRecordCard({ userId }: { userId: string | undefined }) {
           {acceptedYears !== null && (
             <Field label="Years since accepting the Lord" value={String(acceptedYears)} />
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Camera className="h-4 w-4" />
+            My photos
+          </CardTitle>
+          <CardDescription>
+            Up to three. The one marked “shown” is what appears beside your name.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PersonPhotoManager personId={me.id} personName={displayName(me)} />
         </CardContent>
       </Card>
 

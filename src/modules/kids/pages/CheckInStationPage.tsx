@@ -52,6 +52,8 @@ import { VisitorFamilyDialog } from "../components/VisitorFamilyDialog";
 import { ReprintLabelDialog } from "../components/ReprintLabelDialog";
 import { errorMessage, isDbError } from "../services/rpcError";
 import { cn } from "@/lib/utils";
+import { usePersonPhotos, primaryPhotoUrl } from "@/modules/members/hooks";
+import { PersonAvatar } from "@/modules/members/components";
 
 /**
  * crypto.randomUUID() exists only in a SECURE CONTEXT. A lobby tablet on the
@@ -107,6 +109,28 @@ export default function CheckInStationPage() {
   const [showRooms, setShowRooms] = useState(false);
   /** Open classrooms, for keeping siblings together at the desk. */
   const [openRooms, setOpenRooms] = useState<StationRoom[]>([]);
+  /*
+   * FACES AT THE DESK.
+   *
+   * Everything else on this screen — the pickup code, the authorised-collector
+   * list, the restriction orders — exists to answer "is this the right
+   * person", and the one thing the volunteer holding the tablet actually has
+   * is a face. Both lists that name a child get one.
+   *
+   * The station account holds no module grant of any kind, so it reaches these
+   * images only through church.has_live_kids_shift_in: the photograph is
+   * readable while this tablet has a shift open and not one minute longer. And
+   * only for a child whose consent is on record — a child without one shows
+   * initials here exactly as they do everywhere else.
+   */
+  const childIdsOnScreen = useMemo(
+    () => [
+      ...(ctx.household?.children ?? []).map((c) => c.child_person_id),
+      ...ctx.checkoutMatches.map((m) => m.child_person_id),
+    ].filter((id): id is string => !!id),
+    [ctx.household, ctx.checkoutMatches]
+  );
+  const { data: childPhotos } = usePersonPhotos(childIdsOnScreen);
   /** Set when a lead chooses to release a child the gate refused. */
   const [overriding, setOverriding] = useState(false);
   const [overrideReason, setOverrideReason] = useState("");
@@ -487,6 +511,7 @@ export default function CheckInStationPage() {
         token: rows[0].pickup_token,
         children: rows.map((r) => ({
           check_in_id: r.check_in_id,
+          child_person_id: r.child_person_id,
           child_name: r.child_name,
           room_name: r.room_name,
           tag_number: r.tag_number,
@@ -589,6 +614,7 @@ export default function CheckInStationPage() {
           .filter((m) => m.status === "checked_in")
           .map((m) => ({
             check_in_id: m.check_in_id,
+            child_person_id: m.child_person_id,
             child_name: m.child_name,
             room_name: m.room_name,
             tag_number: m.tag_number,
@@ -960,9 +986,20 @@ export default function CheckInStationPage() {
                           : ""
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-lg font-medium">{c.child_display_name}</span>
-                      {selected && !blocked && <CheckCircle2 className="h-5 w-5 text-primary" />}
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex min-w-0 items-center gap-3">
+                        <PersonAvatar
+                          url={primaryPhotoUrl(childPhotos, c.child_person_id)}
+                          name={c.child_display_name}
+                          size="md"
+                        />
+                        <span className="truncate text-lg font-medium">
+                          {c.child_display_name}
+                        </span>
+                      </span>
+                      {selected && !blocked && (
+                        <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />
+                      )}
                     </div>
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       {/* The GRADE, because that is what places them. Showing
@@ -1192,6 +1229,12 @@ export default function CheckInStationPage() {
                       >
                         {picked && <CheckCircle2 className="h-4 w-4" />}
                       </span>
+                      <PersonAvatar
+                        url={primaryPhotoUrl(childPhotos, m.child_person_id)}
+                        name={m.child_name}
+                        size="md"
+                        className="shrink-0"
+                      />
                       <span className="min-w-0 flex-1">
                         <span className="block text-xl font-medium truncate">
                           {m.child_name}

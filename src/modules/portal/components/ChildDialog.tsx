@@ -44,6 +44,7 @@ import {
 import { Loader2, AlertTriangle } from "lucide-react";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useSchoolGrades } from "@/modules/members/hooks";
+import { PersonPhotoManager } from "@/modules/members/components";
 import { useAddMyChild, useUpdateMyChild } from "../hooks";
 import { changedFields, isEmptyPatch, type Draft } from "../utils/formPatch";
 import { sayWhyNot } from "../utils/sayWhyNot";
@@ -197,7 +198,7 @@ export function ChildDialog({
           <DialogTitle>{isEdit ? `Edit ${child!.display_name}` : "Add a child"}</DialogTitle>
           <DialogDescription>
             {isEdit
-              ? "For allergies, medical notes or who may collect them, speak to the check-in desk — those are not changed from here."
+              ? "A photo helps the check-in desk hand the right child to the right adult. For allergies, medical notes or who may collect them, speak to the desk — those are not changed from here."
               : "A child of your household, so the check-in desk knows them on Sunday. Allergies are recorded at the desk."}
           </DialogDescription>
         </DialogHeader>
@@ -281,6 +282,20 @@ export function ChildDialog({
           The grade is what the children's ministry places a child by, so it is
           worth changing each September.
         </p>
+
+        {/* Photos only when editing: church.add_person_photo needs a person to
+            hang them on, and on the add path there is not one yet. Add the
+            child, then reopen to put a face to them. */}
+        {isEdit && (
+          <div className="space-y-2 border-t pt-4">
+            <p className="text-sm font-medium">Photos</p>
+            <PersonPhotoManager
+              personId={child!.person_id}
+              personName={child!.display_name}
+              isChild
+            />
+          </div>
+        )}
 
         {error && (
           <p className="flex items-start gap-2 text-sm text-destructive">

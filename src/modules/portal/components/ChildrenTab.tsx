@@ -39,6 +39,8 @@ import {
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Baby, Pencil, UserPlus } from "lucide-react";
+import { usePersonPhotos, primaryPhotoUrl } from "@/modules/members/hooks";
+import { PersonAvatar } from "@/modules/members/components";
 import { useMyHouseholdDetail } from "../hooks";
 import { ChildDialog } from "./ChildDialog";
 import type { MyChild, MyChildCheckIn } from "../types";
@@ -58,6 +60,15 @@ export function ChildrenTab({
 }: ChildrenTabProps) {
   const { data: details } = useMyHouseholdDetail(enabled);
   const editable = details?.find((h) => h.i_can_edit);
+  /*
+   * One request for every child on the page. A child's photo is only visible
+   * at all once consent is on record — which uploading it here is what sets —
+   * so a face missing from this list is a face nobody else can see either.
+   */
+  const { data: photos } = usePersonPhotos(
+    (children ?? []).map((c) => c.person_id),
+    enabled
+  );
   /*
    * One dialog, two jobs. `editing` holds the child being corrected, or null
    * for a new one — the same distinction ChildDialog itself draws, so the two
@@ -114,13 +125,22 @@ export function ChildrenTab({
                 {children!.map((child) => (
                   <TableRow key={child.person_id}>
                     <TableCell className="font-medium">
-                      {child.display_name}
-                      {child.preferred_name && (
-                        <span className="text-muted-foreground font-normal">
-                          {" "}
-                          ({child.preferred_name})
+                      <span className="flex items-center gap-2.5">
+                        <PersonAvatar
+                          url={primaryPhotoUrl(photos, child.person_id)}
+                          name={child.display_name}
+                          size="sm"
+                        />
+                        <span>
+                          {child.display_name}
+                          {child.preferred_name && (
+                            <span className="text-muted-foreground font-normal">
+                              {" "}
+                              ({child.preferred_name})
+                            </span>
+                          )}
                         </span>
-                      )}
+                      </span>
                     </TableCell>
                     <TableCell>
                       {child.grade_name ?? (
