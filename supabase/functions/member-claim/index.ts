@@ -266,11 +266,42 @@ Deno.serve(async (req) => {
         return json({ error: "password_too_short" }, 400);
       }
 
-      // Checked again on the server. The page looks this up first, but a
-      // request that skipped the page must not be able to make a second
-      // account against a member's address.
-      if (found.outcome === "claimable" || found.outcome === "ambiguous") {
-        return json({ outcome: found.outcome, masked_email: found.masked_email });
+      /*
+       * Checked again on the server, and checked WITHOUT the names.
+       *
+       * `found` above was narrowed by whatever first and last name came in the
+       * request, which is right for the claim flow — it is how a couple
+       * sharing one address says which of them is signing in. It is exactly
+       * wrong here: a request naming a real member's email address and a
+       * made-up name narrows to nobody, reads as not_found, and would create a
+       * second account squatting that member's address. The member could then
+       * never claim their own record, because the claim path would find the
+       * squatter's account and link it.
+       *
+       * So the question this asks is the one that matters: does this ADDRESS
+       * belong to somebody on the books, whatever anyone claims to be called.
+       */
+      const { data: byAddress, error: addressError } = await admin
+        .schema("church")
+        .rpc("claim_lookup", {
+          _organization_id: branchId,
+          _email: email || null,
+          _phone: phone || null,
+          _first_name: null,
+          _last_name: null,
+        });
+      if (addressError) throw addressError;
+
+      const onTheBooks = byAddress as { outcome: string; masked_email: string | null };
+      if (
+        onTheBooks.outcome === "claimable" ||
+        onTheBooks.outcome === "ambiguous" ||
+        onTheBooks.outcome === "no_email"
+      ) {
+        return json({
+          outcome: onTheBooks.outcome,
+          masked_email: onTheBooks.masked_email,
+        });
       }
 
       const { data: existingId } = await admin
