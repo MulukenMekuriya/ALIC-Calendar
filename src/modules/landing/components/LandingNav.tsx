@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '@/shared/contexts';
 import { useI18n } from './useI18n';
 
 export default function LandingNav() {
   const { t } = useI18n();
+  const { user } = useAuth();
   const [solid, setSolid] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
@@ -72,6 +74,13 @@ export default function LandingNav() {
           </div>
 
           <div className="nav__right">
+            {/* Members enter here. A quiet text link rather than a second
+                filled button, so the nav keeps one call to action. Once
+                somebody is signed in it stops offering a login form they have
+                already been through and points at their portal instead. */}
+            <Link to={user ? '/my' : '/auth'} className="nav__login">
+              {user ? t('nav.portal') : t('nav.login')}
+            </Link>
             <Link to="/give" className="btn btn--gold btn--sm">{t('cta.give')}</Link>
             <button
               className={`nav__burger${menuOpen ? ' is-open' : ''}`}
@@ -122,6 +131,9 @@ export default function LandingNav() {
           ))}
           <span className="nav__sheet-divider" aria-hidden="true" />
           <Link to="/give" className="nav__sheet-link">{t('cta.give')}</Link>
+          <Link to={user ? '/my' : '/auth'} className="nav__sheet-link">
+            {user ? t('nav.portal') : t('nav.login')}
+          </Link>
         </nav>
       </aside>
     </>

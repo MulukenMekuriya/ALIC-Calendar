@@ -198,6 +198,17 @@
 
 .landing-root .nav__right { display: flex; align-items: center; gap: 18px; }
 
+/* Member login — matches the nav links rather than the Give button: two
+   filled buttons side by side read as two equal calls to action, and giving
+   is the one the church is asking for. Hidden at <=980px, where the entry
+   lives in the slide-in sheet instead. */
+.landing-root .nav__login {
+  font-size: 13.5px; font-weight: 400; letter-spacing: 0.01em;
+  color: var(--paper-dim); white-space: nowrap;
+  transition: color 0.2s;
+}
+.landing-root .nav__login:hover { color: var(--paper); }
+
 /* Hamburger — hidden on desktop */
 .landing-root .nav__burger {
   display: none; appearance: none; background: none; border: 0;
