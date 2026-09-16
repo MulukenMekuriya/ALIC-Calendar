@@ -155,6 +155,14 @@ export interface Statement {
     state: string | null;
     postal_code: string | null;
   } | null;
+  /**
+   * Optional line printed under the recipient, saying what the document
+   * covers. church.my_statement sets it, because a member's own statement may
+   * be handed to someone preparing their taxes who has no way of knowing it
+   * covers one name in the household. The treasurer's statements leave it
+   * unset and print exactly as they did before.
+   */
+  scope_note?: string | null;
   total_cents: number;
   deductible_cents: number;
   gift_count: number;

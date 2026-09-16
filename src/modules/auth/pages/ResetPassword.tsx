@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
@@ -39,6 +39,7 @@ const ResetPassword = () => {
   const { toast } = useToast();
   const { updatePassword } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     // Check if user has a valid session with recovery token
@@ -142,9 +143,18 @@ const ResetPassword = () => {
           title: "Password updated",
           description: "Your password has been successfully reset",
         });
-        // Give user time to see the success message before redirecting
+        /*
+         * Where to land them.
+         *
+         * /dashboard is the staff home and a plain member is bounced off it,
+         * which is a strange first second inside an account you have just set
+         * up. The QR-code page adds ?welcome=1 to its link, and that sends
+         * them to My Church — their household, their giving, their children —
+         * which is the thing they scanned the code for.
+         */
+        const landing = searchParams.get("welcome") ? "/my" : "/dashboard";
         setTimeout(() => {
-          navigate("/dashboard");
+          navigate(landing);
         }, 1000);
       }
     } catch (error) {

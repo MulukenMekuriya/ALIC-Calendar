@@ -12,3 +12,6 @@ export type { MinistrySummary, ServingTotals } from "./servingService";
 
 export { referenceService } from "./referenceService";
 export type { MinistryOption } from "./referenceService";
+
+export { photoService, describeFileProblem, MAX_PHOTOS } from "./photoService";
+export type { PersonPhoto, PersonPhotoWithUrl } from "./photoService";

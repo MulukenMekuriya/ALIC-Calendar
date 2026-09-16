@@ -67,7 +67,22 @@ const ROLE_CAPABILITIES: Record<MinistryRole, readonly Capability[]> = {
   members_admin: ["members.read", "members.write"],
   members_viewer: ["members.read"],
   members_import: ["members.read", "members.import"],
-  kids_admin: ["kids.read", "kids.write", "kids.checkin", "kids.override", "members.read"],
+  /**
+   * The Kids Ministry leader: classrooms, teachers, reports and the pickup
+   * override.
+   *
+   * Deliberately does NOT carry members.read. The kids module reads no
+   * directory table at all — every child, parent and pickup candidate it shows
+   * arrives through a SECURITY DEFINER RPC (station_search_households,
+   * station_child_safety_card, kids_live_board and thirty-five others), and
+   * those log what was looked at. Bundling the directory in here handed a kids
+   * leader all 1,050 people through an unaudited table read, which is the
+   * arrangement the kids_volunteer note above already rejects, and the one
+   * the giving pair were built to avoid.
+   *
+   * Someone who genuinely needs both holds both grants — they are additive.
+   */
+  kids_admin: ["kids.read", "kids.write", "kids.checkin", "kids.override"],
   /**
    * A team lead: runs their own grades and nothing else.
    *
@@ -80,7 +95,7 @@ const ROLE_CAPABILITIES: Record<MinistryRole, readonly Capability[]> = {
    * two-person rule "the single most important control in the system", and an
    * override that four of the six leaders can self-authorise is not one.
    */
-  kids_leader: ["kids.read", "kids.write", "kids.checkin", "members.read"],
+  kids_leader: ["kids.read", "kids.write", "kids.checkin"],
   kids_volunteer: ["kids.checkin"],
   leadership_viewer: ["members.read", "kids.read"],
   /**

@@ -23,6 +23,15 @@ interface AuthContextType {
   isTreasury: boolean;
   isFinance: boolean;
   /**
+   * Holds the `contributor` tier in some branch.
+   *
+   * app_role is EXCLUSIVE — one role per user per branch — so this is not
+   * "contributor or better". An admin is not a contributor, and asking for
+   * this excludes them. That is a real trade wherever it is used: see the
+   * Follow-up entry in DashboardLayout.
+   */
+  isContributor: boolean;
+  /**
    * Does this person hold a staff TIER in any branch?
    *
    * app_role is exclusive — public.user_organizations has
@@ -48,6 +57,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isContributor, setIsContributor] = useState(false);
   const [isTreasury, setIsTreasury] = useState(false);
   const [isFinance, setIsFinance] = useState(false);
   const [isStaff, setIsStaff] = useState(false);
@@ -155,6 +165,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       const roles = data?.map((r) => r.role) || [];
       setIsAdmin(roles.includes("admin"));
+      setIsContributor(roles.includes("contributor"));
       setIsTreasury(roles.includes("treasury"));
       setIsFinance(roles.includes("finance"));
       // Mirrors public.is_staff(). An ALLOWLIST, so a role added to the enum
@@ -218,6 +229,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         user,
         session,
         isAdmin,
+        isContributor,
         isTreasury,
         isFinance,
         isStaff,

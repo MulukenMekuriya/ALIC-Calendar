@@ -21,6 +21,8 @@ import { Loader2, ChevronLeft, ChevronRight, UserRound, Baby } from "lucide-reac
 import type { Member } from "../types";
 import { displayName, maskPhone } from "../utils/normalize";
 import { formatAge, formatBirthday } from "../utils/age";
+import { usePersonPhotos, primaryPhotoUrl } from "../hooks/usePersonPhotos";
+import { PersonAvatar } from "./PersonAvatar";
 
 interface MemberTableProps {
   members: Member[];
@@ -40,6 +42,13 @@ export function MemberTable({
   onPageChange,
 }: MemberTableProps) {
   const navigate = useNavigate();
+  /*
+   * One call for the page of forty, not one per row. Rows the reader may not
+   * see a face for simply come back without one — a directory of 582 people
+   * where most have no photograph is the normal case, and initials are the
+   * designed state rather than a gap.
+   */
+  const { data: photos } = usePersonPhotos(members.map((m) => m.id));
   const from = total === 0 ? 0 : page * pageSize + 1;
   const to = Math.min((page + 1) * pageSize, total);
   const lastPage = Math.max(0, Math.ceil(total / pageSize) - 1);
@@ -83,7 +92,12 @@ export function MemberTable({
                 onClick={() => navigate(`/members/${member.id}`)}
               >
                 <TableCell className="font-medium">
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-2.5">
+                    <PersonAvatar
+                      url={primaryPhotoUrl(photos, member.id)}
+                      name={displayName(member)}
+                      size="sm"
+                    />
                     {member.is_child && (
                       <Baby className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                     )}
