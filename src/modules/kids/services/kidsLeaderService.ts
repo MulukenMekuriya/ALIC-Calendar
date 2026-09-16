@@ -169,6 +169,34 @@ export const kidsLeaderService = {
     return (data ?? []) as unknown as StillHereRow[];
   },
 
+  /**
+   * Close off every child still checked in, for the whole branch.
+   *
+   * For the Sunday the desk forgets. The children are marked EXPIRED, which in
+   * this system means "nobody checked them out" and never "they were
+   * collected" — so this tidies the board without putting a false pickup on a
+   * child's record. The database refuses this for anyone who is not a
+   * kids_admin, and emails the other leaders what was cleared.
+   */
+  async expireOpenCheckIns(
+    organizationId: string,
+    note?: string
+  ): Promise<{ expired_count: number; child_names: string[] }> {
+    const { data, error } = await church().rpc("kids_expire_open_check_ins", {
+      _organization_id: organizationId,
+      _kids_session_id: null,
+      _note: note || null,
+    });
+    throwRpc(error);
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | { expired_count: number; child_names: string[] | null }
+      | undefined;
+    return {
+      expired_count: row?.expired_count ?? 0,
+      child_names: row?.child_names ?? [],
+    };
+  },
+
   /** Move a child to another room mid-service, keeping their pickup code. */
   async transferChild(checkInId: string, toRoomId: string, reason?: string) {
     const { error } = await church().rpc("transfer_child", {

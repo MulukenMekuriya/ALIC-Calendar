@@ -200,6 +200,25 @@ export function useStillHere(organizationId: string | undefined) {
   });
 }
 
+/**
+ * Close off the whole board. kids_admin only — the database enforces that, and
+ * StillHerePanel hides the button on `kids.override`, which is the capability
+ * only a kids_admin holds.
+ */
+export function useExpireOpenCheckIns(organizationId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (p: { note?: string }) =>
+      kidsLeaderService.expireOpenCheckIns(organizationId!, p.note),
+    onSuccess: () => {
+      if (!organizationId) return;
+      queryClient.invalidateQueries({ queryKey: kidsLeaderKeys.board(organizationId) });
+      queryClient.invalidateQueries({ queryKey: [...kidsLeaderKeys.all, "roster"] });
+      queryClient.invalidateQueries({ queryKey: kidsLeaderKeys.stillHere(organizationId) });
+    },
+  });
+}
+
 export function useTransferChild(organizationId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
