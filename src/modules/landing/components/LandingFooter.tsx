@@ -102,6 +102,7 @@ export default function LandingFooter() {
             <ul>
               <li><Link to="/connect">Contact Form</Link></li>
               <li><Link to="/connect">Prayer Request</Link></li>
+              <li><Link to="/auth">Members Login</Link></li>
               <li><Link to="/give">Give Online</Link></li>
             </ul>
           </details>

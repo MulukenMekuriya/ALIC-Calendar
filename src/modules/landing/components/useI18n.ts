@@ -11,6 +11,7 @@ const I18N = {
     "nav.connect": "Connect",
     "nav.give": "Give",
     "nav.login": "Log in",
+    "nav.portal": "My Church",
 
     // CTA
     "cta.give": "Give",
@@ -106,6 +107,7 @@ const I18N = {
     "nav.connect": "ከእኛ ጋር",
     "nav.give": "መዋጮ",
     "nav.login": "ግባ",
+    "nav.portal": "ቤተ ክርስቲያኔ",
 
     // CTA
     "cta.give": "ይዋጡ",
