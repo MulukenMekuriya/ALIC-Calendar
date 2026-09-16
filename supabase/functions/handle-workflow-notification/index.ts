@@ -15,12 +15,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API");
 const RESEND_FROM_EMAIL =
-  Deno.env.get("RESEND_FROM_EMAIL") || "ALIC Finance <finance@addislidet.info>";
+  Deno.env.get("RESEND_FROM_EMAIL") || "ALIC Finance <finance@alic.org>";
 const CHURCH_NAME =
   Deno.env.get("CHURCH_NAME") || "Addis Lidet International Church";
 const CHURCH_LOGO_URL =
-  Deno.env.get("CHURCH_LOGO_URL") || "https://addislidet.info/logo.png";
-const APP_URL = Deno.env.get("APP_URL") || "https://app.addislidet.info";
+  Deno.env.get("CHURCH_LOGO_URL") || "https://alic.org/alic-logo.png";
+const APP_URL = Deno.env.get("APP_URL") || "https://alic.org";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

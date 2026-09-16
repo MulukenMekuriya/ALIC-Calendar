@@ -11,9 +11,17 @@ const corsHeaders = {
 
 const CHURCH_NAME =
   Deno.env.get("CHURCH_NAME") || "Addis Lidet International Church";
+// Was addislidet.info/logo.png, which 307s to www and then 404s — so every
+// one of these emails led with a broken image, which filters notice.
 const CHURCH_LOGO_URL =
-  Deno.env.get("CHURCH_LOGO_URL") || "https://addislidet.info/logo.png";
-const APP_URL = Deno.env.get("APP_URL") || "https://app.addislidet.info";
+  Deno.env.get("CHURCH_LOGO_URL") || "https://alic.org/alic-logo.png";
+// app.addislidet.info has no DNS record at all.
+const APP_URL = Deno.env.get("APP_URL") || "https://alic.org";
+// The sending domain has to be the one verified in Resend and covered by a
+// DMARC record — alic.org is both. See member-claim for the long version.
+const FROM =
+  Deno.env.get("RESEND_FROM_EMAIL") || `${CHURCH_NAME} <team@alic.org>`;
+const REPLY_TO = Deno.env.get("RESEND_REPLY_TO") || "IT@ALIC.ORG";
 
 interface AuthEmailPayload {
   user: {
@@ -48,10 +56,29 @@ const handler = async (req: Request): Promise<Response> => {
 
     let subject = "";
     let html = "";
+    // Sent alongside the HTML so the message is multipart/alternative rather
+    // than html-only. See setPasswordEmailText in member-claim.
+    let text = "";
 
     // Generate email content based on action type
     if (email_action_type === "recovery" || email_action_type === "magiclink") {
-      subject = "🔐 Reset Your Password | Addis Lidet International Church";
+      subject = `Reset your password | ${CHURCH_NAME}`;
+      text = [
+        "Reset your password",
+        "",
+        "Somebody asked to reset the password on your church account.",
+        "If that was not you, ignore this email and nothing changes.",
+        "",
+        "Reset it here:",
+        confirmLink,
+        "",
+        "The link expires in one hour and works once.",
+        "",
+        "--",
+        CHURCH_NAME,
+        APP_URL,
+        "",
+      ].join("\n");
       html = `
         <!DOCTYPE html>
         <html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -352,7 +379,7 @@ const handler = async (req: Request): Promise<Response> => {
                   <!-- Support Section -->
                   <div class="support-section">
                     <p>Need help? Our support team is here for you.</p>
-                    <a href="mailto:support@addislidet.info" class="support-link">Contact Support →</a>
+                    <a href="mailto:IT@ALIC.ORG" class="support-link">Contact Support →</a>
                   </div>
                 </div>
                 
@@ -364,16 +391,16 @@ const handler = async (req: Request): Promise<Response> => {
                   </div>
                   
                   <div class="footer-links">
-                    <a href="https://addislidet.info" class="footer-link">Visit Website</a>
+                    <a href="https://alic.org" class="footer-link">Visit Website</a>
                     <span style="color: #4a5568;">•</span>
-                    <a href="https://addislidet.info/support" class="footer-link">Get Support</a>
+                    <a href="https://alic.org/connect" class="footer-link">Get Support</a>
                     <span style="color: #4a5568;">•</span>
-                    <a href="https://addislidet.info/privacy" class="footer-link">Privacy</a>
+                    <a href="https://alic.org/connect" class="footer-link">Privacy</a>
                   </div>
                   
                   <div class="copyright">
                     © ${new Date().getFullYear()} Addis Lidet International Church. All rights reserved.<br>
-                    <a href="https://addislidet.info" class="website-link">addislidet.info</a>
+                    <a href="https://alic.org" class="website-link">alic.org</a>
                   </div>
                 </div>
               </div>
@@ -385,8 +412,22 @@ const handler = async (req: Request): Promise<Response> => {
       email_action_type === "signup" ||
       email_action_type === "invite"
     ) {
-      subject =
-        "✨ Welcome to ALIC Church Management | Addis Lidet International Church";
+      subject = `Confirm your email | ${CHURCH_NAME}`;
+      text = [
+        `Welcome to ${CHURCH_NAME}`,
+        "",
+        "Confirm your email address to finish setting up your account.",
+        "",
+        "Confirm here:",
+        confirmLink,
+        "",
+        "If you were not expecting this, ignore this email.",
+        "",
+        "--",
+        CHURCH_NAME,
+        APP_URL,
+        "",
+      ].join("\n");
       html = `
         <!DOCTYPE html>
         <html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -724,7 +765,7 @@ const handler = async (req: Request): Promise<Response> => {
                   <!-- Support Section -->
                   <div class="support-section">
                     <p>Questions? We're here to help!</p>
-                    <a href="mailto:support@addislidet.info" class="support-link">Contact Support →</a>
+                    <a href="mailto:IT@ALIC.ORG" class="support-link">Contact Support →</a>
                   </div>
                 </div>
                 
@@ -736,16 +777,16 @@ const handler = async (req: Request): Promise<Response> => {
                   </div>
                   
                   <div class="footer-links">
-                    <a href="https://addislidet.info" class="footer-link">Visit Website</a>
+                    <a href="https://alic.org" class="footer-link">Visit Website</a>
                     <span style="color: #4a5568;">•</span>
-                    <a href="https://addislidet.info/support" class="footer-link">Get Support</a>
+                    <a href="https://alic.org/connect" class="footer-link">Get Support</a>
                     <span style="color: #4a5568;">•</span>
-                    <a href="https://addislidet.info/privacy" class="footer-link">Privacy</a>
+                    <a href="https://alic.org/connect" class="footer-link">Privacy</a>
                   </div>
                   
                   <div class="copyright">
                     © ${new Date().getFullYear()} Addis Lidet International Church. All rights reserved.<br>
-                    <a href="https://addislidet.info" class="website-link">addislidet.info</a>
+                    <a href="https://alic.org" class="website-link">alic.org</a>
                   </div>
                 </div>
               </div>
@@ -754,7 +795,20 @@ const handler = async (req: Request): Promise<Response> => {
         </html>
       `;
     } else {
-      subject = "Verify Your Email";
+      subject = `Verify your email | ${CHURCH_NAME}`;
+      text = [
+        "Verify your email",
+        "",
+        "Please verify your email address:",
+        confirmLink,
+        "",
+        "If you were not expecting this, ignore this email.",
+        "",
+        "--",
+        CHURCH_NAME,
+        APP_URL,
+        "",
+      ].join("\n");
       html = `
         <!DOCTYPE html>
         <html>
@@ -783,10 +837,12 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const { data, error } = await resend.emails.send({
-      from: "Addis Lidet International Church <team@addislidet.info>",
+      from: FROM,
       to: [user.email],
       subject: subject,
       html: html,
+      text: text,
+      reply_to: REPLY_TO,
     });
 
     if (error) {
