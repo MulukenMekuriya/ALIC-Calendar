@@ -72,6 +72,13 @@ verify_jwt = true
 [functions.import-users]
 verify_jwt = true
 
+# The QR-code page at /welcome. The caller has no account yet — that is the
+# entire point — so there is no JWT to verify. What bounds it is the rate limit
+# recorded on every call and the fact that the four functions it can reach are
+# granted to service_role alone. See 20260322100000.
+[functions.member-claim]
+verify_jwt = false
+
 [functions.send-auth-email]
 verify_jwt = false
 
