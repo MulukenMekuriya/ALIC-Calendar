@@ -16,9 +16,34 @@
  *    Sundays, and who collected them. Live room location is a question asked
  *    of a person standing at the check-in desk, not of any login that can be
  *    phished.
+ *
+ * THE OVERVIEW IS NO LONGER A RECEIPT
+ * -----------------------------------
+ * It used to be six numbers about the past and a button. It now leads with
+ * what is happening next and what is waiting on the member, and every number
+ * on it opens the thing it counts. The composition lives in
+ * components/OverviewTab, which carries its own reasoning; this file keeps the
+ * tabs, the routing and the data the tabs share.
+ *
+ * AND IT IS NO LONGER READ-ONLY
+ * -----------------------------
+ * Four things a member knows better than the office does are now theirs to
+ * change: their household's address and telephone number, the children of
+ * that household, the ministries they serve in, and the group they attend.
+ * Each tab's component carries the argument for its own boundary, and the
+ * boundaries themselves are drawn in the database — see the header of
+ * supabase/migrations/20260322080000, which is the one place to read if the
+ * question is "why can a member do THAT but not THIS".
+ *
+ * The short version: a member may correct facts about themselves and their own
+ * household. They may not add an adult to a household (it decides who may
+ * collect a child), remove anybody (removal is not discoverable), touch
+ * medical or custody records (those are read at the desk with the child
+ * standing there), or give themselves a leadership role (the leadership
+ * reports are the church's account of who runs what, not a self-description).
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/shared/components/layout/DashboardLayout";
 import {
@@ -42,40 +67,37 @@ import { Button } from "@/shared/components/ui/button";
 import {
   Loader2,
   UserRound,
-  Home,
   HandCoins,
-  Baby,
-  HandHeart,
-  ExternalLink,
   Info,
   Route,
   Phone,
 } from "lucide-react";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useOrganization } from "@/shared/contexts/OrganizationContext";
-import { STRIPE_GIVING_URL } from "@/shared/constants/giving";
 import { MyInformation } from "@/modules/members/components/MyInformation";
 import { useMyGiving, useMyGivingYears } from "@/modules/giving/hooks";
 import { formatMoney, METHOD_LABELS } from "@/modules/giving/utils/money";
+import { greeting } from "../utils/whenIsIt";
+import {
+  OverviewTab,
+  MyStatementButton,
+  GiveButton,
+  WhatsOnCard,
+  MyGroupsCard,
+  MyServingCard,
+  MyRecordCard,
+  HouseholdTab,
+  ChildrenTab,
+  GivingByYearCard,
+} from "../components";
 import { useMyWorkflowCards } from "@/modules/workflows/hooks";
 import {
   usePortalSummary,
   useMyHouseholdMembers,
   useMyChildren,
   useMyChildrenCheckIns,
+  useMyUpcomingEvents,
 } from "../hooks";
-
-function GiveButton({ className }: { className?: string }) {
-  return (
-    <Button asChild className={className}>
-      <a href={STRIPE_GIVING_URL} target="_blank" rel="noopener noreferrer">
-        <HandCoins className="h-4 w-4 mr-1" />
-        Give online
-        <ExternalLink className="h-3.5 w-3.5 ml-1.5 opacity-70" />
-      </a>
-    </Button>
-  );
-}
 
 export default function MyChurchPage() {
   const { user } = useAuth();
@@ -113,8 +135,32 @@ export default function MyChurchPage() {
   const [givingYear, setGivingYear] = useState<number | null>(null);
   const { data: gifts } = useMyGiving(givingYear);
   const { data: myCards } = useMyWorkflowCards(orgId);
+  /*
+   * Fetched here rather than inside OverviewTab, because the unlinked panel
+   * shows the same list and OverviewTab never renders for an unlinked login.
+   * React Query dedupes the two readers on the shared key, so this is one
+   * request either way.
+   */
+  const { data: unlinkedEvents } = useMyUpcomingEvents(orgId, 4);
 
-  const hasChildren = (children?.length ?? 0) > 0;
+  /*
+   * ONE instant for the whole render.
+   *
+   * The overview asks the clock four separate questions — is this event on
+   * now, is last year's statement ready, whose birthday is this month, is it
+   * morning — and if each one called `new Date()` they could land either side
+   * of midnight and contradict each other. Memoised on mount rather than
+   * ticking: this is a page somebody reads for thirty seconds, and a heading
+   * that changes itself while being read is a distraction, not a feature.
+   */
+  const now = useMemo(() => new Date(), []);
+
+  // Years a statement can honestly be issued for: everything before the one
+  // being lived. Newest first, because that is the one anybody asks for.
+  const closedGivingYears = (givingYears ?? [])
+    .filter((year) => year.tax_year < now.getFullYear())
+    .sort((a, b) => b.tax_year - a.tax_year);
+
   const hasCards = (myCards?.length ?? 0) > 0;
 
   // Only tabs that are actually rendered; anything else falls back rather than
@@ -144,36 +190,71 @@ export default function MyChurchPage() {
             <div className="p-2 rounded-xl bg-primary/10">
               <UserRound className="h-6 w-6 text-primary" />
             </div>
+            {/*
+              The greeting is keyed to the reader's own clock, and the standing
+              of the person reading it sits directly under their name.
+
+              "You are recorded as Member since 2019" used to be a sentence
+              stranded at the bottom of the overview, below a giving card,
+              under everything else — which is a strange place to put the one
+              line on the page that says what this person is to the church.
+            */}
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold">
-                {summary?.display_name ? `Welcome, ${summary.display_name.split(" ")[0]}` : "My Church"}
+                {summary?.display_name
+                  ? `${greeting(now)}, ${summary.display_name.split(" ")[0]}`
+                  : "My Church"}
               </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                {currentOrganization?.name ?? ""}
-              </p>
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+                <span>{currentOrganization?.name ?? ""}</span>
+                {summary?.membership_status && (
+                  <>
+                    <span aria-hidden>·</span>
+                    <Badge variant="secondary">{summary.membership_status}</Badge>
+                  </>
+                )}
+                {summary?.member_since && (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span>since {summary.member_since}</span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
           <GiveButton />
         </div>
 
         {!linked ? (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Info className="h-4 w-4" />
-                Your login is not linked to a member record yet
-              </CardTitle>
-              <CardDescription>
-                Until an administrator links them, we cannot show your
-                household, your giving or your children's check-ins here. You
-                can still update your own contact details below, and giving
-                online works either way.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <MyInformation userId={user?.id} />
-            </CardContent>
-          </Card>
+          /*
+           * An account waiting to be linked is not a dead end.
+           *
+           * It cannot be shown a household, a gift or a child, because there
+           * is no member record to read any of those from. It CAN be shown
+           * what is on at church — that calendar is published to anonymous
+           * visitors already — and it can still be used to give and to correct
+           * a phone number. What was here before was the apology alone.
+           */
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Info className="h-4 w-4" />
+                  Your login is not linked to a member record yet
+                </CardTitle>
+                <CardDescription>
+                  Until an administrator links them, we cannot show your
+                  household, your giving or your children's check-ins here. You
+                  can still update your own contact details below, and giving
+                  online works either way.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <MyInformation userId={user?.id} />
+              </CardContent>
+            </Card>
+            <WhatsOnCard events={unlinkedEvents} now={now} />
+          </div>
         ) : (
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList className="flex-wrap h-auto">
@@ -186,125 +267,29 @@ export default function MyChurchPage() {
             </TabsList>
 
             {/* ------------------------------------------------------------ */}
-            <TabsContent value="overview" className="mt-4 space-y-4">
-              <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-                <Card><CardContent className="pt-5">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Given this year
-                  </p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums">
-                    {formatMoney(summary?.giving_this_year_cents ?? 0)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {summary?.last_gift_on ? `last gift ${summary.last_gift_on}` : "no gifts recorded"}
-                  </p>
-                </CardContent></Card>
-                <Card><CardContent className="pt-5">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Household</p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums">
-                    {summary?.household_size ?? 0}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {summary?.household_name ?? "no household on record"}
-                  </p>
-                </CardContent></Card>
-                <Card><CardContent className="pt-5">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Serving</p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums">
-                    {summary?.serving_count ?? 0}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    ministr{(summary?.serving_count ?? 0) === 1 ? "y" : "ies"}
-                  </p>
-                </CardContent></Card>
-                <Card><CardContent className="pt-5">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Groups</p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums">
-                    {summary?.group_count ?? 0}
-                  </p>
-                  <p className="text-xs text-muted-foreground">home cells and studies</p>
-                </CardContent></Card>
-              </div>
-
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Giving online</CardTitle>
-                  <CardDescription>
-                    Card and bank transfer go through Stripe. PayPal, Zelle,
-                    Venmo, text, cheque and the offering box all still work —
-                    every one of them ends up on your year-end statement.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <GiveButton />
-                </CardContent>
-              </Card>
-
-              {summary?.membership_status && (
-                <p className="text-sm text-muted-foreground">
-                  You are recorded as{" "}
-                  <Badge variant="secondary">{summary.membership_status}</Badge>
-                  {summary.member_since ? ` since ${summary.member_since}` : ""}.
-                </p>
-              )}
+            <TabsContent value="overview" className="mt-4">
+              <OverviewTab
+                organizationId={orgId}
+                summary={summary}
+                household={household}
+                myChildren={children}
+                givingYears={givingYears}
+                myCards={myCards}
+                onOpenTab={setTab}
+                now={now}
+              />
             </TabsContent>
 
             {/* ------------------------------------------------------------ */}
+            {/* The roster comes down with the page, because the overview reads
+                it too; the address and the edit buttons are HouseholdTab's own
+                business and are fetched when the tab is opened. */}
             <TabsContent value="household" className="mt-4">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Home className="h-4 w-4" />
-                    {summary?.household_name ?? "My household"}
-                  </CardTitle>
-                  <CardDescription>
-                    To change anything here, speak to the church office — a
-                    household is shared, so it is not edited from one person's
-                    login.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {(household?.length ?? 0) === 0 ? (
-                    <p className="px-6 pb-6 text-sm text-muted-foreground">
-                      You are not recorded in a household yet.
-                    </p>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Role</TableHead>
-                          <TableHead>Contact</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {household!.map((person) => (
-                          <TableRow key={person.person_id}>
-                            <TableCell>
-                              <span className="font-medium">{person.display_name}</span>
-                              {person.is_me && <Badge className="ml-2">you</Badge>}
-                              {person.is_child && (
-                                <Badge variant="secondary" className="ml-2">child</Badge>
-                              )}
-                            </TableCell>
-                            <TableCell className="capitalize">
-                              {person.household_role ?? "—"}
-                              {person.is_primary_contact && (
-                                <span className="block text-xs text-muted-foreground">
-                                  primary contact
-                                </span>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {person.phone ?? person.email ?? "—"}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
+              <HouseholdTab
+                household={household}
+                organizationId={orgId}
+                enabled={linked}
+              />
             </TabsContent>
 
             {/* ------------------------------------------------------------ */}
@@ -334,28 +319,58 @@ export default function MyChurchPage() {
                       a week.
                     </p>
                   ) : (
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant={givingYear === null ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setGivingYear(null)}
-                      >
-                        All years
-                      </Button>
-                      {givingYears!.map((year) => (
+                    <div className="space-y-4">
+                      <div className="flex flex-wrap gap-2">
                         <Button
-                          key={year.tax_year}
-                          variant={givingYear === year.tax_year ? "default" : "outline"}
+                          variant={givingYear === null ? "default" : "outline"}
                           size="sm"
-                          onClick={() => setGivingYear(year.tax_year)}
+                          onClick={() => setGivingYear(null)}
                         >
-                          {year.tax_year} · {formatMoney(year.total_cents)}
+                          All years
                         </Button>
-                      ))}
+                        {givingYears!.map((year) => (
+                          <Button
+                            key={year.tax_year}
+                            variant={givingYear === year.tax_year ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setGivingYear(year.tax_year)}
+                          >
+                            {year.tax_year} · {formatMoney(year.total_cents)}
+                          </Button>
+                        ))}
+                      </div>
+
+                      {/*
+                        Statements for finished years only.
+
+                        A contribution statement is a document about a closed
+                        year — it is what somebody attaches to a tax return.
+                        Offering one for the year still running would produce a
+                        piece of paper headed "2026 Contribution Statement"
+                        that stops in September and is wrong the moment the
+                        next gift is recorded. The running year's total is on
+                        the button above, where a running total belongs.
+                      */}
+                      {closedGivingYears.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-2 border-t pt-4">
+                          <span className="text-sm text-muted-foreground mr-1">
+                            Statements:
+                          </span>
+                          {closedGivingYears.map((year) => (
+                            <MyStatementButton
+                              key={year.tax_year}
+                              organizationId={orgId}
+                              year={year.tax_year}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>
               </Card>
+
+              <GivingByYearCard years={givingYears} now={now} />
 
               {(gifts?.length ?? 0) > 0 && (
                 <Card>
@@ -399,94 +414,15 @@ export default function MyChurchPage() {
                 asynchronously, so gating would pop the tab into the strip a
                 beat after the page settled, and a household that gains a child
                 should not have to hunt for where its history went. The empty
-                state inside says plainly when there is nothing to show. */}
-            <TabsContent value="children" className="mt-4 space-y-4">
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Baby className="h-4 w-4" />
-                      My children
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    {!hasChildren ? (
-                      <p className="px-6 pb-6 text-sm text-muted-foreground">
-                        No children are linked to your household yet. If that is
-                        wrong, the check-in desk can put it right.
-                      </p>
-                    ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Grade</TableHead>
-                          <TableHead>Born</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {children!.map((child) => (
-                          <TableRow key={child.person_id}>
-                            <TableCell className="font-medium">{child.display_name}</TableCell>
-                            <TableCell>{child.grade_name ?? "—"}</TableCell>
-                            <TableCell className="text-muted-foreground">
-                              {child.birth_year ?? "—"}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Recent Sundays</CardTitle>
-                    <CardDescription>
-                      Check-ins that have finished, and who collected them. For
-                      where a child is right now, ask at the check-in desk.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    {(checkIns?.length ?? 0) === 0 ? (
-                      <p className="px-6 pb-6 text-sm text-muted-foreground">
-                        No check-ins recorded yet.
-                      </p>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Date</TableHead>
-                              <TableHead>Child</TableHead>
-                              <TableHead>Room</TableHead>
-                              <TableHead>Collected by</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {checkIns!.map((row) => (
-                              <TableRow key={row.check_in_id}>
-                                <TableCell className="whitespace-nowrap">
-                                  {row.session_date}
-                                  <span className="block text-xs text-muted-foreground">
-                                    {row.service_label}
-                                  </span>
-                                </TableCell>
-                                <TableCell>{row.child_name}</TableCell>
-                                <TableCell>{row.room_name ?? "—"}</TableCell>
-                                <TableCell>
-                                  {row.picked_up_by_name ?? (
-                                    <Badge variant="outline">{row.status}</Badge>
-                                  )}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                state inside says plainly when there is nothing to show — and
+                now offers to add the first one. */}
+            <TabsContent value="children" className="mt-4">
+              <ChildrenTab
+                children={children}
+                checkIns={checkIns}
+                organizationId={orgId}
+                enabled={linked}
+              />
             </TabsContent>
 
             {/* ------------------------------------------------------------ */}
@@ -549,8 +485,23 @@ export default function MyChurchPage() {
             )}
 
             {/* ------------------------------------------------------------ */}
-            <TabsContent value="details" className="mt-4">
-              <MyInformation userId={user?.id} />
+            {/*
+              Everything the church has on record ABOUT THIS PERSON, and every
+              part of it they may correct themselves: their own contact
+              details, where they serve, and which group they are in.
+
+              Drawn from the portal's own components rather than from
+              members/MyInformation, which used to be rendered here whole. Two
+              of its three cards were wrong in this context — its household
+              card duplicated the tab next door, and its serving card resolved
+              ministry names through budget.ministries, which a member cannot
+              read, so it showed "Unknown ministry". MyRecordCard says why at
+              greater length.
+            */}
+            <TabsContent value="details" className="mt-4 space-y-4">
+              <MyRecordCard userId={user?.id} />
+              <MyServingCard organizationId={orgId} enabled={linked} />
+              <MyGroupsCard organizationId={orgId} enabled={linked} />
             </TabsContent>
           </Tabs>
         )}

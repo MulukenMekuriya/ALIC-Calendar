@@ -77,6 +77,9 @@ const STYLES = `
   .recipient .to { font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.6pt; color: #666; margin-bottom: 1.5mm; }
   .recipient .name { font-size: 13pt; font-weight: bold; }
   .recipient .address { font-size: 10pt; color: #333; white-space: pre-line; }
+  /* Set apart from the address so it reads as a note about the document
+     rather than as another line of the postal address. */
+  .recipient .scope { margin-top: 2mm; font-size: 8.5pt; color: #555; font-style: italic; max-width: 110mm; }
   table { width: 100%; border-collapse: collapse; margin: 4mm 0; }
   th { text-align: left; font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.5pt; color: #666; border-bottom: 1px solid #999; padding: 2mm 1mm; }
   td { padding: 1.8mm 1mm; border-bottom: 1px solid #e5e5e5; font-size: 10pt; }
@@ -146,6 +149,11 @@ function renderOne(statement: Statement, church: StatementChurchInfo): string {
       <div class="to">Issued to</div>
       <div class="name">${escapeHtml(statement.recipient_name ?? "")}</div>
       ${addressLines.length ? `<div class="address">${escapeHtml(addressLines.join("\n"))}</div>` : ""}
+      ${
+        statement.scope_note
+          ? `<div class="scope">${escapeHtml(statement.scope_note)}</div>`
+          : ""
+      }
     </div>
 
     <div class="section-title">Summary by fund</div>

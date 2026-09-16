@@ -172,8 +172,13 @@ export function useUpdatePersonDetails() {
       queryClient.invalidateQueries({ queryKey: memberKeys.profile(data.id) });
       queryClient.invalidateQueries({ queryKey: memberKeys.stats(data.organization_id) });
       // A member editing their own record is looking at My Church, not at the
-      // directory, so that cache has to go too.
+      // directory, so those caches have to go too. Both keys are spelled out
+      // rather than imported: the portal imports from here, and importing back
+      // would close the loop.
       queryClient.invalidateQueries({ queryKey: ["church", "my-information"] });
+      // The portal's summary carries the name in the greeting and the phone
+      // number the overview nags about, so it goes stale on the same save.
+      queryClient.invalidateQueries({ queryKey: ["church", "portal"] });
     },
   });
 }

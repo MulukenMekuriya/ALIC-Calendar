@@ -4530,10 +4530,15 @@ export type Database = {
           birth_month: number
           birth_year: number
           display_name: string
+          first_name: string
           grade_name: string
+          household_id: string
           household_name: string
+          last_name: string
           organization_id: string
           person_id: string
+          preferred_name: string
+          school_grade_id: string
         }[]
       }
       my_children_check_ins: {
@@ -4580,10 +4585,76 @@ export type Database = {
           total_cents: number
         }[]
       }
+      i_am_an_adult_of: { Args: { _household_id: string }; Returns: boolean }
+      join_group: { Args: { _group_id: string }; Returns: string }
+      join_ministry: { Args: { _ministry_id: string }; Returns: string }
+      leave_group: { Args: { _membership_id: string }; Returns: undefined }
+      leave_ministry: { Args: { _assignment_id: string }; Returns: undefined }
+      my_group_options: {
+        Args: { _organization_id: string }
+        Returns: {
+          already_member: boolean
+          description: string
+          group_id: string
+          group_type: string
+          meeting_day: string
+          meeting_time: string
+          member_count: number
+          name: string
+          room_name: string
+        }[]
+      }
+      my_household_detail: {
+        Args: never
+        Returns: {
+          address_line1: string
+          address_line2: string
+          city: string
+          household_id: string
+          i_can_edit: boolean
+          name: string
+          organization_id: string
+          postal_code: string
+          primary_phone: string
+          state: string
+        }[]
+      }
+      my_ministry_options: {
+        Args: { _organization_id: string }
+        Returns: {
+          already_serving: boolean
+          ministry_id: string
+          name: string
+        }[]
+      }
+      update_my_child: {
+        Args: { _child_id: string; _patch: Json }
+        Returns: Database["church"]["Tables"]["people"]["Row"]
+      }
+      update_my_household: {
+        Args: { _household_id: string; _patch: Json }
+        Returns: Database["church"]["Tables"]["households"]["Row"]
+      }
       my_household_ids: { Args: never; Returns: string[] }
+      my_groups: {
+        Args: never
+        Returns: {
+          group_name: string
+          group_type: string
+          is_leadership_role: boolean
+          meeting_day: string
+          meeting_place: string
+          meeting_time: string
+          membership_id: string
+          organization_id: string
+          role_name: string
+        }[]
+      }
       my_household_members: {
         Args: never
         Returns: {
+          birth_month: number
+          birth_year: number
           display_name: string
           email: string
           household_role: string
@@ -4603,6 +4674,22 @@ export type Database = {
       }
       my_person_ids: { Args: never; Returns: string[] }
       my_portal_summary: { Args: { _organization_id: string }; Returns: Json }
+      my_serving: {
+        Args: never
+        Returns: {
+          assignment_id: string
+          is_leadership_role: boolean
+          is_primary_role: boolean
+          ministry_name: string
+          organization_id: string
+          role_name: string
+          start_date: string
+        }[]
+      }
+      my_statement: {
+        Args: { _organization_id: string; _year: number }
+        Returns: Json
+      }
       my_workflow_cards: {
         Args: { _organization_id: string }
         Returns: {

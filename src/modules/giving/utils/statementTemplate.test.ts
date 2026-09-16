@@ -37,6 +37,26 @@ const base: Statement = {
 };
 
 describe("buildStatementDocument", () => {
+  it("prints a scope note when one is set, and nothing when it is not", () => {
+    // church.my_statement sets this so a member's own statement says on its
+    // face that it covers one name; the treasurer's statements leave it unset.
+    expect(buildStatementDocument([base], CHURCH)).not.toContain('class="scope"');
+
+    const mine = { ...base, scope_note: "Gifts recorded against this name only." };
+    const html = buildStatementDocument([mine], CHURCH);
+    expect(html).toContain('class="scope"');
+    expect(html).toContain("Gifts recorded against this name only.");
+  });
+
+  it("escapes a scope note rather than injecting it as markup", () => {
+    const html = buildStatementDocument(
+      [{ ...base, scope_note: "<script>alert(1)</script>" }],
+      CHURCH
+    );
+    expect(html).not.toContain("<script>alert(1)</script>");
+    expect(html).toContain("&lt;script&gt;");
+  });
+
   it("carries the acknowledgement a US donor needs to claim the gift", () => {
     const html = buildStatementDocument([base], CHURCH);
     expect(html).toContain("No goods or services were provided");

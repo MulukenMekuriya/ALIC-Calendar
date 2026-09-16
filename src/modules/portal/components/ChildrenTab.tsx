@@ -1,0 +1,214 @@
+/**
+ * My children — the record, and the Sundays that have finished.
+ *
+ * WHAT A PARENT MAY CHANGE HERE. A name, a birthday, a school grade. The grade
+ * is the one that earns its place: church.pick_room_for_child reads it FIRST
+ * when placing a child in a classroom, so a grade nobody updated in September
+ * is a six-year-old sent back to last year's room, and the only people who
+ * could update it were four people in an office who do not know when your
+ * daughter started first grade.
+ *
+ * WHAT IT DELIBERATELY DOES NOT TOUCH. Allergies, medical notes, and who may
+ * collect a child. Those are read at the check-in desk while the child is
+ * standing there, and they sit beside the custody records; widening them to a
+ * web form deserves its own decision rather than arriving as a side-effect of
+ * a screen about grades. The empty states say where to take them.
+ *
+ * AND NOT REMOVING ANYONE. A child added by mistake is a telephone call to the
+ * office; a child silently removed from a household is not discoverable at
+ * all, and the household is what the check-in desk builds the collection list
+ * from.
+ */
+
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/shared/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
+import { Badge } from "@/shared/components/ui/badge";
+import { Button } from "@/shared/components/ui/button";
+import { Baby, Pencil, UserPlus } from "lucide-react";
+import { useMyHouseholdDetail } from "../hooks";
+import { ChildDialog } from "./ChildDialog";
+import type { MyChild, MyChildCheckIn } from "../types";
+
+interface ChildrenTabProps {
+  children: MyChild[] | undefined;
+  checkIns: MyChildCheckIn[] | undefined;
+  organizationId: string | undefined;
+  enabled?: boolean;
+}
+
+export function ChildrenTab({
+  children,
+  checkIns,
+  organizationId,
+  enabled = true,
+}: ChildrenTabProps) {
+  const { data: details } = useMyHouseholdDetail(enabled);
+  const editable = details?.find((h) => h.i_can_edit);
+  /*
+   * One dialog, two jobs. `editing` holds the child being corrected, or null
+   * for a new one — the same distinction ChildDialog itself draws, so the two
+   * cannot get out of step.
+   */
+  const [editing, setEditing] = useState<MyChild | null>(null);
+  const [open, setOpen] = useState(false);
+
+  const openFor = (child: MyChild | null) => {
+    setEditing(child);
+    setOpen(true);
+  };
+
+  const hasChildren = (children?.length ?? 0) > 0;
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="pb-3 flex-row items-start justify-between space-y-0 gap-3">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Baby className="h-4 w-4" />
+              My children
+            </CardTitle>
+            <CardDescription>
+              Keeping the school grade current is what puts a child in the right
+              classroom on Sunday.
+            </CardDescription>
+          </div>
+          {editable && (
+            <Button variant="outline" size="sm" onClick={() => openFor(null)}>
+              <UserPlus className="h-3.5 w-3.5 mr-1" />
+              Add a child
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent className="p-0">
+          {!hasChildren ? (
+            <p className="px-6 pb-6 text-sm text-muted-foreground">
+              No children are recorded in your household yet. Add one here, or
+              the check-in desk can do it on Sunday.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Grade</TableHead>
+                  <TableHead>Born</TableHead>
+                  <TableHead className="w-10" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {children!.map((child) => (
+                  <TableRow key={child.person_id}>
+                    <TableCell className="font-medium">
+                      {child.display_name}
+                      {child.preferred_name && (
+                        <span className="text-muted-foreground font-normal">
+                          {" "}
+                          ({child.preferred_name})
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {child.grade_name ?? (
+                        /* Not "—". A missing grade is the one gap on this
+                           screen with a consequence on Sunday, so it asks. */
+                        <Badge variant="outline">Not set</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {child.birth_year ?? "—"}
+                    </TableCell>
+                    <TableCell>
+                      {editable && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          title={`Edit ${child.display_name}`}
+                          onClick={() => openFor(child)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Recent Sundays</CardTitle>
+          <CardDescription>
+            Check-ins that have finished, and who collected them. For where a
+            child is right now, ask at the check-in desk.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {(checkIns?.length ?? 0) === 0 ? (
+            <p className="px-6 pb-6 text-sm text-muted-foreground">
+              No check-ins recorded yet.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Child</TableHead>
+                    <TableHead>Room</TableHead>
+                    <TableHead>Collected by</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {checkIns!.map((row) => (
+                    <TableRow key={row.check_in_id}>
+                      <TableCell className="whitespace-nowrap">
+                        {row.session_date}
+                        <span className="block text-xs text-muted-foreground">
+                          {row.service_label}
+                        </span>
+                      </TableCell>
+                      <TableCell>{row.child_name}</TableCell>
+                      <TableCell>{row.room_name ?? "—"}</TableCell>
+                      <TableCell>
+                        {row.picked_up_by_name ?? <Badge variant="outline">{row.status}</Badge>}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {editable && (
+        <ChildDialog
+          child={editing}
+          householdId={editable.household_id}
+          organizationId={organizationId}
+          open={open}
+          onOpenChange={setOpen}
+        />
+      )}
+    </div>
+  );
+}
