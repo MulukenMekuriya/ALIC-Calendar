@@ -56,16 +56,7 @@ const CHURCH_NAME =
 // already standing on. app.addislidet.info, the old default here and in
 // send-auth-email, does not resolve at all.
 const APP_URL = Deno.env.get("APP_URL") || "https://alic.org";
-// alic.org is the domain verified in Resend, it is the host the QR code
-// lands on, and its DMARC is p=quarantine — so this From has to be on it or
-// the mail is judged against a record that does not cover it. Resend signs
-// DKIM as d=alic.org, which aligns, so the strict policy works FOR us here.
-// addislidet.info, the old sender, is only p=none and has no reputation.
-const FROM =
-  Deno.env.get("RESEND_FROM_EMAIL") || `${CHURCH_NAME} <team@alic.org>`;
-// Replies to a set-password email are real people who are stuck. IT@ALIC.ORG
-// is a mailbox that exists and is read; team@ may still be an alias.
-const REPLY_TO = Deno.env.get("RESEND_REPLY_TO") || "IT@ALIC.ORG";
+const FROM = `${CHURCH_NAME} <team@addislidet.info>`;
 
 /** Branch ids, so the QR code can carry a short letter instead of a UUID. */
 const BRANCHES: Record<string, string> = {
@@ -131,41 +122,6 @@ function setPasswordEmail(link: string, isNew: boolean): string {
     </td></tr>
   </table>
 </body></html>`;
-}
-
-/**
- * The same email as text.
- *
- * Not a nicety. A message carrying only text/html is one of the oldest and
- * cheapest spam signals there is — real correspondence from real senders is
- * multipart/alternative, and bulk junk frequently is not. Passing `text`
- * alongside `html` makes Resend build the multipart message. It also means
- * the link survives a client that strips HTML, a screen reader, and a watch.
- *
- * Keep this in step with setPasswordEmail(): a text part that disagrees with
- * the HTML part is itself scored against you.
- */
-function setPasswordEmailText(link: string, isNew: boolean): string {
-  const heading = isNew ? `Welcome to ${CHURCH_NAME}` : "Set your password";
-  const line = isNew
-    ? "Thank you for registering. Choose a password and your church account is ready."
-    : "Somebody asked to set the password on your church account. If that was not you, ignore this email and nothing changes.";
-
-  return [
-    heading,
-    "",
-    line,
-    "",
-    "Set your password:",
-    link,
-    "",
-    "The link works once and expires in 24 hours. After that, scan the code at church again or ask at the welcome desk.",
-    "",
-    "--",
-    CHURCH_NAME,
-    APP_URL,
-    "",
-  ].join("\n");
 }
 
 Deno.serve(async (req) => {
@@ -504,8 +460,6 @@ async function sendSetPasswordLink(
       ? `Welcome to ${CHURCH_NAME} — set your password`
       : `Set your password | ${CHURCH_NAME}`,
     html: setPasswordEmail(data.properties.action_link, isNew),
-    text: setPasswordEmailText(data.properties.action_link, isNew),
-    reply_to: REPLY_TO,
   });
 
   if (sent.error) {
