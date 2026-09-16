@@ -75,6 +75,20 @@ function escapeHtml(value: string): string {
  * being asked to get up and walk to a classroom. It gets the loud treatment;
  * the routine check-in and check-out confirmations do not.
  */
+/**
+ * The body is escaped and then its newlines become <br>.
+ *
+ * Without that, every message renders as one run-on paragraph, because HTML
+ * collapses newlines. It went unnoticed while the only messages were the
+ * one-sentence check-in and check-out confirmations, which have no newlines to
+ * lose. The auto-expire summary added in 20260322140000 is a LIST OF
+ * CHILDREN'S NAMES, and an access email is a set of credentials on their own
+ * lines; both are unreadable as a single paragraph.
+ *
+ * <br> rather than white-space:pre-wrap because Outlook's Word engine ignores
+ * the latter. Runs of leading spaces still collapse, so compose bodies that do
+ * not rely on column alignment.
+ */
 function renderEmail(notification: QueuedNotification): string {
   const urgent = notification.kind === "volunteer_message";
   const accent = urgent ? "#b91c1c" : "#1d4ed8";
@@ -93,7 +107,7 @@ function renderEmail(notification: QueuedNotification): string {
       </div>
       <div style="padding:24px;">
         <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#18181b;">
-          ${escapeHtml(notification.body)}
+          ${escapeHtml(notification.body).replace(/\n/g, "<br>")}
         </p>
         ${
           notification.sent_by_name
