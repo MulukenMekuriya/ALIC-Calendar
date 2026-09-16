@@ -29,7 +29,7 @@
  */
 
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
@@ -54,7 +54,15 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { getLogoSrc } from "@/shared/constants/branding";
 
-type Outcome = "claimable" | "ambiguous" | "no_email" | "not_found" | "sent" | "registered";
+type Outcome =
+  | "claimable"
+  | "ambiguous"
+  | "no_email"
+  | "not_found"
+  | "sent"
+  | "registered"
+  | "signed_up"
+  | "account_exists";
 
 interface ClaimResponse {
   outcome?: Outcome;
@@ -68,6 +76,7 @@ type By = "email" | "phone";
 
 export default function WelcomePage() {
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const branch = (params.get("b") ?? "md").toLowerCase();
 
   const [by, setBy] = useState<By>("email");
@@ -75,6 +84,7 @@ export default function WelcomePage() {
   const [phone, setPhone] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [password, setPassword] = useState("");
 
   const [busy, setBusy] = useState(false);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
@@ -82,8 +92,12 @@ export default function WelcomePage() {
   const [error, setError] = useState<string | null>(null);
 
   const identifier = by === "email" ? email.trim() : phone.trim();
+  const canSignUp =
+    !!firstName.trim() && !!lastName.trim() && !!email.trim() && password.length >= 8;
 
-  const call = async (action: "lookup" | "claim" | "register"): Promise<ClaimResponse> => {
+  const call = async (
+    action: "lookup" | "claim" | "register" | "signup"
+  ): Promise<ClaimResponse> => {
     const { data, error: fnError } = await supabase.functions.invoke("member-claim", {
       body: {
         action,
@@ -92,6 +106,7 @@ export default function WelcomePage() {
         phone: phone.trim() || undefined,
         first_name: firstName.trim() || undefined,
         last_name: lastName.trim() || undefined,
+        password: action === "signup" ? password : undefined,
       },
     });
 
@@ -149,15 +164,62 @@ export default function WelcomePage() {
     setBusy(false);
   };
 
-  const register = async () => {
+  /*
+   * Somebody new: make the account, sign them in, and hand them the full
+   * registration form.
+   *
+   * The account is created by the edge function rather than by
+   * supabase.auth.signUp — public signup is off for this project on purpose —
+   * and then the browser signs in normally with the password they just chose.
+   * They are through to the form without waiting for an email, which is the
+   * point: nothing has to arrive in an inbox for a person standing in the
+   * building to finish.
+   */
+  const signUp = async () => {
     setBusy(true);
     setError(null);
-    const response = await call("register");
-    if (say(response)) {
-      setOutcome(response.outcome ?? "registered");
-      setMaskedEmail(response.masked_email ?? null);
+
+    const response = await call("signup");
+    if (!say(response)) {
+      setBusy(false);
+      return;
     }
+
+    // The server looked them up again and found them after all. Send them down
+    // the claim path instead of making a second record.
+    if (response.outcome === "claimable" || response.outcome === "ambiguous") {
+      setOutcome(response.outcome);
+      setMaskedEmail(response.masked_email ?? null);
+      setBusy(false);
+      return;
+    }
+
+    if (response.outcome === "account_exists") {
+      setOutcome("account_exists");
+      setBusy(false);
+      return;
+    }
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
     setBusy(false);
+
+    if (signInError) {
+      setError(
+        "Your account was created, but signing in failed. Try signing in with the email and password you just chose."
+      );
+      return;
+    }
+
+    /*
+     * Straight into My Church. The record and the household already exist —
+     * church.register_new_member made both — so the portal has something to
+     * show, and its own tabs are where the address, the children and the rest
+     * get added, at whatever pace suits somebody who is standing up.
+     */
+    navigate("/my");
   };
 
   const startOver = () => {
@@ -166,6 +228,7 @@ export default function WelcomePage() {
     setError(null);
     setFirstName("");
     setLastName("");
+    setPassword("");
   };
 
   return (
@@ -336,8 +399,8 @@ export default function WelcomePage() {
                 We do not have you yet
               </CardTitle>
               <CardDescription>
-                Register now and your account is ready straight away. Somebody
-                from the church will follow up to say hello.
+                Four things and you are in — no email to wait for. You can add
+                your address, your family and your children afterwards.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -362,31 +425,58 @@ export default function WelcomePage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="r-phone">
-                  Phone number <span className="text-muted-foreground">(optional)</span>
-                </Label>
+                <Label htmlFor="r-password">Choose a password</Label>
                 <Input
-                  id="r-phone"
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  placeholder="(301) 555-0100"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  id="r-password"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="At least 8 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && canSignUp && signUp()}
                   className="h-12 text-base"
                 />
+                <p className="text-xs text-muted-foreground">
+                  You will use this and your email address to sign in from now on.
+                </p>
               </div>
               <Button
                 className="h-12 w-full text-base"
-                onClick={register}
-                disabled={
-                  busy || !firstName.trim() || !lastName.trim() || !email.trim()
-                }
+                onClick={signUp}
+                disabled={busy || !canSignUp}
               >
                 {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Register
+                Create my account
               </Button>
               {error && <Problem text={error} />}
+              <BackLink onClick={startOver} />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ------------------------------------------- an account already here */}
+        {outcome === "account_exists" && (
+          <Card className="border-amber-500/40">
+            <CardContent className="space-y-3 pt-6 text-center">
+              <AlertCircle className="mx-auto h-10 w-10 text-amber-600" />
+              <h2 className="text-lg font-semibold">You already have an account</h2>
+              <p className="text-sm text-muted-foreground">
+                There is already an account for that email address, but no
+                member record behind it yet. Sign in with the password you set
+                before — or reset it if you have forgotten.
+              </p>
+              <div className="flex flex-col gap-2">
+                <Button className="h-12 w-full text-base" onClick={() => navigate("/auth")}>
+                  Sign in
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-12 w-full text-base"
+                  onClick={() => navigate("/forgot-password")}
+                >
+                  I forgot my password
+                </Button>
+              </div>
               <BackLink onClick={startOver} />
             </CardContent>
           </Card>

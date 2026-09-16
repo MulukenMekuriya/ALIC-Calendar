@@ -216,6 +216,18 @@ const App = () => (
                     the whole reason they are here. ?b=md / ?b=va picks the
                     branch, so each campus can have its own code. */}
                 <Route path="/welcome" element={<WelcomePage />} />
+                {/* The full registration form, reached after somebody with no
+                    record sets a password on /welcome. ProtectedRoute only —
+                    they hold no grant, and church.registering_themselves is
+                    what actually bounds the write. */}
+                <Route
+                  path="/welcome/register"
+                  element={
+                    <ProtectedRoute>
+                      <MemberRegistrationPage selfService />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/public" element={<PublicCalendar />} />

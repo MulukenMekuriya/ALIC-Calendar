@@ -90,6 +90,16 @@ describe("buildNextSteps", () => {
     expect(ids({ ...SETTLED, householdSize: 1 })).toEqual(["household-of-one"]);
   });
 
+  it("points the household nudge at the member, not at the office", () => {
+    // Somebody who registered themselves from the QR code lands with a
+    // household of one, and that tab is now where they add their address and
+    // their children — so the invitation must not tell them to ring somebody.
+    const [step] = buildNextSteps({ ...SETTLED, householdSize: 1 });
+    expect(step.tab).toBe("household");
+    expect(step.detail).not.toMatch(/office/i);
+    expect(step.actionLabel).toMatch(/add/i);
+  });
+
   it("keeps tasks above invitations", () => {
     const steps = buildNextSteps({
       ...SETTLED,
