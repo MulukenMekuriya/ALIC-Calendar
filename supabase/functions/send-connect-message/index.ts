@@ -3,11 +3,11 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 const RESEND_API_KEY = Deno.env.get("RESEND_API");
 const RESEND_FROM_EMAIL =
   Deno.env.get("RESEND_FROM_EMAIL") ||
-  "Addis Lidet Connect <team@alic.org>";
+  "Addis Lidet Connect <team@addislidet.info>";
 const CHURCH_NAME =
   Deno.env.get("CHURCH_NAME") || "Addis Lidet International Church";
 const CHURCH_LOGO_URL =
-  Deno.env.get("CHURCH_LOGO_URL") || "https://alic.org/alic-logo.png";
+  Deno.env.get("CHURCH_LOGO_URL") || "https://addislidet.info/logo.png";
 
 const CONNECT_RECIPIENTS = [
   "Info@addislidetchurch.com",
