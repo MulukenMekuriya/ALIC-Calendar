@@ -88,7 +88,20 @@ interface ChildRow extends PersonPayload {
   hasMedical?: boolean;
 }
 
-export default function MemberRegistrationPage() {
+interface MemberRegistrationPageProps {
+  /**
+   * Somebody registering THEMSELVES, having just set a password on the QR-code
+   * page. The same form, three differences: they do not need members.write to
+   * see it, they do not get to set their own membership status (the database
+   * forces it in church.register_member_family), and both exits lead to My
+   * Church rather than to a directory they cannot read.
+   */
+  selfService?: boolean;
+}
+
+export default function MemberRegistrationPage({
+  selfService = false,
+}: MemberRegistrationPageProps = {}) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isAdmin } = useAuth();
@@ -96,7 +109,11 @@ export default function MemberRegistrationPage() {
   const { can } = useCapabilities();
   const orgId = currentOrganization?.id;
 
-  const canRegister = isAdmin || can("members.write");
+  // A member registering themselves holds no grant at all — that is the whole
+  // point of them being here. church.registering_themselves is what actually
+  // decides whether the write is allowed, and it is narrower than this.
+  const canRegister = selfService || isAdmin || can("members.write");
+  const exitTo = selfService ? "/my" : "/members";
 
   const { data: statuses } = useMembershipStatuses(orgId);
   const { data: ministries } = useMinistries(orgId);
@@ -252,13 +269,16 @@ export default function MemberRegistrationPage() {
       });
 
       toast({
-        title: "Member registered",
-        description:
-          result.out_child_count > 0
+        title: selfService ? "You are registered" : "Member registered",
+        description: selfService
+          ? result.out_child_count > 0
+            ? "Your family is on the church's records. The children's team can check them in on Sunday."
+            : "You are on the church's records. Welcome."
+          : result.out_child_count > 0
             ? `${person.first_name} added with ${result.out_child_count} ${result.out_child_count === 1 ? "child" : "children"}.`
             : `${person.first_name} added to the directory.`,
       });
-      navigate("/members");
+      navigate(exitTo);
     } catch (error) {
       toast({
         title: "Could not register",
@@ -293,8 +313,8 @@ export default function MemberRegistrationPage() {
             type="button"
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/members")}
-            aria-label="Back to members"
+            onClick={() => navigate(exitTo)}
+            aria-label={selfService ? "Back to My Church" : "Back to members"}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -302,9 +322,13 @@ export default function MemberRegistrationPage() {
             <UserPlus className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">Register a member</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">
+              {selfService ? "Tell us about you" : "Register a member"}
+            </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              The whole family is saved together — if anything fails, nothing is created.
+              {selfService
+                ? "Your household and family, in one go. Only the first and last name are required — everything else can be filled in later by the church office."
+                : "The whole family is saved together — if anything fails, nothing is created."}
             </p>
           </div>
         </div>
@@ -389,24 +413,33 @@ export default function MemberRegistrationPage() {
                 onChange={(e) => setP({ email: e.target.value })}
               />
             </Field>
-            <Field label="Membership status">
-              <PickOne
-                value={person.membership_status_id}
-                onChange={(v) => setP({ membership_status_id: v })}
-                options={(statuses ?? []).map((s) => ({
-                  value: s.id,
-                  label: s.display_name,
-                }))}
-                placeholder="Not set"
-              />
-            </Field>
-            <Field label="Member since">
-              <Input
-                type="date"
-                value={person.member_since ?? ""}
-                onChange={(e) => setP({ member_since: e.target.value })}
-              />
-            </Field>
+            {/* Standing in the church, and the date it started, are the
+                office's to record — not something you assert about yourself on
+                a form. church.register_member_family forces both for a
+                self-registration, so hiding them here only spares the reader
+                two fields the database would overwrite anyway. */}
+            {!selfService && (
+              <>
+                <Field label="Membership status">
+                  <PickOne
+                    value={person.membership_status_id}
+                    onChange={(v) => setP({ membership_status_id: v })}
+                    options={(statuses ?? []).map((s) => ({
+                      value: s.id,
+                      label: s.display_name,
+                    }))}
+                    placeholder="Not set"
+                  />
+                </Field>
+                <Field label="Member since">
+                  <Input
+                    type="date"
+                    value={person.member_since ?? ""}
+                    onChange={(e) => setP({ member_since: e.target.value })}
+                  />
+                </Field>
+              </>
+            )}
           </Grid>
         </Section>
 
@@ -918,7 +951,7 @@ export default function MemberRegistrationPage() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate("/members")}
+            onClick={() => navigate(exitTo)}
             disabled={saving}
           >
             Cancel

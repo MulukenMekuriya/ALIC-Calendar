@@ -209,15 +209,30 @@ export function buildNextSteps(input: NextStepInputs): NextStep[] {
     });
   }
 
+  /*
+   * The one nudge a self-registered member sees, and it is deliberately the
+   * only one.
+   *
+   * Somebody who signs up from the QR code arrives with a household of exactly
+   * one: themselves. So this fires for them, and it is where their address and
+   * their children get added. It also fires for the single adult who genuinely
+   * lives alone, which is why it asks rather than assumes — "if your family
+   * worships here too".
+   *
+   * The wording changed at 20260322130000: it used to say the OFFICE could put
+   * a family on one record, because that was true. A member can now do it
+   * themselves from that tab, and an invitation that points at somebody else
+   * is not an invitation.
+   */
   if ((input.householdSize ?? 0) <= 1) {
     offers.push({
       id: "household-of-one",
       tone: "offer",
-      title: "Only you are recorded in your household",
+      title: "Only you are on your household record",
       detail:
-        "If your family worships here too, the office can put you on one record — and their check-ins appear here.",
+        "Add your address and your children, and the check-in desk knows them on Sunday.",
       tab: "household",
-      actionLabel: "See my household",
+      actionLabel: "Add my family",
     });
   }
 

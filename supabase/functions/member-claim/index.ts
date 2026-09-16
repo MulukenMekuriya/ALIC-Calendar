@@ -65,12 +65,13 @@ const BRANCHES: Record<string, string> = {
 };
 
 interface ClaimRequest {
-  action: "lookup" | "claim" | "register";
+  action: "lookup" | "claim" | "register" | "signup";
   branch?: string;
   email?: string;
   phone?: string;
   first_name?: string;
   last_name?: string;
+  password?: string;
 }
 
 const json = (body: unknown, status = 200) =>
@@ -150,7 +151,12 @@ Deno.serve(async (req) => {
     const { data: allowed } = await admin.schema("church").rpc("claim_note_attempt", {
       _ip: ip,
       _identifier: key,
-      _action: action === "register" ? "register" : action === "claim" ? "send" : "lookup",
+      _action:
+        action === "register" || action === "signup"
+          ? "register"
+          : action === "claim"
+            ? "send"
+            : "lookup",
     });
     if (allowed === false) {
       return json(
@@ -231,6 +237,117 @@ Deno.serve(async (req) => {
       if (!sent.ok) return json({ error: "could_not_send", message: sent.message }, 502);
 
       return json({ outcome: "sent", masked_email: found.masked_email });
+    }
+
+    // --------------------------------------------------------------- signup
+    /*
+     * Somebody the church does not have, choosing a password.
+     *
+     * The account is made HERE with the service key rather than by
+     * supabase.auth.signUp in the browser, for two reasons. Public signup is
+     * deliberately switched off for this project — see the note in Auth.tsx —
+     * and turning it back on would open the door for the whole internet, not
+     * just for the person standing in the building. And creating it here means
+     * no confirmation email has to arrive for them to get in: they set a
+     * password and are signed in on the spot, which on a Sunday morning is the
+     * difference between finishing and giving up. It also sidesteps the spam
+     * folder entirely, since nothing is sent.
+     *
+     * The address is NOT verified by this route. That is the trade, and it is
+     * bounded: this path only runs for an address that matches nobody in the
+     * directory, so the worst case is a new record with an email that is not
+     * theirs — not access to somebody else's. Anyone whose address DOES match
+     * is sent down the claim path instead, where the link goes to the address
+     * on file and proves itself.
+     */
+    if (action === "signup") {
+      if (!email) return json({ error: "email_required" }, 400);
+      if ((body.password ?? "").length < 8) {
+        return json({ error: "password_too_short" }, 400);
+      }
+
+      /*
+       * Checked again on the server, and checked WITHOUT the names.
+       *
+       * `found` above was narrowed by whatever first and last name came in the
+       * request, which is right for the claim flow — it is how a couple
+       * sharing one address says which of them is signing in. It is exactly
+       * wrong here: a request naming a real member's email address and a
+       * made-up name narrows to nobody, reads as not_found, and would create a
+       * second account squatting that member's address. The member could then
+       * never claim their own record, because the claim path would find the
+       * squatter's account and link it.
+       *
+       * So the question this asks is the one that matters: does this ADDRESS
+       * belong to somebody on the books, whatever anyone claims to be called.
+       */
+      const { data: byAddress, error: addressError } = await admin
+        .schema("church")
+        .rpc("claim_lookup", {
+          _organization_id: branchId,
+          _email: email || null,
+          _phone: phone || null,
+          _first_name: null,
+          _last_name: null,
+        });
+      if (addressError) throw addressError;
+
+      const onTheBooks = byAddress as { outcome: string; masked_email: string | null };
+      if (
+        onTheBooks.outcome === "claimable" ||
+        onTheBooks.outcome === "ambiguous" ||
+        onTheBooks.outcome === "no_email"
+      ) {
+        return json({
+          outcome: onTheBooks.outcome,
+          masked_email: onTheBooks.masked_email,
+        });
+      }
+
+      const { data: existingId } = await admin
+        .schema("church")
+        .rpc("auth_user_id_for_email", { _email: email });
+      if (existingId) {
+        // An account with no member record behind it — they started this once
+        // before, or they have an old login. Nothing to create; the page sends
+        // them to sign in.
+        return json({ outcome: "account_exists" });
+      }
+
+      if (!body.first_name?.trim() || !body.last_name?.trim()) {
+        return json({ error: "name_required" }, 400);
+      }
+
+      const created = await admin.auth.admin.createUser({
+        email,
+        password: body.password,
+        email_confirm: true,
+      });
+      if (created.error) throw created.error;
+
+      /*
+       * The record, made now rather than left for a form they may never come
+       * back to. Without it they are signed in to a My Church that says their
+       * login is not linked to anything — which is the failure this whole
+       * feature exists to prevent, delivered to the people it was built for.
+       *
+       * church.register_new_member also gives them a household, which is what
+       * makes the address, the telephone number and the children editable from
+       * the portal the moment they land.
+       */
+      const { error: personError } = await admin
+        .schema("church")
+        .rpc("register_new_member", {
+          _organization_id: branchId,
+          _first_name: body.first_name.trim(),
+          _last_name: body.last_name.trim(),
+          _email: email,
+          _phone: phone || null,
+          _auth_user_id: created.data.user!.id,
+        });
+      if (personError) throw personError;
+
+      return json({ outcome: "signed_up" });
     }
 
     // ------------------------------------------------------------- register
