@@ -33,7 +33,7 @@ import {
 } from "@/modules/landing";
 import { Dashboard, PublicCalendar } from "@/modules/calendar";
 import { Admin } from "@/modules/admin";
-import { Auth, ForgotPassword, ResetPassword } from "@/modules/auth";
+import { Auth, ForgotPassword, ResetPassword, WelcomePage } from "@/modules/auth";
 import { Rooms } from "@/modules/rooms";
 import { Users } from "@/modules/users";
 import { InventoryDashboard } from "@/modules/inventory";
@@ -211,6 +211,11 @@ const App = () => (
                 <Route path="/connect" element={<ConnectPage />} />
                 <Route path="/give" element={<GivePage />} />
                 <Route path="/auth" element={<Auth />} />
+                {/* Where the QR code on the sanctuary screen leads. Public by
+                    necessity: whoever scans it has no account yet, which is
+                    the whole reason they are here. ?b=md / ?b=va picks the
+                    branch, so each campus can have its own code. */}
+                <Route path="/welcome" element={<WelcomePage />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/public" element={<PublicCalendar />} />

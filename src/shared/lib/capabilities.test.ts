@@ -93,6 +93,69 @@ describe("resolveCapabilities", () => {
     });
   });
 
+  describe("kids_admin", () => {
+    const caps = resolveCapabilities({
+      isOrgAdmin: false,
+      grants: [grant(MD, "kids_admin")],
+      organizationId: MD,
+    });
+
+    it("runs the whole kids ministry, override included", () => {
+      expect(can(caps, "kids.read")).toBe(true);
+      expect(can(caps, "kids.write")).toBe(true);
+      expect(can(caps, "kids.checkin")).toBe(true);
+      expect(can(caps, "kids.override")).toBe(true);
+    });
+
+    /**
+     * Regression: this grant used to bundle members.read, which put Members
+     * and Families in the sidebar and handed a kids leader the entire
+     * directory through an unaudited table read. The kids module reads no
+     * directory table — every name it shows comes from a SECURITY DEFINER RPC
+     * that logs the access.
+     */
+    it("CANNOT read the member directory", () => {
+      expect(can(caps, "members.read")).toBe(false);
+      expect(can(caps, "members.write")).toBe(false);
+      expect(can(caps, "members.import")).toBe(false);
+    });
+  });
+
+  describe("kids_leader", () => {
+    const caps = resolveCapabilities({
+      isOrgAdmin: false,
+      grants: [grant(MD, "kids_leader")],
+      organizationId: MD,
+    });
+
+    it("runs their own grades but cannot authorize an override", () => {
+      expect(can(caps, "kids.read")).toBe(true);
+      expect(can(caps, "kids.write")).toBe(true);
+      expect(can(caps, "kids.checkin")).toBe(true);
+      expect(can(caps, "kids.override")).toBe(false);
+    });
+
+    it("CANNOT read the member directory", () => {
+      expect(can(caps, "members.read")).toBe(false);
+      expect(can(caps, "members.write")).toBe(false);
+    });
+  });
+
+  /**
+   * Grants are additive, so a kids leader who genuinely needs the directory is
+   * given the directory grant rather than having it smuggled in with kids.
+   */
+  it("stacks kids_admin with members_viewer when someone holds both", () => {
+    const caps = resolveCapabilities({
+      isOrgAdmin: false,
+      grants: [grant(MD, "kids_admin"), grant(MD, "members_viewer")],
+      organizationId: MD,
+    });
+    expect(can(caps, "kids.override")).toBe(true);
+    expect(can(caps, "members.read")).toBe(true);
+    expect(can(caps, "members.write")).toBe(false);
+  });
+
   describe("leadership_viewer", () => {
     const caps = resolveCapabilities({
       isOrgAdmin: false,

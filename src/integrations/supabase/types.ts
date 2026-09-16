@@ -440,6 +440,7 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean
+          is_serving_ministry: boolean
           leader_id: string | null
           name: string
           organization_id: string
@@ -450,6 +451,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_serving_ministry?: boolean
           leader_id?: string | null
           name: string
           organization_id: string
@@ -460,6 +462,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_serving_ministry?: boolean
           leader_id?: string | null
           name?: string
           organization_id?: string
@@ -3004,6 +3007,50 @@ export type Database = {
           },
         ]
       }
+      person_photos: {
+        Row: {
+          created_at: string
+          id: string
+          is_primary: boolean
+          organization_id: string
+          person_id: string
+          slot: number
+          storage_path: string
+          uploaded_by: string | null
+          uploaded_by_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          organization_id: string
+          person_id: string
+          slot: number
+          storage_path: string
+          uploaded_by?: string | null
+          uploaded_by_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          organization_id?: string
+          person_id?: string
+          slot?: number
+          storage_path?: string
+          uploaded_by?: string | null
+          uploaded_by_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_person_photos_person"
+            columns: ["person_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
       person_relationships: {
         Row: {
           created_at: string
@@ -3803,6 +3850,10 @@ export type Database = {
         Args: { _child: Json; _household_id: string }
         Returns: string
       }
+      assert_family_editor: {
+        Args: { _person_id: string; _related_person_id: string }
+        Returns: string
+      }
       add_person_to_household: {
         Args: {
           _household_id: string
@@ -4480,16 +4531,58 @@ export type Database = {
         Returns: undefined
       }
       my_admin_orgs: { Args: never; Returns: string[] }
+      family_link_candidates: {
+        Args: { _person_id: string; _search?: string }
+        Returns: {
+          already_related: boolean
+          first_name: string
+          household_name: string
+          id: string
+          is_child: boolean
+          last_name: string
+        }[]
+      }
+      my_family: {
+        Args: never
+        Returns: {
+          editable: boolean
+          first_name: string
+          is_child: boolean
+          last_name: string
+          person_id: string
+          related_person_id: string
+          relationship_code: string
+          relationship_id: string
+          relationship_name: string
+        }[]
+      }
+      delete_person_relationship: {
+        Args: { _relationship_id: string }
+        Returns: undefined
+      }
+      set_person_relationship: {
+        Args: {
+          _person_id: string
+          _related_person_id: string
+          _relationship_type_id: string
+        }
+        Returns: string
+      }
       my_children: {
         Args: never
         Returns: {
           birth_month: number
           birth_year: number
           display_name: string
+          first_name: string
           grade_name: string
+          household_id: string
           household_name: string
+          last_name: string
           organization_id: string
           person_id: string
+          preferred_name: string
+          school_grade_id: string
         }[]
       }
       my_children_check_ins: {
@@ -4536,10 +4629,96 @@ export type Database = {
           total_cents: number
         }[]
       }
+      add_person_photo: {
+        Args: { _make_primary?: boolean; _person_id: string; _storage_path: string }
+        Returns: Database["church"]["Tables"]["person_photos"]["Row"]
+      }
+      can_manage_photos_of: { Args: { _person_id: string }; Returns: boolean }
+      can_view_photos_of: { Args: { _person_id: string }; Returns: boolean }
+      delete_person_photo: { Args: { _photo_id: string }; Returns: string }
+      has_live_kids_shift_in: { Args: { _organization_id: string }; Returns: boolean }
+      person_photos_for: {
+        Args: { _person_ids: string[] }
+        Returns: {
+          is_primary: boolean
+          person_id: string
+          photo_id: string
+          slot: number
+          storage_path: string
+        }[]
+      }
+      set_primary_photo: { Args: { _photo_id: string }; Returns: undefined }
+      uuid_or_null: { Args: { _text: string }; Returns: string }
+      i_am_an_adult_of: { Args: { _household_id: string }; Returns: boolean }
+      join_group: { Args: { _group_id: string }; Returns: string }
+      join_ministry: { Args: { _ministry_id: string }; Returns: string }
+      leave_group: { Args: { _membership_id: string }; Returns: undefined }
+      leave_ministry: { Args: { _assignment_id: string }; Returns: undefined }
+      my_group_options: {
+        Args: { _organization_id: string }
+        Returns: {
+          already_member: boolean
+          description: string
+          group_id: string
+          group_type: string
+          meeting_day: string
+          meeting_time: string
+          member_count: number
+          name: string
+          room_name: string
+        }[]
+      }
+      my_household_detail: {
+        Args: never
+        Returns: {
+          address_line1: string
+          address_line2: string
+          city: string
+          household_id: string
+          i_can_edit: boolean
+          name: string
+          organization_id: string
+          postal_code: string
+          primary_phone: string
+          state: string
+        }[]
+      }
+      my_ministry_options: {
+        Args: { _organization_id: string }
+        Returns: {
+          already_serving: boolean
+          ministry_id: string
+          name: string
+        }[]
+      }
+      update_my_child: {
+        Args: { _child_id: string; _patch: Json }
+        Returns: Database["church"]["Tables"]["people"]["Row"]
+      }
+      update_my_household: {
+        Args: { _household_id: string; _patch: Json }
+        Returns: Database["church"]["Tables"]["households"]["Row"]
+      }
       my_household_ids: { Args: never; Returns: string[] }
+      my_groups: {
+        Args: never
+        Returns: {
+          group_name: string
+          group_type: string
+          is_leadership_role: boolean
+          meeting_day: string
+          meeting_place: string
+          meeting_time: string
+          membership_id: string
+          organization_id: string
+          role_name: string
+        }[]
+      }
       my_household_members: {
         Args: never
         Returns: {
+          birth_month: number
+          birth_year: number
           display_name: string
           email: string
           household_role: string
@@ -4559,6 +4738,22 @@ export type Database = {
       }
       my_person_ids: { Args: never; Returns: string[] }
       my_portal_summary: { Args: { _organization_id: string }; Returns: Json }
+      my_serving: {
+        Args: never
+        Returns: {
+          assignment_id: string
+          is_leadership_role: boolean
+          is_primary_role: boolean
+          ministry_name: string
+          organization_id: string
+          role_name: string
+          start_date: string
+        }[]
+      }
+      my_statement: {
+        Args: { _organization_id: string; _year: number }
+        Returns: Json
+      }
       my_workflow_cards: {
         Args: { _organization_id: string }
         Returns: {
@@ -4990,6 +5185,55 @@ export type Database = {
       }
       update_my_contact_details: {
         Args: { _email: string; _person_id: string; _phone: string }
+        Returns: {
+          accepted_lord_is_approximate: boolean
+          accepted_lord_month: number | null
+          accepted_lord_year: number | null
+          amharic_name: string | null
+          birth_month: number | null
+          birth_year: number | null
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          deceased: boolean
+          email: string | null
+          first_name: string
+          gender: string | null
+          id: string
+          inactive_reason: string | null
+          is_active: boolean
+          is_child: boolean
+          last_name: string
+          marital_status: string | null
+          member_number: string | null
+          member_since: string | null
+          membership_status_id: string | null
+          merged_into_person_id: string | null
+          middle_name: string | null
+          notes: string | null
+          notify_by_email: boolean
+          notify_by_sms: boolean
+          organization_id: string
+          phone: string | null
+          phone_digits: string | null
+          photo_path: string | null
+          preferred_name: string | null
+          profile_id: string | null
+          school_grade_id: string | null
+          search_name: string | null
+          sms_consent_at: string | null
+          sms_opted_out_at: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "people"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      update_person_details: {
+        Args: { _patch: Json; _person_id: string }
         Returns: {
           accepted_lord_is_approximate: boolean
           accepted_lord_month: number | null

@@ -29,6 +29,8 @@ export const memberKeys = {
     [...memberKeys.all, "birthdays", orgId, month] as const,
   byHousehold: (householdId: string) =>
     [...memberKeys.all, "by-household", householdId] as const,
+  unlinkedLogins: (orgId: string) =>
+    [...memberKeys.all, "unlinked-logins", orgId] as const,
 };
 
 /** Paginated directory listing. */
@@ -139,6 +141,98 @@ export function useReactivateMember() {
       queryClient.invalidateQueries({ queryKey: memberKeys.lists() });
       queryClient.invalidateQueries({ queryKey: memberKeys.detail(data.id) });
       queryClient.invalidateQueries({ queryKey: memberKeys.stats(data.organization_id) });
+    },
+  });
+}
+
+/**
+ * Amend one member record.
+ *
+ * Goes through church.update_person_details rather than a table update, so the
+ * same field rules and the same history rows apply whether an administrator is
+ * editing somebody else or a member is correcting their own name. The RPC
+ * decides what the caller may touch; this hook does not need to know.
+ *
+ * Only the keys present in `patch` are written — an absent key leaves the
+ * existing value alone, an explicit null clears it.
+ */
+export function useUpdatePersonDetails() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      personId,
+      patch,
+    }: {
+      personId: string;
+      patch: Record<string, unknown>;
+    }) => memberService.updateDetails(personId, patch),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: memberKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: memberKeys.detail(data.id) });
+      queryClient.invalidateQueries({ queryKey: memberKeys.profile(data.id) });
+      queryClient.invalidateQueries({ queryKey: memberKeys.stats(data.organization_id) });
+      // A member editing their own record is looking at My Church, not at the
+      // directory, so those caches have to go too. Both keys are spelled out
+      // rather than imported: the portal imports from here, and importing back
+      // would close the loop.
+      queryClient.invalidateQueries({ queryKey: ["church", "my-information"] });
+      // The portal's summary carries the name in the greeting and the phone
+      // number the overview nags about, so it goes stale on the same save.
+      queryClient.invalidateQueries({ queryKey: ["church", "portal"] });
+    },
+  });
+}
+
+/**
+ * Logins in this branch that no member record claims yet.
+ *
+ * The source for the link picker. church.unlinked_logins is SECURITY DEFINER
+ * and returns a name and an email and nothing else — it is a list of sign-ins,
+ * not a second directory.
+ */
+export function useUnlinkedLogins(organizationId: string | undefined) {
+  return useQuery({
+    queryKey: memberKeys.unlinkedLogins(organizationId || ""),
+    queryFn: () => memberService.unlinkedLogins(organizationId!),
+    enabled: !!organizationId,
+  });
+}
+
+/**
+ * Attach a login to a member by hand — or detach it by passing null.
+ *
+ * The email-matching backfill only links a login whose address equals a
+ * member's, and most of this directory arrived from a spreadsheet with no email
+ * column at all. This is the path for everyone that match misses, and it is
+ * what the "ask the church office to link your account" message has always
+ * meant.
+ *
+ * church.link_profile_to_person is org-admin or members_admin only, and raises
+ * login_already_linked (with the holder's name in DETAIL) rather than a bare
+ * unique violation.
+ */
+export function useLinkProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      personId,
+      profileId,
+    }: {
+      personId: string;
+      profileId: string | null;
+    }) => memberService.linkProfile(personId, profileId),
+    onSuccess: (_result, { personId }) => {
+      queryClient.invalidateQueries({ queryKey: memberKeys.detail(personId) });
+      queryClient.invalidateQueries({ queryKey: memberKeys.profile(personId) });
+      queryClient.invalidateQueries({ queryKey: memberKeys.lists() });
+      // The picker must not keep offering a login that has just been taken.
+      queryClient.invalidateQueries({
+        queryKey: [...memberKeys.all, "unlinked-logins"],
+      });
+      // Linking is what switches My Church on for that person, so their own
+      // view of themselves is now stale too.
+      queryClient.invalidateQueries({ queryKey: ["church", "my-information"] });
+      queryClient.invalidateQueries({ queryKey: ["church", "portal"] });
     },
   });
 }
