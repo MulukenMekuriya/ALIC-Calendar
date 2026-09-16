@@ -4375,6 +4375,17 @@ export type Database = {
         Args: { _kids_session_id: string; _room_id: string }
         Returns: undefined
       }
+      kids_expire_open_check_ins: {
+        Args: {
+          _organization_id: string
+          _kids_session_id?: string | null
+          _note?: string | null
+        }
+        Returns: {
+          expired_count: number
+          child_names: string[]
+        }[]
+      }
       kids_eligible_volunteers: {
         Args: { _organization_id: string }
         Returns: {

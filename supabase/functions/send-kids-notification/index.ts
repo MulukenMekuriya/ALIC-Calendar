@@ -51,7 +51,7 @@ const corsHeaders = {
 
 interface QueuedNotification {
   id: string;
-  kind: "check_in" | "check_out" | "volunteer_message";
+  kind: "check_in" | "check_out" | "volunteer_message" | "kids_auto_expired";
   channel: "email" | "sms";
   recipient_name: string | null;
   recipient_email: string | null;
