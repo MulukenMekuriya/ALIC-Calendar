@@ -36,7 +36,7 @@ const SMS_CONFIGURED = !!(TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_FROM
 const RESEND_FROM_EMAIL =
   Deno.env.get("RESEND_KIDS_FROM_EMAIL") ||
   Deno.env.get("RESEND_FROM_EMAIL") ||
-  "Kids Ministry <team@addislidet.info>";
+  "Kids Ministry <team@alic.org>";
 const CHURCH_NAME =
   Deno.env.get("CHURCH_NAME") || "Addis Lidet International Church";
 
