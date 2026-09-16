@@ -393,12 +393,30 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
    * to take their grant away in the Module Grants panel, not to add a tier gate
    * here. Deleting the "Kids Ministry" string below restores the links.
    */
+  /*
+   * "Kids Ministry" WAS in this list and has been taken out, 2026-09-16.
+   *
+   * The block above is right that the tier gate revokes nothing — /kids and
+   * /checkin are gated on capabilities, so the links were hidden and the rooms
+   * stayed open. What it treats as a small loss ("they lose the sidebar
+   * shortcut") turned out to be the whole feature: the Children's Ministry
+   * roster of 39 teachers was provisioned on 2026-09-16, every one of them at
+   * 'member' tier with a kids_volunteer grant, and not one of them could see
+   * the Check-In Station in their sidebar. A kiosk you reach by typing a URL is
+   * a kiosk nobody opens on a Sunday morning.
+   *
+   * The grant remains the gate, which is the point the original comment makes
+   * and this change keeps: the section is still built from canViewKids and
+   * canRunStation, so anyone without a kids grant still gets no items and the
+   * empty-section filter below still drops the heading. The only thing that
+   * changes is that holding the grant is now sufficient, instead of holding the
+   * grant AND a staff tier the kids leaders were deliberately moved off.
+   */
   const STAFF_ONLY_SECTIONS = [
     "Calendar",
     "Financial",
     "Inventory",
     "Administration",
-    "Kids Ministry",
   ];
   const visibleSections = (
     isStaff

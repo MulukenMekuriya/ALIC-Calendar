@@ -39,10 +39,27 @@ import { z } from "zod";
 import { CHURCH_BRANDING } from "@/shared/constants/branding";
 import { cn } from "@/shared/lib/utils";
 
+/**
+ * Both credentials are trimmed before they are validated or sent.
+ *
+ * WHY THE PASSWORD TOO, which is not the usual advice. Every password this
+ * system issues is handed to somebody in an email — the Breeze import sent 542
+ * of them, and the Kids Ministry roster another 18 — and a volunteer copying
+ * one out of a message routinely picks up a trailing space with it. GoTrue
+ * then returns a bare 400 "Invalid login credentials", which is
+ * indistinguishable from a wrong password, so the person retypes the same
+ * thing and fails again. That is the whole failure, and it is invisible: the
+ * field shows one more dot than the password has characters.
+ *
+ * The cost is that a password with a deliberate leading or trailing space
+ * cannot be typed here. Nothing in this system issues one, and a member
+ * choosing their own at ForcePasswordChange goes through the same trim.
+ */
 const authSchema = z.object({
-  email: z.string().email("Invalid email address").max(255, "Email too long"),
+  email: z.string().trim().email("Invalid email address").max(255, "Email too long"),
   password: z
     .string()
+    .trim()
     .min(6, "Password must be at least 6 characters")
     .max(100, "Password too long"),
   fullName: z

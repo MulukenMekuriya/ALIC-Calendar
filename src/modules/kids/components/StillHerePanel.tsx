@@ -25,14 +25,28 @@ import {
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/shared/components/ui/alert-dialog";
+import {
   AlertTriangle,
   Loader2,
   Phone,
   ShieldAlert,
   CheckCircle2,
+  Eraser,
 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useStillHere } from "../hooks/useKidsLeader";
+import { useCapabilities } from "@/shared/hooks/useCapabilities";
+import { useStillHere, useExpireOpenCheckIns } from "../hooks/useKidsLeader";
 
 /** Past this, a child has been waiting long enough to chase. */
 const LONG_STAY_MINUTES = 150;
@@ -47,6 +61,13 @@ export function StillHerePanel({
   onOpenChild,
 }: StillHerePanelProps) {
   const { data, isLoading } = useStillHere(organizationId);
+  const { can } = useCapabilities();
+  const [confirming, setConfirming] = useState(false);
+  const expire = useExpireOpenCheckIns(organizationId);
+  // kids.override is held by kids_admin and nobody below it, which is the same
+  // line the RPC draws. A team lead clearing the branch-wide board is the thing
+  // 20260321001100 argued against.
+  const canClearBoard = can("kids.override");
 
   const children = data ?? [];
   // A child whose service has ENDED is the real alarm — everyone else has gone
@@ -80,8 +101,10 @@ export function StillHerePanel({
   }
 
   return (
+    <>
     <Card className={afterHours.length > 0 ? "border-destructive" : undefined}>
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-3 flex-row items-start justify-between space-y-0 gap-4">
+        <div className="min-w-0">
         <CardTitle className="text-base flex items-center gap-2">
           {afterHours.length > 0 && (
             <AlertTriangle className="h-4 w-4 text-destructive" />
@@ -95,6 +118,23 @@ export function StillHerePanel({
               } in a service that has already ended.`
             : "Children currently in a classroom."}
         </CardDescription>
+        </div>
+        {/*
+          Only offered once a service has actually ended. While a service is
+          running, a child on this list is in a classroom being looked after,
+          and "clear the board" is never the right answer to that.
+        */}
+        {canClearBoard && afterHours.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => setConfirming(true)}
+          >
+            <Eraser className="h-4 w-4" />
+            Close off the board
+          </Button>
+        )}
       </CardHeader>
 
       <CardContent className="space-y-2">
@@ -162,5 +202,72 @@ export function StillHerePanel({
         })}
       </CardContent>
     </Card>
+
+    {/*
+      The wording is the safeguard. "Check them out" is what a leader will
+      assume this button means, and it is the one thing it must not be allowed
+      to mean — so the dialog says what is actually recorded, and says the
+      quiet part: the system does not know where these children are.
+    */}
+    <AlertDialog open={confirming} onOpenChange={setConfirming}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            Close off {children.length}{" "}
+            {children.length === 1 ? "child" : "children"} on the board?
+          </AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-2">
+              <p>
+                This does <strong>not</strong> record that they were collected.
+                Each one is marked <strong>expired</strong> — a note that nobody
+                checked them out at the desk — and their parents are not told
+                anything.
+              </p>
+              <p>
+                Use it to tidy the board after everyone has gone home. If you do
+                not know where one of these children is, this button is not the
+                answer.
+              </p>
+              <p className="text-xs">
+                Recorded against your name, and the other Kids Ministry leaders
+                are emailed the list.
+              </p>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            disabled={expire.isPending}
+            onClick={async (e) => {
+              e.preventDefault();
+              try {
+                const r = await expire.mutateAsync({});
+                toast.success(
+                  `Closed off ${r.expired_count} ${
+                    r.expired_count === 1 ? "child" : "children"
+                  }`,
+                  {
+                    description:
+                      "Marked as not collected, not as picked up. The other leaders have been emailed.",
+                  }
+                );
+                setConfirming(false);
+              } catch (err) {
+                toast.error("Could not close off the board", {
+                  description:
+                    err instanceof Error ? err.message : String(err),
+                });
+              }
+            }}
+          >
+            {expire.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            Close off the board
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
