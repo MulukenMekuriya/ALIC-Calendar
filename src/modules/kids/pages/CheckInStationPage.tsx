@@ -83,6 +83,15 @@ import type {
 const AUTO_RESET_MS = 20_000;
 /** Wipe a family's details from a shared screen after this long with no input. */
 const FAMILY_IDLE_MS = 45_000;
+/**
+ * How often the room picker re-reads the classroom list.
+ *
+ * Two minutes, not ten: a room is added mid-service precisely because a
+ * classroom has overflowed, which is the moment the desk is busiest and least
+ * able to wait. The call is one small query per tablet and it doubles as the
+ * reconciliation, so nothing else has to remember to run.
+ */
+const ROOMS_REFRESH_MS = 120_000;
 
 export default function CheckInStationPage() {
   const navigate = useNavigate();
@@ -317,24 +326,42 @@ export default function CheckInStationPage() {
     if (ctx.state === "idle") searchInput.current?.focus();
   }, [ctx.state]);
 
-  // Loaded once a session is open, so the room picker has somewhere to point.
+  /**
+   * The room picker's list.
+   *
+   * Refetched, not loaded once. A tablet is opened before the service and left
+   * running, so a classroom added at 10:40 — which is when an overflow room
+   * actually gets added — would otherwise be invisible here until somebody
+   * thought to reload the page, and nobody does that with a queue in front of
+   * them. The RPC reconciles the session against the classroom list as it
+   * reads, so every poll is also the repair.
+   */
+  const householdId = ctx.household?.household_id;
   useEffect(() => {
     if (!session) return;
     let cancelled = false;
-    kidsStationService
-      .sessionRooms(session.id)
-      .then((rooms) => {
-        if (!cancelled) setOpenRooms(rooms);
-      })
-      .catch(() => {
-        // A missing picker is a degraded desk, not a broken one: check-in
-        // still places by grade.
-        if (!cancelled) setOpenRooms([]);
-      });
+
+    const load = () =>
+      kidsStationService
+        .sessionRooms(session.id)
+        .then((rooms) => {
+          if (!cancelled) setOpenRooms(rooms);
+        })
+        // A missing picker is a degraded desk, not a broken one: check-in still
+        // places by grade. The list already on screen is deliberately left
+        // alone — one failed poll must not empty the dropdown under a
+        // volunteer who is mid-family.
+        .catch(() => {});
+
+    load();
+    const timer = window.setInterval(load, ROOMS_REFRESH_MS);
     return () => {
       cancelled = true;
+      window.clearInterval(timer);
     };
-  }, [session]);
+    // householdId: refetch the moment a family is chosen, because that is when
+    // the picker is about to be used and the list must be right.
+  }, [session, householdId]);
 
   /* ------------------------------------------------------------- handlers */
   const runSearch = async (query: string) => {

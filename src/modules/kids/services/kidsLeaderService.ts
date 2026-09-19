@@ -396,6 +396,12 @@ export const kidsLeaderService = {
    * spaces: they cannot rename the Main Auditorium.
    *
    * Pass roomId to edit, omit it to create.
+   *
+   * `isCheckinLocation` has to be passed explicitly on an edit. The RPC used to
+   * force it true, so opening a main-calendar room from the "Other rooms" list
+   * to correct its capacity turned it into a children's classroom on the way
+   * out. Saving a classroom also reconciles every open session, so the room is
+   * on the check-in tablet as soon as this returns.
    */
   async upsertClassroom(params: {
     organizationId: string;
@@ -407,6 +413,7 @@ export const kidsLeaderService = {
     ratio?: number | null;
     labelRoomName?: string | null;
     sortOrder?: number;
+    isCheckinLocation?: boolean;
   }) {
     const { data, error } = await church().rpc("upsert_kids_classroom", {
       _organization_id: params.organizationId,
@@ -418,6 +425,7 @@ export const kidsLeaderService = {
       _ratio: params.ratio ?? null,
       _label_room_name: params.labelRoomName ?? null,
       _sort_order: params.sortOrder ?? 0,
+      _is_checkin_location: params.isCheckinLocation ?? true,
     });
     throwRpc(error);
     return data;

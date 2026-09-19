@@ -27,6 +27,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Badge } from "@/shared/components/ui/badge";
+import { Switch } from "@/shared/components/ui/switch";
 import { Alert, AlertDescription } from "@/shared/components/ui/alert";
 import {
   Select,
@@ -125,7 +126,14 @@ export function ClassroomsTab({ organizationId, canManage }: ClassroomsTabProps)
     if (!organizationId) return;
     try {
       await upsert.mutateAsync({ organizationId, ...values });
-      toast.success(values.roomId ? "Classroom updated" : "Classroom added");
+      toast.success(
+        values.roomId ? "Classroom updated" : "Classroom added",
+        {
+          description: values.isCheckinLocation
+            ? "It is available at the check-in station now."
+            : "It is not offered at check-in.",
+        }
+      );
       setEditing(null);
       setCreating(false);
     } catch (err) {
@@ -136,7 +144,9 @@ export function ClassroomsTab({ organizationId, canManage }: ClassroomsTabProps)
             ? "The printed label name must be 20 characters or fewer."
             : isDbError(err, "not_a_kids_classroom")
               ? "This room belongs to the main calendar. An organization admin has to rename it."
-              : errorMessage(err),
+              : isDbError(err, "room_still_has_children")
+                ? "Children are still checked into this room. Check them out or move them before taking it off check-in."
+                : errorMessage(err),
       });
     }
   }
@@ -578,6 +588,7 @@ interface ClassroomFormValues {
   ratio: number | null;
   labelRoomName: string | null;
   sortOrder: number;
+  isCheckinLocation: boolean;
 }
 
 function ClassroomForm({
@@ -607,6 +618,12 @@ function ClassroomForm({
   );
   const [label, setLabel] = useState(cfg?.label_room_name ?? "");
   const [sortOrder, setSortOrder] = useState(String(cfg?.sort_order ?? 0));
+  // A new room is a classroom — that is what this dialog is for. An existing
+  // one keeps whatever it already is, so opening a main-calendar room to fix
+  // its capacity does not quietly hand it to children's ministry.
+  const [isClassroom, setIsClassroom] = useState(
+    room ? (cfg?.is_checkin_location ?? false) : true
+  );
 
   return (
     <>
@@ -626,6 +643,22 @@ function ClassroomForm({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Joy C"
+          />
+        </div>
+
+        <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+          <div className="space-y-1">
+            <Label htmlFor="is-classroom">Offer this room at check-in</Label>
+            <p className="text-xs text-muted-foreground">
+              {isClassroom
+                ? "It appears in the room list at the check-in station."
+                : "It stays on the main calendar and is never offered for a child."}
+            </p>
+          </div>
+          <Switch
+            id="is-classroom"
+            checked={isClassroom}
+            onCheckedChange={setIsClassroom}
           />
         </div>
 
@@ -735,6 +768,7 @@ function ClassroomForm({
               ratio: ratio.trim() ? Number(ratio) : null,
               labelRoomName: label.trim() || null,
               sortOrder: Number(sortOrder) || 0,
+              isCheckinLocation: isClassroom,
             })
           }
         >

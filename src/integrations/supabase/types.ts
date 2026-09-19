@@ -5299,6 +5299,7 @@ export type Database = {
       upsert_kids_classroom: {
         Args: {
           _capacity?: number
+          _is_checkin_location?: boolean
           _kids_age_band_id?: string
           _label_room_name?: string
           _name?: string
