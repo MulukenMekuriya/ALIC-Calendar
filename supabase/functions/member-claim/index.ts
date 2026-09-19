@@ -261,9 +261,31 @@ Deno.serve(async (req) => {
      * on file and proves itself.
      */
     if (action === "signup") {
-      if (!email) return json({ error: "email_required" }, 400);
+      /*
+       * Every one of these carries a SENTENCE, not just a code. The page shows
+       * `message` when it is there and "we could not reach the church's
+       * system" when it is not, so a bare code is reported to the member as an
+       * outage — which is how a missing email address read as the church
+       * being down on 19 September. Wrong is fine; unintelligible is not.
+       */
+      if (!email) {
+        return json(
+          {
+            error: "email_required",
+            message:
+              "We need an email address to make your account. Add one above and try again.",
+          },
+          400
+        );
+      }
       if ((body.password ?? "").length < 8) {
-        return json({ error: "password_too_short" }, 400);
+        return json(
+          {
+            error: "password_too_short",
+            message: "Choose a password of at least 8 characters.",
+          },
+          400
+        );
       }
 
       /*
@@ -315,7 +337,13 @@ Deno.serve(async (req) => {
       }
 
       if (!body.first_name?.trim() || !body.last_name?.trim()) {
-        return json({ error: "name_required" }, 400);
+        return json(
+          {
+            error: "name_required",
+            message: "We need your first and last name.",
+          },
+          400
+        );
       }
 
       const created = await admin.auth.admin.createUser({
@@ -357,9 +385,24 @@ Deno.serve(async (req) => {
         // second row for them — send the link to the address on record.
         return json({ outcome: found.outcome, masked_email: found.masked_email });
       }
-      if (!email) return json({ error: "email_required" }, 400);
+      if (!email) {
+        return json(
+          {
+            error: "email_required",
+            message:
+              "We need an email address to put you on our records. Add one above and try again.",
+          },
+          400
+        );
+      }
       if (!body.first_name?.trim() || !body.last_name?.trim()) {
-        return json({ error: "name_required" }, 400);
+        return json(
+          {
+            error: "name_required",
+            message: "We need your first and last name.",
+          },
+          400
+        );
       }
 
       const account = await findOrCreateUser(
