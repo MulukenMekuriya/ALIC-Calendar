@@ -102,7 +102,25 @@ export default function WelcomePage() {
       body: {
         action,
         branch,
-        email: by === "email" || action === "register" ? email.trim() : undefined,
+        /*
+         * The address goes with every call that CREATES something, whichever
+         * field it was typed into.
+         *
+         * On the phone path it is empty while they are searching and typed
+         * into the "we do not have you yet" form afterwards — and there it is
+         * the whole point of the request: no account can be made without it.
+         * Sending it only when the Email tab happened to be the one selected
+         * is what made every phone-path registration on 19 September come back
+         * email_required, which the page reported as "we could not reach the
+         * church's system". Six presses later the rate limiter answered
+         * instead, and they were told to wait an hour for a mistake of ours.
+         * Seven people registered that morning and all seven had used the
+         * Email tab.
+         */
+        email:
+          by === "email" || action === "register" || action === "signup"
+            ? email.trim() || undefined
+            : undefined,
         phone: phone.trim() || undefined,
         first_name: firstName.trim() || undefined,
         last_name: lastName.trim() || undefined,
