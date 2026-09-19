@@ -59,7 +59,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/shared/components/ui/alert-dialog";
-import { Home, Baby, Plus, X, Loader2, Search } from "lucide-react";
+import { Home, Baby, Plus, X, Loader2, Search, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useRelationshipTypes } from "../hooks/useReference";
 import {
@@ -68,11 +68,27 @@ import {
   useSetRelationship,
   useRemoveRelationship,
 } from "../hooks/useFamily";
+import { useUpdatePersonDetails } from "../hooks/useMembers";
 import { familyErrorMessage, type FamilyTie } from "../services/familyService";
 
 interface FamilyCardProps {
   personId: string;
   organizationId: string | undefined;
+  /**
+   * Whose record this is, in words.
+   *
+   * A row is stored as "<this person> is the <type> of <the other person>", and
+   * until this was on screen the card showed the other person's name beside a
+   * type describing THIS person's role — which reads as the exact opposite of
+   * what it means. An office admin recording a member's new child picked
+   * "Child" next to the child's name and stored "this member is the child of
+   * them". Backwards ties are not a tidiness problem: church.is_approved_
+   * collector only accepts a guardian in the parent→child direction, and the
+   * check-in desk only finds a child through one.
+   */
+  personName: string;
+  /** Whether this record is itself a child, which decides which way round a tie ought to read. */
+  personIsChild?: boolean;
   /** Holds members_admin: may edit anyone, and is the only one who may remove. */
   canAdmin: boolean;
   /** This record belongs to the signed-in user. */
@@ -85,6 +101,8 @@ const MEMBER_TYPE_CODES = ["parent", "guardian"];
 export function FamilyCard({
   personId,
   organizationId,
+  personName,
+  personIsChild = false,
   canAdmin,
   isSelf,
 }: FamilyCardProps) {
@@ -105,8 +123,40 @@ export function FamilyCard({
 
   const setRelationship = useSetRelationship();
   const removeRelationship = useRemoveRelationship();
+  const updatePerson = useUpdatePersonDetails();
+
+  /**
+   * Mark the other person as a child, from here.
+   *
+   * is_child is what Kids Ministry runs on — the desk searches it, the
+   * checkout gate authorises a household's adults with NOT is_child — and
+   * until now no screen in the app could set it. A person imported or created
+   * as an adult could be recorded as somebody's child, shown with a baby icon
+   * everywhere, and still be invisible at the check-in desk for ever.
+   */
+  const markAsChild = (tie: FamilyTie) =>
+    updatePerson.mutate(
+      { personId: tie.relatedPersonId, patch: { is_child: true } },
+      {
+        onSuccess: () =>
+          toast.success(
+            `${tie.firstName} is now a child in Kids Ministry`,
+            { description: "The check-in desk can find them from today." }
+          ),
+        onError: (e) =>
+          toast.error(e instanceof Error ? e.message : String(e)),
+      }
+    );
 
   const canEditAnything = canAdmin || isSelf;
+
+  /** What the picked person and picked type will actually mean, in words. */
+  const chosenTie = (() => {
+    const who = (candidates ?? []).find((c) => c.id === chosenPerson);
+    const what = (allTypes ?? []).find((t) => t.id === chosenType);
+    if (!who || !what) return null;
+    return `${personName} is the ${what.display_name.toLowerCase()} of ${who.firstName} ${who.lastName}.`;
+  })();
 
   // An admin may state any type. A member may state the two that name an
   // adult's role towards a child; the database refuses the rest, so offering
@@ -205,8 +255,9 @@ export function FamilyCard({
               {ties!.map((tie) => (
                 <li
                   key={tie.relationshipId ?? tie.relatedPersonId}
-                  className="flex items-center justify-between gap-3 py-2"
+                  className="py-2 space-y-1.5"
                 >
+                  <div className="flex items-center justify-between gap-3">
                   <button
                     type="button"
                     className="text-sm font-medium flex items-center gap-2 hover:underline text-left"
@@ -259,6 +310,60 @@ export function FamilyCard({
                       </Button>
                     )}
                   </div>
+                  </div>
+
+                  {/* The tie in a sentence, because the stored direction is
+                      what the check-in desk and the checkout gate read, and a
+                      name beside a bare type word reads as its own opposite. */}
+                  <p className="text-xs text-muted-foreground">
+                    {personName} is the {tie.relationshipName.toLowerCase()} of{" "}
+                    {tie.firstName}.
+                  </p>
+
+                  {/* Recorded the wrong way round. Worth saying rather than
+                      leaving to be noticed: an adult stored as somebody's
+                      child cannot be offered as their collector, and their
+                      actual child never reaches the desk. */}
+                  {!personIsChild &&
+                    (tie.relationshipCode === "child" ||
+                      tie.relationshipCode === "ward") && (
+                      <p className="text-xs flex items-start gap-1.5 text-amber-700">
+                        <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                        <span>
+                          This says {personName} is the child. If{" "}
+                          {tie.firstName} is the child, change this to{" "}
+                          {tie.relationshipCode === "child"
+                            ? "Parent"
+                            : "Guardian"}
+                          .
+                        </span>
+                      </p>
+                    )}
+
+                  {/* Right way round, but the child is not a child as far as
+                      Kids Ministry is concerned — the state every person
+                      imported or created as an adult is in. */}
+                  {(tie.relationshipCode === "parent" ||
+                    tie.relationshipCode === "guardian") &&
+                    !tie.isChild && (
+                      <p className="text-xs flex items-start gap-1.5 text-amber-700">
+                        <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                        <span>
+                          {tie.firstName} is not marked as a child, so the
+                          check-in desk cannot see them.{" "}
+                          {canAdmin && (
+                            <button
+                              type="button"
+                              className="underline font-medium disabled:opacity-60"
+                              disabled={updatePerson.isPending}
+                              onClick={() => markAsChild(tie)}
+                            >
+                              Mark {tie.firstName} as a child
+                            </button>
+                          )}
+                        </span>
+                      </p>
+                    )}
                 </li>
               ))}
             </ul>
@@ -341,7 +446,7 @@ export function FamilyCard({
               onValueChange={setChosenType}
             >
               <SelectTrigger>
-                <SelectValue placeholder="How are they related?" />
+                <SelectValue placeholder={`How is ${personName} related to them?`} />
               </SelectTrigger>
               <SelectContent>
                 {offerableTypes.map((t) => (
@@ -352,11 +457,23 @@ export function FamilyCard({
               </SelectContent>
             </Select>
 
+            {/* The sentence the row will read once this is saved, built from
+                what has actually been picked. The old copy stated the rule in
+                the abstract — "the type describes this person's role" — and
+                the office still recorded a member as their own child's child,
+                which no search and no checkout gate can make sense of. */}
             <p className="text-xs text-muted-foreground">
-              The type describes{" "}
-              <strong>this person&rsquo;s</strong> role &mdash; choosing
-              &ldquo;Parent&rdquo; records them as the parent of whoever you
-              picked above.
+              {chosenTie ? (
+                <>
+                  This records: <strong>{chosenTie}</strong>
+                </>
+              ) : (
+                <>
+                  The type is {personName}&rsquo;s role. To record somebody as{" "}
+                  {personName}&rsquo;s child, choose{" "}
+                  <strong>Parent</strong>.
+                </>
+              )}
             </p>
           </div>
 

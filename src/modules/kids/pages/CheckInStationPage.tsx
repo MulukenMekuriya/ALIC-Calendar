@@ -107,6 +107,14 @@ export default function CheckInStationPage() {
   const [ctx, dispatch] = useReducer(reduce, initialContext);
   const [session, setSession] = useState<KidsSession | null>(null);
   const [results, setResults] = useState<HouseholdSearchRow[]>([]);
+  /**
+   * A failed search, said out loud.
+   *
+   * It used to be swallowed into an empty result list, which the screen reports
+   * as "No family found" — a confident answer to a question that was never
+   * asked. That is how a child who WAS on file got registered a second time.
+   */
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
@@ -368,14 +376,57 @@ export default function CheckInStationPage() {
     dispatch({ type: "QUERY_CHANGED", query });
     if (query.trim().length < 3 || !session) {
       setResults([]);
+      setSearchError(null);
       return;
     }
     try {
       setResults(await kidsStationService.searchHouseholds(query.trim(), session.id));
-    } catch {
+      setSearchError(null);
+    } catch (err) {
       setResults([]);
+      setSearchError(
+        err instanceof Error && err.message.includes("not_permitted")
+          ? "This station is not signed in to search. Start a shift again."
+          : "The search did not reach the church's records. Check the connection and try again — do not assume the child is not on file."
+      );
     }
   };
+
+  /**
+   * Search again when the tablet comes back to the front.
+   *
+   * The office adds a child mid-service — a family arrives with one nobody had
+   * written down yet — and the desk is left holding the result list from before
+   * they existed. Nothing tells the tablet, so the volunteer reads a stale
+   * screen as "still not there". Re-asking on the way back in costs one small
+   * query and only ever happens while the search box is the screen in use:
+   * never with a family chosen, so a half-finished check-in cannot be disturbed.
+   */
+  const searching = ctx.state === "searching";
+  const liveQuery = useRef(ctx.query);
+  liveQuery.current = ctx.query;
+
+  useEffect(() => {
+    if (!searching || !session) return;
+    const again = () => {
+      if (document.visibilityState !== "visible") return;
+      const q = liveQuery.current.trim();
+      if (q.length < 3) return;
+      kidsStationService
+        .searchHouseholds(q, session.id)
+        .then(setResults)
+        // Silent here, deliberately: the list on screen is the volunteer's
+        // current answer and a failed background refresh must not replace it
+        // with an empty one. A typed search still reports its own failure.
+        .catch(() => {});
+    };
+    document.addEventListener("visibilitychange", again);
+    window.addEventListener("focus", again);
+    return () => {
+      document.removeEventListener("visibilitychange", again);
+      window.removeEventListener("focus", again);
+    };
+  }, [searching, session]);
 
   /** Search returns one row per child; the screen needs one card per family. */
   const households = useMemo<HouseholdMatch[]>(() => {
@@ -853,7 +904,7 @@ export default function CheckInStationPage() {
                 placeholder={
                   sessionClosed
                     ? "Check-in is closed — you can still check out"
-                    : "Phone number or family name"
+                    : "Phone number, family name or child's name"
                 }
                 value={ctx.query}
                 disabled={!online || sessionClosed}
@@ -884,15 +935,24 @@ export default function CheckInStationPage() {
               ))}
               {ctx.state === "searching" && households.length === 0 && (
                 <div className="text-center py-8 space-y-3">
-                  <p className="text-muted-foreground">
-                    No family found. Check the number, or try their name.
-                  </p>
+                  {searchError ? (
+                    <p className="text-destructive font-medium">{searchError}</p>
+                  ) : (
+                    <p className="text-muted-foreground">
+                      Nothing matches that. Try the child's own name, or the
+                      parent's phone number.
+                    </p>
+                  )}
                   {/* The dead end this replaces: a visiting family arrived and
-                      the desk had nowhere to go. */}
-                  <Button size="lg" disabled={!online || sessionClosed} onClick={() => setAddingVisitor(true)}>
-                    <UserPlus className="h-4 w-4 mr-1" />
-                    They are visiting — add them
-                  </Button>
+                      the desk had nowhere to go. Withheld when the search
+                      itself failed — "register them again" is the wrong answer
+                      to a question the database never got to hear. */}
+                  {!searchError && (
+                    <Button size="lg" disabled={!online || sessionClosed} onClick={() => setAddingVisitor(true)}>
+                      <UserPlus className="h-4 w-4 mr-1" />
+                      They are visiting — add them
+                    </Button>
+                  )}
                 </div>
               )}
             </div>

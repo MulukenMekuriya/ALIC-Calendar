@@ -19,6 +19,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { MedicalCard } from "../components/MedicalCard";
 import { FamilyCard } from "../components/FamilyCard";
+import { AddChildToPersonDialog } from "../components/AddChildToPersonDialog";
 import { PickupPermissionsCard } from "../components/PickupPermissionsCard";
 import { MemberDetailsDialog } from "../components/MemberDetailsDialog";
 import { ServingCard } from "../components/ServingCard";
@@ -48,6 +49,7 @@ import {
   Archive,
   RotateCcw,
   Pencil,
+  Plus,
 } from "lucide-react";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useAuth } from "@/shared/contexts/AuthContext";
@@ -86,6 +88,7 @@ export default function MemberProfilePage() {
   const deactivate = useDeactivateMember();
   const reactivate = useReactivateMember();
   const [confirmArchive, setConfirmArchive] = useState(false);
+  const [addingChild, setAddingChild] = useState(false);
 
   const member = profileQuery.data;
   const { data: photos } = usePersonPhotos([member?.id]);
@@ -322,6 +325,20 @@ export default function MemberProfilePage() {
           </TabsContent>
 
           <TabsContent value="family" className="mt-4 space-y-4">
+            {/* Adding a child was only ever possible from Families, which
+                needs a family record this person may well not have — most of
+                the imported congregation has none. Without this the office's
+                only move on a Sunday was to link an existing adult as a
+                "child", which no search and no checkout gate can act on. */}
+            {canEdit && !member.is_child && (
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={() => setAddingChild(true)}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add a child
+                </Button>
+              </div>
+            )}
+
             {/* Reads itself rather than using member.relationships: that embed
                 comes back EMPTY for a member looking at their own record,
                 because person_relationships has no self-read policy. See
@@ -329,8 +346,19 @@ export default function MemberProfilePage() {
             <FamilyCard
               personId={member.id}
               organizationId={orgId}
+              personName={member.preferred_name || member.first_name}
+              personIsChild={member.is_child}
               canAdmin={canWrite}
               isSelf={isOwnRecord}
+            />
+
+            <AddChildToPersonDialog
+              open={addingChild}
+              personId={member.id}
+              personName={member.preferred_name || member.first_name}
+              organizationId={orgId}
+              onClose={() => setAddingChild(false)}
+              onAdded={() => void profileQuery.refetch()}
             />
           </TabsContent>
 

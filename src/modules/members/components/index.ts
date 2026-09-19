@@ -8,6 +8,7 @@ export { MemberDetailsDialog } from "./MemberDetailsDialog";
 export { ServingCard } from "./ServingCard";
 export { GroupsCard } from "./GroupsCard";
 export { FamilyCard } from "./FamilyCard";
+export { AddChildToPersonDialog } from "./AddChildToPersonDialog";
 export { LinkedLoginCard } from "./LinkedLoginCard";
 export { PersonAvatar, personInitials } from "./PersonAvatar";
 export { PersonPhotoManager } from "./PersonPhotoManager";
