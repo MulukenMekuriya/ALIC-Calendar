@@ -35,7 +35,7 @@ import {
 import { Loader2, AlertTriangle } from "lucide-react";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useUpdatePersonDetails } from "../hooks/useMembers";
-import { useMembershipStatuses } from "../hooks/useReference";
+import { useMembershipStatuses, useSchoolGrades } from "../hooks/useReference";
 import type { Member } from "../types";
 
 /** Sentinel for "no value", because a Select cannot hold an empty string. */
@@ -68,6 +68,10 @@ function toDraft(m: Member): Draft {
     accepted_lord_month: m.accepted_lord_month ? String(m.accepted_lord_month) : "",
     notes: m.notes ?? "",
     member_number: m.member_number ?? "",
+    // Held as strings like every other field so the diff in buildPatch works
+    // unchanged; converted back on the way out.
+    is_child: m.is_child ? "yes" : "no",
+    school_grade_id: m.school_grade_id ?? "",
   };
 }
 
@@ -93,6 +97,7 @@ export function MemberDetailsDialog({
   const [error, setError] = useState<string | null>(null);
 
   const statuses = useMembershipStatuses(organizationId);
+  const { data: grades } = useSchoolGrades(organizationId);
   const update = useUpdatePersonDetails();
 
   const set = (key: string, value: string) =>
@@ -112,6 +117,13 @@ export function MemberDetailsDialog({
     for (const key of Object.keys(draft)) {
       if (draft[key] === original[key]) continue;
       const raw = draft[key].trim();
+      // A boolean, not a word, and never null: church.update_person_details
+      // coalesces a null is_child to false, but sending "" would also clear a
+      // grade, and these two are not the same kind of field.
+      if (key === "is_child") {
+        patch[key] = raw === "yes";
+        continue;
+      }
       if (raw === "") {
         patch[key] = null;
         continue;
@@ -391,6 +403,50 @@ export function MemberDetailsDialog({
                 value={draft.member_number}
                 onChange={(e) => set("member_number", e.target.value)}
               />
+            </Field>
+          )}
+
+          {/* KIDS MINISTRY. Reserved to the office by the database, and until
+              now not on any screen at all: a person imported or registered as
+              an adult could never be turned into a child, so the check-in desk
+              — which searches this flag — could never see them. The other half
+              of the same decision is the grade, which is what picks the
+              classroom, so the two sit together. */}
+          {canAdmin && (
+            <Field id="f-is-child" label="Kids Ministry (office only)">
+              <Select
+                value={draft.is_child}
+                onValueChange={(v) => set("is_child", v)}
+              >
+                <SelectTrigger id="f-is-child">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="no">An adult</SelectItem>
+                  <SelectItem value="yes">A child — can be checked in</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
+
+          {canAdmin && draft.is_child === "yes" && (
+            <Field id="f-grade" label="School grade (decides the classroom)">
+              <Select
+                value={draft.school_grade_id || NONE}
+                onValueChange={(v) => set("school_grade_id", v === NONE ? "" : v)}
+              >
+                <SelectTrigger id="f-grade">
+                  <SelectValue placeholder="Not on file" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>Not on file</SelectItem>
+                  {(grades ?? []).map((g) => (
+                    <SelectItem key={g.id} value={g.id}>
+                      {g.display_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
           )}
 

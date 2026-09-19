@@ -112,6 +112,17 @@ export default function HouseholdsPage() {
 
   const childless = (families ?? []).filter((f) => f.child_count === 0).length;
 
+  /**
+   * Children with nobody attached. Read here because this is the screen that
+   * can fix them — add the parent to the family, or move the child to the
+   * family the parent is really in.
+   */
+  const { data: strandedChildren } = useQuery({
+    queryKey: ["church", "households", "children-without-an-adult", orgId ?? ""],
+    queryFn: () => householdService.childrenWithoutAnAdult(orgId!),
+    enabled: !!orgId,
+  });
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -144,6 +155,51 @@ export default function HouseholdsPage() {
             </Button>
           )}
         </div>
+
+        {(strandedChildren ?? []).length > 0 && (
+          <Card className="border-amber-400 bg-amber-50/60">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                {strandedChildren!.length}{" "}
+                {strandedChildren!.length === 1 ? "child has" : "children have"}{" "}
+                no adult on file
+              </CardTitle>
+              <CardDescription>
+                The check-in desk can only find them by typing the child's own
+                name, checkout has nobody to offer, and no pickup code can be
+                texted. Add a parent to their family, or move them to the family
+                the parent is in.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {strandedChildren!.slice(0, 8).map((c) => (
+                <button
+                  key={c.person_id}
+                  className="flex w-full items-center gap-2 rounded-md border bg-background p-2.5 text-left hover:bg-muted/50"
+                  onClick={() => navigate(`/members/${c.person_id}`)}
+                >
+                  <Baby className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{c.child_name}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {c.has_household
+                        ? `In "${c.household_name}", which has no adult on it`
+                        : "On no family record at all"}
+                      {c.added_by ? ` · added by ${c.added_by}` : ""} ·{" "}
+                      {c.added_on}
+                    </p>
+                  </div>
+                </button>
+              ))}
+              {strandedChildren!.length > 8 && (
+                <p className="text-xs text-muted-foreground">
+                  and {strandedChildren!.length - 8} more.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {isLoading ? (
           <div className="flex justify-center py-16">
@@ -448,6 +504,7 @@ function HouseholdSheet({
         open={addingChild}
         householdId={householdId}
         organizationId={organizationId}
+        adultCount={adults.length}
         onClose={() => setAddingChild(false)}
         onAdded={refresh}
       />
@@ -459,12 +516,22 @@ function AddChildDialog({
   open,
   householdId,
   organizationId,
+  adultCount,
   onClose,
   onAdded,
 }: {
   open: boolean;
   householdId: string | null;
   organizationId: string | undefined;
+  /**
+   * How many adults this family record has. Everything that connects a child to
+   * a grown-up — the parent relationship, the pickup authorisation — is written
+   * one per adult of the family, so a family record with none produces a child
+   * with nobody. The desk can then only find them by typing the child's own
+   * name, and checkout has nobody to offer. Said on the dialog, because this is
+   * the moment somebody is about to do it.
+   */
+  adultCount: number;
   onClose: () => void;
   onAdded: () => void;
 }) {
@@ -515,6 +582,21 @@ function AddChildDialog({
         </DialogHeader>
 
         <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+          {adultCount === 0 && (
+            <div className="rounded-md border border-amber-400 bg-amber-50 p-3 space-y-1">
+              <p className="text-sm font-medium flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                This family has no adult on it
+              </p>
+              <p className="text-xs text-muted-foreground">
+                A child added here gets no parent and nobody authorised to
+                collect them, so the check-in desk will only find them by their
+                own name and checkout will have nobody to offer. Add the parent
+                to this family first — or check whether the family already
+                exists under the parent's name.
+              </p>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>

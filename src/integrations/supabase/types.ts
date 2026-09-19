@@ -3850,6 +3850,14 @@ export type Database = {
         Args: { _child: Json; _household_id: string }
         Returns: string
       }
+      add_child_to_person: {
+        Args: { _child: Json; _parent_person_id: string }
+        Returns: {
+          child_person_id: string
+          household_created: boolean
+          household_id: string
+        }[]
+      }
       assert_family_editor: {
         Args: { _person_id: string; _related_person_id: string }
         Returns: string
@@ -4064,6 +4072,19 @@ export type Database = {
           note: string
           person_id: string
           phone: string
+        }[]
+      }
+      children_without_an_adult: {
+        Args: { _organization_id: string }
+        Returns: {
+          added_by: string
+          added_on: string
+          child_name: string
+          has_grade: boolean
+          has_household: boolean
+          household_id: string
+          household_name: string
+          person_id: string
         }[]
       }
       claim_kids_leader_invites: {
