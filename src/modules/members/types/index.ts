@@ -204,3 +204,22 @@ export interface HouseholdSummary {
   adult_count: number;
   child_count: number;
 }
+
+/**
+ * A child with no adult attached to them by any route: no family record with a
+ * grown-up on it, no recorded parent, nobody authorised to collect them.
+ *
+ * The check-in desk can only find such a child by typing the child's own name,
+ * checkout has nobody to offer, and no pickup code can be texted anywhere.
+ * church.children_without_an_adult() is the list; this is a row of it.
+ */
+export interface ChildWithoutAnAdult {
+  person_id: string;
+  child_name: string;
+  household_id: string | null;
+  household_name: string | null;
+  has_household: boolean;
+  has_grade: boolean;
+  added_on: string;
+  added_by: string | null;
+}

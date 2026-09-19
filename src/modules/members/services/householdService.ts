@@ -12,6 +12,7 @@ import type {
   PersonRelationshipInsert,
   RelationshipWithPerson,
   HouseholdSummary,
+  ChildWithoutAnAdult,
 } from "../types";
 
 const church = () => supabase.schema("church");
@@ -25,6 +26,24 @@ export const householdService = {
     });
     if (error) throw error;
     return (data ?? []) as unknown as HouseholdSummary[];
+  },
+
+  /**
+   * Children the check-in desk cannot reach through any adult.
+   *
+   * The office's repair list. A child gets on it by being added to a family
+   * record that has no adult on it — which is what a duplicate family from the
+   * import looks like — and comes off it the moment a parent is added to that
+   * family, or the child is moved to the family the parent is actually in.
+   */
+  async childrenWithoutAnAdult(
+    organizationId: string
+  ): Promise<ChildWithoutAnAdult[]> {
+    const { data, error } = await church().rpc("children_without_an_adult", {
+      _organization_id: organizationId,
+    });
+    if (error) throw error;
+    return (data ?? []) as unknown as ChildWithoutAnAdult[];
   },
 
   /**
@@ -42,6 +61,37 @@ export const householdService = {
     });
     if (error) throw error;
     return data as unknown as string;
+  },
+
+  /**
+   * Add a NEW child to a PERSON rather than to a family record.
+   *
+   * The door the office needs when a parent walks up on a Sunday: most of the
+   * imported congregation has no family record, and the Families page can only
+   * reach the ones that do. The database makes the family first where there is
+   * none, so the child still gets the parent relationship and the pickup
+   * authorisation that the check-in desk and the checkout gate read.
+   */
+  async addChildToPerson(
+    personId: string,
+    child: Record<string, unknown>
+  ): Promise<{ childPersonId: string; householdId: string; householdCreated: boolean }> {
+    const { data, error } = await church().rpc("add_child_to_person", {
+      _parent_person_id: personId,
+      _child: child as never,
+    });
+    if (error) throw error;
+    const rows = (data ?? []) as unknown as {
+      child_person_id: string;
+      household_id: string;
+      household_created: boolean;
+    }[];
+    if (rows.length === 0) throw new Error("The child was not created");
+    return {
+      childPersonId: rows[0].child_person_id,
+      householdId: rows[0].household_id,
+      householdCreated: rows[0].household_created,
+    };
   },
 
   async list(organizationId: string): Promise<Household[]> {
