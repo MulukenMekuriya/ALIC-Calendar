@@ -23,7 +23,7 @@ import {
 } from "@/shared/components/ui/dialog";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
-import { Label } from "@/shared/components/ui/label";
+import { Field } from "@/shared/components/ui/field";
 import { Textarea } from "@/shared/components/ui/textarea";
 import {
   Select,
@@ -186,23 +186,6 @@ export function MemberDetailsDialog({
       else setError(msg);
     }
   };
-
-  const Field = ({
-    id,
-    label,
-    children,
-  }: {
-    id: string;
-    label: string;
-    children: React.ReactNode;
-  }) => (
-    <div className="space-y-1.5">
-      <Label htmlFor={id} className="text-xs">
-        {label}
-      </Label>
-      {children}
-    </div>
-  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

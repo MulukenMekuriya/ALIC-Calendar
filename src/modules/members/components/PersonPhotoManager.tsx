@@ -168,6 +168,7 @@ export function PersonPhotoManager({
               <div className="mt-1.5 flex justify-center gap-1">
                 {!photo.is_primary && (
                   <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7"
@@ -179,6 +180,7 @@ export function PersonPhotoManager({
                   </Button>
                 )}
                 <Button
+                  type="button"
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7 text-destructive"
