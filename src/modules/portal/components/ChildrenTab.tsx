@@ -87,7 +87,7 @@ export function ChildrenTab({
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader className="pb-3 flex-row items-start justify-between space-y-0 gap-3">
+        <CardHeader className="pb-3 gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <CardTitle className="text-base flex items-center gap-2">
               <Baby className="h-4 w-4" />
@@ -99,7 +99,12 @@ export function ChildrenTab({
             </CardDescription>
           </div>
           {editable && (
-            <Button variant="outline" size="sm" onClick={() => openFor(null)}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={() => openFor(null)}
+            >
               <UserPlus className="h-3.5 w-3.5 mr-1" />
               Add a child
             </Button>

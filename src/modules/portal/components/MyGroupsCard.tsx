@@ -102,7 +102,7 @@ export function MyGroupsCard({ organizationId, enabled = true }: MyGroupsCardPro
 
   return (
     <Card>
-      <CardHeader className="pb-3 flex-row items-start justify-between space-y-0">
+      <CardHeader className="pb-3 gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <CardTitle className="text-base flex items-center gap-2">
             <Users className="h-4 w-4" />
@@ -114,7 +114,12 @@ export function MyGroupsCard({ organizationId, enabled = true }: MyGroupsCardPro
           </CardDescription>
         </div>
         {!joining && (
-          <Button variant="outline" size="sm" onClick={() => setJoining(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={() => setJoining(true)}
+          >
             <Plus className="h-3.5 w-3.5 mr-1" />
             Join
           </Button>

@@ -26,7 +26,7 @@ import {
 } from "@/shared/components/ui/dialog";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
-import { Label } from "@/shared/components/ui/label";
+import { Field } from "@/shared/components/ui/field";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useUpdateMyHousehold } from "../hooks";
@@ -70,7 +70,8 @@ export function HouseholdDialog({ household, open, onOpenChange }: HouseholdDial
 
   const set = (key: string, value: string) => setDraft((d) => ({ ...d, [key]: value }));
 
-  const submit = async () => {
+  const submit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     setError(null);
     const patch = changedFields(original, draft);
 
@@ -95,23 +96,6 @@ export function HouseholdDialog({ household, open, onOpenChange }: HouseholdDial
     }
   };
 
-  const Field = ({
-    id,
-    label,
-    children,
-  }: {
-    id: string;
-    label: string;
-    children: React.ReactNode;
-  }) => (
-    <div className="space-y-1.5">
-      <Label htmlFor={id} className="text-xs">
-        {label}
-      </Label>
-      {children}
-    </div>
-  );
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
@@ -123,85 +107,98 @@ export function HouseholdDialog({ household, open, onOpenChange }: HouseholdDial
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <Field id="h-name" label="Household name">
+        {/* A real form, so the Go key on a phone keyboard saves the address
+            instead of doing nothing at the end of seven fields. */}
+        <form onSubmit={submit} className="grid gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <Field id="h-name" label="Household name">
+                <Input
+                  id="h-name"
+                  autoComplete="off"
+                  autoCapitalize="words"
+                  value={draft.name}
+                  onChange={(e) => set("name", e.target.value)}
+                  placeholder="The Mekuriya Family"
+                />
+              </Field>
+            </div>
+            <div className="sm:col-span-2">
+              <Field id="h-addr1" label="Address">
+                <Input
+                  id="h-addr1"
+                  autoComplete="address-line1"
+                  value={draft.address_line1}
+                  onChange={(e) => set("address_line1", e.target.value)}
+                  placeholder="902 Sligo Ave"
+                />
+              </Field>
+            </div>
+            <div className="sm:col-span-2">
+              <Field id="h-addr2" label="Apartment, suite (optional)">
+                <Input
+                  id="h-addr2"
+                  autoComplete="address-line2"
+                  value={draft.address_line2}
+                  onChange={(e) => set("address_line2", e.target.value)}
+                />
+              </Field>
+            </div>
+            <Field id="h-city" label="City">
               <Input
-                id="h-name"
-                value={draft.name}
-                onChange={(e) => set("name", e.target.value)}
-                placeholder="The Mekuriya Family"
+                id="h-city"
+                autoComplete="address-level2"
+                value={draft.city}
+                onChange={(e) => set("city", e.target.value)}
+              />
+            </Field>
+            <Field id="h-state" label="State">
+              <Input
+                id="h-state"
+                autoComplete="address-level1"
+                value={draft.state}
+                onChange={(e) => set("state", e.target.value)}
+                placeholder="MD"
+              />
+            </Field>
+            <Field id="h-zip" label="ZIP code">
+              <Input
+                id="h-zip"
+                inputMode="numeric"
+                autoComplete="postal-code"
+                value={draft.postal_code}
+                onChange={(e) => set("postal_code", e.target.value)}
+              />
+            </Field>
+            <Field id="h-phone" label="Household phone">
+              <Input
+                id="h-phone"
+                type="tel"
+                autoComplete="tel"
+                enterKeyHint="done"
+                value={draft.primary_phone}
+                onChange={(e) => set("primary_phone", e.target.value)}
               />
             </Field>
           </div>
-          <div className="sm:col-span-2">
-            <Field id="h-addr1" label="Address">
-              <Input
-                id="h-addr1"
-                value={draft.address_line1}
-                onChange={(e) => set("address_line1", e.target.value)}
-                placeholder="902 Sligo Ave"
-              />
-            </Field>
-          </div>
-          <div className="sm:col-span-2">
-            <Field id="h-addr2" label="Apartment, suite (optional)">
-              <Input
-                id="h-addr2"
-                value={draft.address_line2}
-                onChange={(e) => set("address_line2", e.target.value)}
-              />
-            </Field>
-          </div>
-          <Field id="h-city" label="City">
-            <Input
-              id="h-city"
-              value={draft.city}
-              onChange={(e) => set("city", e.target.value)}
-            />
-          </Field>
-          <Field id="h-state" label="State">
-            <Input
-              id="h-state"
-              value={draft.state}
-              onChange={(e) => set("state", e.target.value)}
-              placeholder="MD"
-            />
-          </Field>
-          <Field id="h-zip" label="ZIP code">
-            <Input
-              id="h-zip"
-              inputMode="numeric"
-              value={draft.postal_code}
-              onChange={(e) => set("postal_code", e.target.value)}
-            />
-          </Field>
-          <Field id="h-phone" label="Household phone">
-            <Input
-              id="h-phone"
-              type="tel"
-              value={draft.primary_phone}
-              onChange={(e) => set("primary_phone", e.target.value)}
-            />
-          </Field>
-        </div>
 
-        {error && (
-          <p className="flex items-start gap-2 text-sm text-destructive">
-            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-            {error}
-          </p>
-        )}
+          {error && (
+            <p className="flex items-start gap-2 text-sm text-destructive">
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              {error}
+            </p>
+          )}
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={submit} disabled={update.isPending}>
-            {update.isPending && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
-            Save
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={update.isPending}>
+              {update.isPending && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
+              Save
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
