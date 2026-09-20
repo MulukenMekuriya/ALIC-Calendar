@@ -957,7 +957,21 @@ export default function CheckInStationPage() {
               )}
             </div>
 
-            <div className="mt-8 flex justify-center gap-3">
+            {/*
+                MUST WRAP. Every Button is `whitespace-nowrap`, so these four
+                cannot shrink below their text: the row needs ~714px and the
+                column it sits in is `max-w-3xl` minus the page padding. On a
+                phone that is ~342px, so ~186px was clipped off EACH end —
+                `justify-center` overflows symmetrically — and the first button
+                off the left edge was "Check out a child".
+                That is how a teacher on a phone had check-in and no checkout,
+                which read as a missing permission and is not one: the station
+                gates nothing but `kids.override`, and resolve_actor gives
+                every kids_volunteer can_check_out. The desktop kiosk in the
+                lobby is wide enough to show all four, which is why it never
+                surfaced there.
+            */}
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Button
                 variant="outline"
                 size="lg"
