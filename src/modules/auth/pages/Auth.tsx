@@ -18,6 +18,11 @@ import {
   TabsTrigger,
 } from "@/shared/components/ui/tabs";
 import { LoadingButton } from "@/shared/components/ui/loading";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/shared/components/ui/alert";
 import { useToast } from "@/shared/hooks/use-toast";
 import {
   Eye,
@@ -38,6 +43,10 @@ import {
 import { z } from "zod";
 import { CHURCH_BRANDING } from "@/shared/constants/branding";
 import { cn } from "@/shared/lib/utils";
+import {
+  whySignInFailed,
+  type SignInProblem,
+} from "../utils/whySignInFailed";
 
 /**
  * Both credentials are trimmed before they are validated or sent.
@@ -88,6 +97,38 @@ const authSchema = z.object({
  */
 const PUBLIC_SIGNUP_ENABLED = false;
 
+/**
+ * What the schema refused, said the way the panel says everything else.
+ *
+ * Zod's own strings are written for the person who wrote the form
+ * ("Invalid email address"), and the panel is read by somebody who is trying
+ * to get into their own account.
+ */
+const problemFromValidation = (error: z.ZodError): SignInProblem => {
+  const message = error.errors[0]?.message ?? "";
+
+  if (/email/i.test(message)) {
+    return {
+      title: "Check the email address",
+      description:
+        "That does not look like a complete email address. It needs an @ and a domain after it, like name@example.com.",
+    };
+  }
+
+  if (/at least 6/i.test(message)) {
+    // Not a rule about what a password may be — it is the shortest password
+    // this system ever issues, so anything under it is a half-typed one.
+    return {
+      title: "The password looks incomplete",
+      description:
+        "It is shorter than any password set up here. Type the whole of it, or use the reset link below if you no longer have it.",
+      link: { label: "Reset your password", to: "/forgot-password" },
+    };
+  }
+
+  return { title: "Check your details", description: message };
+};
+
 const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -97,8 +138,20 @@ const Auth = () => {
   const [emailValid, setEmailValid] = useState(false);
   const [passwordValid, setPasswordValid] = useState(false);
   const [activeTab, setActiveTab] = useState("signin");
+  /**
+   * The last reason the sign-in did not work, held until the member changes
+   * something. A toast was wrong for this: it leaves the screen on its own
+   * while the person is still staring at the password field, and it appears in
+   * a corner rather than beside the thing that failed.
+   */
+  const [signInProblem, setSignInProblem] = useState<SignInProblem | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Editing either credential retracts the complaint about the last attempt:
+  // leaving "Wrong email or password" on screen while somebody retypes reads
+  // as a verdict on what they are typing now.
+  const clearSignInProblem = () => setSignInProblem(null);
 
   // Real-time validation
   const validateEmail = (email: string) => {
@@ -116,6 +169,7 @@ const Auth = () => {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setSignInProblem(null);
 
     try {
       const validated = authSchema.parse({ email, password });
@@ -126,21 +180,18 @@ const Auth = () => {
       });
 
       if (error) {
-        toast({
-          title: "Sign in failed",
-          description: error.message,
-          variant: "destructive",
-        });
+        setSignInProblem(whySignInFailed(error));
       } else {
         navigate("/dashboard");
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
-        toast({
-          title: "Validation error",
-          description: error.errors[0].message,
-          variant: "destructive",
-        });
+        // The form never reached the network. Say so in the same panel, so
+        // there is one place a member looks to find out what is wrong,
+        // whichever side of the request the answer came from.
+        setSignInProblem(problemFromValidation(error));
+      } else {
+        setSignInProblem(whySignInFailed(error));
       }
     } finally {
       setLoading(false);
@@ -373,6 +424,40 @@ const Auth = () => {
 
                 <TabsContent value="signin" className="mt-0 space-y-6">
                   <form onSubmit={handleSignIn} className="space-y-5">
+                    {/*
+                      Above the fields rather than below the button, because a
+                      member on a phone whose keyboard is open cannot see the
+                      bottom of the card at all. aria-live carries it to a
+                      screen reader, which would otherwise be told nothing:
+                      the focus never moves when a sign-in fails.
+                    */}
+                    <div aria-live="assertive" aria-atomic="true">
+                      {signInProblem && (
+                        <Alert
+                          variant="destructive"
+                          className="border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-100"
+                        >
+                          <AlertCircle className="h-4 w-4 !text-rose-600 dark:!text-rose-400" />
+                          <AlertTitle>{signInProblem.title}</AlertTitle>
+                          <AlertDescription className="mt-1 text-rose-800/90 dark:text-rose-200/90">
+                            {signInProblem.description}
+                            {signInProblem.link && (
+                              <Button
+                                type="button"
+                                variant="link"
+                                className="h-auto p-0 mt-2 block text-sm font-semibold text-rose-900 underline dark:text-rose-100"
+                                onClick={() =>
+                                  navigate(signInProblem.link!.to)
+                                }
+                              >
+                                {signInProblem.link.label}
+                              </Button>
+                            )}
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                    </div>
+
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label
@@ -386,11 +471,14 @@ const Auth = () => {
                           <Input
                             id="signin-email"
                             type="email"
+                            autoComplete="email"
                             placeholder="Enter your email"
                             value={email}
+                            aria-invalid={signInProblem ? true : undefined}
                             onChange={(e) => {
                               setEmail(e.target.value);
                               validateEmail(e.target.value);
+                              clearSignInProblem();
                             }}
                             className="pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
                             required
@@ -420,11 +508,14 @@ const Auth = () => {
                           <Input
                             id="signin-password"
                             type={showPassword ? "text" : "password"}
+                            autoComplete="current-password"
                             placeholder="Enter your password"
                             value={password}
+                            aria-invalid={signInProblem ? true : undefined}
                             onChange={(e) => {
                               setPassword(e.target.value);
                               validatePassword(e.target.value);
+                              clearSignInProblem();
                             }}
                             className="pl-11 pr-11 h-12 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
                             required
@@ -461,7 +552,15 @@ const Auth = () => {
                       className="w-full h-12 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/95 hover:to-primary/85 text-primary-foreground font-semibold rounded-xl shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 hover:-translate-y-0.5"
                       loading={loading}
                       loadingText="Signing you in..."
-                      disabled={loading || !emailValid || !passwordValid}
+                      /*
+                        Only the request in flight disables this. It used to be
+                        greyed out whenever the schema was unhappy, which is a
+                        button that refuses to say why — the member sees a dead
+                        Sign In and no text anywhere explaining it. Pressing it
+                        now always produces a sentence, either from the schema
+                        or from GoTrue.
+                      */
+                      disabled={loading}
                     >
                       <span className="flex items-center justify-center gap-2">
                         Sign In
