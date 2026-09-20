@@ -33,7 +33,7 @@ import {
 } from "@/shared/components/ui/dialog";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
-import { Label } from "@/shared/components/ui/label";
+import { Field } from "@/shared/components/ui/field";
 import {
   Select,
   SelectContent,
@@ -133,7 +133,8 @@ export function ChildDialog({
     return null;
   };
 
-  const submit = async () => {
+  const submit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     setError(null);
     const complaint = validate();
     if (complaint) {
@@ -174,23 +175,6 @@ export function ChildDialog({
 
   const pending = add.isPending || update.isPending;
 
-  const Field = ({
-    id,
-    label,
-    children,
-  }: {
-    id: string;
-    label: string;
-    children: React.ReactNode;
-  }) => (
-    <div className="space-y-1.5">
-      <Label htmlFor={id} className="text-xs">
-        {label}
-      </Label>
-      {children}
-    </div>
-  );
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
@@ -203,116 +187,136 @@ export function ChildDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field id="c-first" label="First name">
-            <Input
-              id="c-first"
-              value={draft.first_name}
-              onChange={(e) => set("first_name", e.target.value)}
-            />
-          </Field>
-          <Field id="c-last" label="Last name">
-            <Input
-              id="c-last"
-              value={draft.last_name}
-              onChange={(e) => set("last_name", e.target.value)}
-              placeholder={isEdit ? "" : "Your surname, if left blank"}
-            />
-          </Field>
-          <Field id="c-preferred" label="Called (optional)">
-            <Input
-              id="c-preferred"
-              value={draft.preferred_name}
-              onChange={(e) => set("preferred_name", e.target.value)}
-            />
-          </Field>
-          <Field id="c-grade" label="School grade">
-            <Select
-              value={draft.school_grade_id || NONE}
-              onValueChange={(v) => set("school_grade_id", v === NONE ? "" : v)}
-            >
-              <SelectTrigger id="c-grade">
-                <SelectValue placeholder="Not recorded" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>Not recorded</SelectItem>
-                {(grades.data ?? []).map((g) => (
-                  <SelectItem key={g.id} value={g.id}>
-                    {g.display_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
+        {/*
+          A real form, so the Go key on a phone keyboard submits it. Without
+          one, the last field on a six-field form leaves a thumb with nowhere
+          to go but back up to a button — and the grid below is one column on a
+          phone, two from sm up, because two name fields side by side on a
+          375px screen is two fields nobody can read the labels of.
+        */}
+        <form onSubmit={submit} className="grid gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field id="c-first" label="First name">
+              <Input
+                id="c-first"
+                autoComplete="off"
+                autoCapitalize="words"
+                enterKeyHint="next"
+                value={draft.first_name}
+                onChange={(e) => set("first_name", e.target.value)}
+              />
+            </Field>
+            <Field id="c-last" label="Last name">
+              <Input
+                id="c-last"
+                autoComplete="off"
+                autoCapitalize="words"
+                enterKeyHint="next"
+                value={draft.last_name}
+                onChange={(e) => set("last_name", e.target.value)}
+                placeholder={isEdit ? "" : "Your surname, if left blank"}
+              />
+            </Field>
+            <Field id="c-preferred" label="Called (optional)">
+              <Input
+                id="c-preferred"
+                autoComplete="off"
+                autoCapitalize="words"
+                enterKeyHint="next"
+                value={draft.preferred_name}
+                onChange={(e) => set("preferred_name", e.target.value)}
+              />
+            </Field>
+            <Field id="c-grade" label="School grade">
+              <Select
+                value={draft.school_grade_id || NONE}
+                onValueChange={(v) => set("school_grade_id", v === NONE ? "" : v)}
+              >
+                <SelectTrigger id="c-grade">
+                  <SelectValue placeholder="Not recorded" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>Not recorded</SelectItem>
+                  {(grades.data ?? []).map((g) => (
+                    <SelectItem key={g.id} value={g.id}>
+                      {g.display_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
 
-          {/* Month and year, never a day: church.people has never stored one
-              for anybody, children included (20260320000400). A month is
-              enough to place a child in a classroom and to know whose birthday
-              it is. */}
-          <Field id="c-bmonth" label="Birth month">
-            <Select
-              value={draft.birth_month || NONE}
-              onValueChange={(v) => set("birth_month", v === NONE ? "" : v)}
-            >
-              <SelectTrigger id="c-bmonth">
-                <SelectValue placeholder="Not recorded" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>Not recorded</SelectItem>
-                {MONTHS.map((m, i) => (
-                  <SelectItem key={m} value={String(i + 1)}>
-                    {m}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field id="c-byear" label="Birth year">
-            <Input
-              id="c-byear"
-              inputMode="numeric"
-              value={draft.birth_year}
-              onChange={(e) => set("birth_year", e.target.value)}
-              placeholder="2017"
-            />
-          </Field>
-        </div>
-
-        <p className="text-xs text-muted-foreground">
-          The grade is what the children's ministry places a child by, so it is
-          worth changing each September.
-        </p>
-
-        {/* Photos only when editing: church.add_person_photo needs a person to
-            hang them on, and on the add path there is not one yet. Add the
-            child, then reopen to put a face to them. */}
-        {isEdit && (
-          <div className="space-y-2 border-t pt-4">
-            <p className="text-sm font-medium">Photos</p>
-            <PersonPhotoManager
-              personId={child!.person_id}
-              personName={child!.display_name}
-              isChild
-            />
+            {/* Month and year, never a day: church.people has never stored one
+                for anybody, children included (20260320000400). A month is
+                enough to place a child in a classroom and to know whose birthday
+                it is. */}
+            <Field id="c-bmonth" label="Birth month">
+              <Select
+                value={draft.birth_month || NONE}
+                onValueChange={(v) => set("birth_month", v === NONE ? "" : v)}
+              >
+                <SelectTrigger id="c-bmonth">
+                  <SelectValue placeholder="Not recorded" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>Not recorded</SelectItem>
+                  {MONTHS.map((m, i) => (
+                    <SelectItem key={m} value={String(i + 1)}>
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field id="c-byear" label="Birth year">
+              <Input
+                id="c-byear"
+                inputMode="numeric"
+                autoComplete="off"
+                enterKeyHint="done"
+                value={draft.birth_year}
+                onChange={(e) => set("birth_year", e.target.value)}
+                placeholder="2017"
+              />
+            </Field>
           </div>
-        )}
 
-        {error && (
-          <p className="flex items-start gap-2 text-sm text-destructive">
-            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-            {error}
+          <p className="text-xs text-muted-foreground">
+            The grade is what the children's ministry places a child by, so it is
+            worth changing each September.
           </p>
-        )}
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={submit} disabled={pending}>
-            {pending && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
-            {isEdit ? "Save" : "Add child"}
-          </Button>
-        </DialogFooter>
+          {/* Photos only when editing: church.add_person_photo needs a person to
+              hang them on, and on the add path there is not one yet. Add the
+              child, then reopen to put a face to them. */}
+          {isEdit && (
+            <div className="space-y-2 border-t pt-4">
+              <p className="text-sm font-medium">Photos</p>
+              <PersonPhotoManager
+                personId={child!.person_id}
+                personName={child!.display_name}
+                isChild
+              />
+            </div>
+          )}
+
+          {error && (
+            <p className="flex items-start gap-2 text-sm text-destructive">
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              {error}
+            </p>
+          )}
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={pending}>
+              {pending && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
+              {isEdit ? "Save" : "Add child"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

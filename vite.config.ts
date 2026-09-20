@@ -17,7 +17,10 @@ export default defineConfig(({ mode }) => ({
   },
   test: {
     environment: "node",
-    include: ["src/**/*.test.ts", "supabase/**/*.test.ts"],
+    // .tsx as well as .ts: a component test states its own environment in a
+    // `@vitest-environment jsdom` docblock, so the node default above stays
+    // the default and only the files that need a DOM pay for one.
+    include: ["src/**/*.test.ts", "src/**/*.test.tsx", "supabase/**/*.test.ts"],
     // The default glob would also walk .claude/worktrees, which holds a full
     // duplicate checkout of this repo and would run every test twice.
     exclude: ["node_modules/**", "dist/**", ".claude/**", ".venv/**"],

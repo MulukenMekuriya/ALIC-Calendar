@@ -99,6 +99,13 @@ import {
   useMyUpcomingEvents,
 } from "../hooks";
 
+/**
+ * Tab triggers tall enough to hit with a thumb, back to their normal height on
+ * a pointer. py-3 over a 20px line box is the 44px a finger needs; the
+ * primitive's py-1.5 gives 30, which is a coin toss between two tabs.
+ */
+const TAB = "py-3 sm:py-1.5";
+
 export default function MyChurchPage() {
   const { user } = useAuth();
   const { currentOrganization } = useOrganization();
@@ -257,13 +264,23 @@ export default function MyChurchPage() {
           </div>
         ) : (
           <Tabs value={tab} onValueChange={setTab}>
-            <TabsList className="flex-wrap h-auto">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="household">My household</TabsTrigger>
-              <TabsTrigger value="giving">My giving</TabsTrigger>
-              <TabsTrigger value="children">My children</TabsTrigger>
-              {hasCards && <TabsTrigger value="followups">My follow-ups</TabsTrigger>}
-              <TabsTrigger value="details">My details</TabsTrigger>
+            {/*
+              Two full-width tabs per row on a phone, the ordinary strip from
+              sm up. It used to be one wrapping inline strip at every width,
+              which on a 375px screen packed six labels into three rows of
+              pills about thirty pixels tall — legible, but a thumb hits the
+              wrong one, and "My giving" sitting hard against "My children"
+              gives nothing away about where one stops.
+            */}
+            <TabsList className="grid w-full grid-cols-2 gap-1 h-auto p-1 sm:inline-flex sm:h-10 sm:w-auto sm:gap-0">
+              <TabsTrigger value="overview" className={TAB}>Overview</TabsTrigger>
+              <TabsTrigger value="household" className={TAB}>My household</TabsTrigger>
+              <TabsTrigger value="giving" className={TAB}>My giving</TabsTrigger>
+              <TabsTrigger value="children" className={TAB}>My children</TabsTrigger>
+              {hasCards && (
+                <TabsTrigger value="followups" className={TAB}>My follow-ups</TabsTrigger>
+              )}
+              <TabsTrigger value="details" className={TAB}>My details</TabsTrigger>
             </TabsList>
 
             {/* ------------------------------------------------------------ */}

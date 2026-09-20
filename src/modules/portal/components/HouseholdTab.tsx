@@ -88,7 +88,7 @@ export function HouseholdTab({ household, organizationId, enabled = true }: Hous
 
         return (
           <Card key={detail.household_id}>
-            <CardHeader className="pb-3 flex-row items-start justify-between space-y-0 gap-3">
+            <CardHeader className="pb-3 gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Home className="h-4 w-4" />
@@ -105,6 +105,7 @@ export function HouseholdTab({ household, organizationId, enabled = true }: Hous
                 <Button
                   variant="outline"
                   size="sm"
+                  className="w-full sm:w-auto"
                   onClick={() => setEditingId(detail.household_id)}
                 >
                   <Pencil className="h-3.5 w-3.5 mr-1" />
@@ -134,7 +135,7 @@ export function HouseholdTab({ household, organizationId, enabled = true }: Hous
       })}
 
       <Card>
-        <CardHeader className="pb-3 flex-row items-start justify-between space-y-0 gap-3">
+        <CardHeader className="pb-3 gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <CardTitle className="text-base">Who is in it</CardTitle>
             <CardDescription>
@@ -142,7 +143,12 @@ export function HouseholdTab({ household, organizationId, enabled = true }: Hous
             </CardDescription>
           </div>
           {editable && (
-            <Button variant="outline" size="sm" onClick={() => setAddingChild(true)}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={() => setAddingChild(true)}
+            >
               <UserPlus className="h-3.5 w-3.5 mr-1" />
               Add a child
             </Button>
