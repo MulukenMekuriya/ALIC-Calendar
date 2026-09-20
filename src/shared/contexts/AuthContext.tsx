@@ -8,6 +8,7 @@ import React, {
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 
 /**
  * The app_role values that carry internal access, mirroring the allowlist in
@@ -63,6 +64,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isStaff, setIsStaff] = useState(false);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   // Track the current user ID so we can skip redundant state updates
   // (e.g. TOKEN_REFRESHED events that fire on tab focus).
   const currentUserIdRef = useRef<string | null>(null);
@@ -212,12 +214,49 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  /**
+   * Set the password on the account this session belongs to.
+   *
+   * Only ever reached through a recovery link — /reset-password is where the
+   * QR-code welcome and Forgot password both land — so the person has proved
+   * they hold the address and has just typed a password of their own choosing.
+   *
+   * That is exactly what profiles.must_change_password is asking for, so it is
+   * cleared here. Without this, the 542 members imported from Breeze (starter
+   * password: their own mobile number) and the kids leaders seeded in
+   * 20260321000800 set a password through the emailed link and were then met
+   * by ForcePasswordChange telling them they still held a temporary password
+   * and had to replace it — a second change, for the one thing they had just
+   * done. ProtectedRoute reads the flag before anything else renders, so the
+   * screen arrived the instant they landed.
+   *
+   * The clear is not allowed to fail the password change. If the RPC or the
+   * refetch fails the password is already set and the caller still hears
+   * success; the user simply sees ForcePasswordChange once, which is the safe
+   * way round — the gate stays shut rather than opening on a failed write.
+   */
   const updatePassword = async (newPassword: string) => {
     try {
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
-      return { error };
+      if (error) return { error };
+
+      const { error: clearError } = await supabase.rpc(
+        "clear_password_change_required"
+      );
+      if (clearError) {
+        console.error("Could not clear must_change_password:", clearError);
+      } else {
+        // ProtectedRoute caches the flag with staleTime: Infinity, so a user
+        // who reached /reset-password from inside the app would otherwise be
+        // judged on the answer read before the change.
+        await queryClient.invalidateQueries({
+          queryKey: ["password-change-required"],
+        });
+      }
+
+      return { error: null };
     } catch (error) {
       return { error: error as Error };
     }
