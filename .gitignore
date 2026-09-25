@@ -50,3 +50,4 @@ user-credentials.json
 public/*.xlsx
 public/*.csv
 scripts/import-md-members-breeze-*.sql
+deno.lock

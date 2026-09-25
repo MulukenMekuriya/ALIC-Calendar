@@ -51,7 +51,29 @@ const corsHeaders = {
 
 interface QueuedNotification {
   id: string;
-  kind: "check_in" | "check_out" | "volunteer_message" | "kids_auto_expired";
+  /**
+   * Every kind the database may queue. This list had drifted: it was missing
+   * kids_access_granted, added by 20260322150000, and nothing broke because
+   * it is only a type annotation — which is exactly why it drifted. Keep it
+   * in step with chk_notification_kind.
+   */
+  kind:
+    | "check_in"
+    | "check_out"
+    | "volunteer_message"
+    | "kids_auto_expired"
+    | "kids_access_granted"
+    | "kids_late_pickup"
+    | "kids_check_in_held"
+    | "kids_hold_presented"
+    | "kids_incident_raised"
+    | "kids_incident_to_parent"
+    | "kids_medical_updated"
+    | "kids_consent_resign_needed"
+    | "kids_consent_resign_reminder"
+    | "kids_consent_resign_overdue"
+    | "kids_consent_signed"
+    | "kids_consent_filed";
   channel: "email" | "sms";
   recipient_name: string | null;
   recipient_email: string | null;
@@ -59,6 +81,15 @@ interface QueuedNotification {
   subject: string | null;
   body: string;
   sent_by_name: string | null;
+
+  /**
+   * WHERE the attachment is, never the bytes. claim_queued_notifications
+   * returns SETOF notification_log, so a base64 column would be pulled on
+   * every drain of fifty rows whether or not any of them had one.
+   */
+  attachment_bucket: string | null;
+  attachment_path: string | null;
+  attachment_filename: string | null;
 }
 
 function escapeHtml(value: string): string {
@@ -127,25 +158,99 @@ function renderEmail(notification: QueuedNotification): string {
 </html>`;
 }
 
+/**
+ * Base64, in chunks.
+ *
+ * `String.fromCharCode(...bytes)` spreads every byte into the argument list
+ * and blows the call-stack limit somewhere past ~100 KB — which a consent PDF
+ * with a large family on it can reach. It fails as a RangeError deep inside
+ * the send, which reads as "the email is broken" rather than "the file was
+ * too big", so it is worth never finding out.
+ */
+function toBase64(bytes: Uint8Array): string {
+  const CHUNK = 0x8000;
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
+/**
+ * Fetch the attachment, if this row has one.
+ *
+ * Downloaded with the service role, which is the only thing that can read
+ * these buckets — there is no INSERT, UPDATE or DELETE policy for
+ * `authenticated` on either, and SELECT is gated on being the family or the
+ * office. Returns null when there is nothing to attach; THROWS when there was
+ * something and it could not be fetched, so the row fails and retries rather
+ * than going out claiming a document it does not carry.
+ */
+async function loadAttachment(
+  // Typed to the one thing it uses rather than to the client, because the
+  // client here is bound to the `church` schema and its generic does not
+  // match the default one. Naming the capability is also honest: this
+  // function reads storage and nothing else.
+  storage: {
+    from(bucket: string): {
+      download(path: string): Promise<{
+        data: Blob | null;
+        error: { message: string } | null;
+      }>;
+    };
+  },
+  notification: QueuedNotification,
+): Promise<{ filename: string; content: string } | null> {
+  if (!notification.attachment_path || !notification.attachment_bucket) return null;
+
+  const { data, error } = await storage
+    .from(notification.attachment_bucket)
+    .download(notification.attachment_path);
+
+  if (error || !data) {
+    throw new Error(
+      `attachment ${notification.attachment_path} could not be read: ${
+        error?.message ?? "no data"
+      }`,
+    );
+  }
+
+  const bytes = new Uint8Array(await data.arrayBuffer());
+  return {
+    filename: notification.attachment_filename ?? "document.pdf",
+    content: toBase64(bytes),
+  };
+}
+
 async function sendEmail(
-  notification: QueuedNotification
+  notification: QueuedNotification,
+  attachment: { filename: string; content: string } | null,
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  const payloadBody: Record<string, unknown> = {
+    from: RESEND_FROM_EMAIL,
+    to: [notification.recipient_email],
+    subject:
+      notification.subject ||
+      (notification.kind === "volunteer_message"
+        ? "Please come to the Children's Ministry"
+        : "Children's Ministry"),
+    html: renderEmail(notification),
+  };
+
+  // One `if`. A row without an attachment produces a payload byte-identical
+  // to today's, which is what keeps the 748 existing rows behaving exactly as
+  // they do now.
+  if (attachment) {
+    payloadBody.attachments = [attachment];
+  }
+
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${RESEND_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      from: RESEND_FROM_EMAIL,
-      to: [notification.recipient_email],
-      subject:
-        notification.subject ||
-        (notification.kind === "volunteer_message"
-          ? "Please come to the Children's Ministry"
-          : "Children's Ministry"),
-      html: renderEmail(notification),
-    }),
+    body: JSON.stringify(payloadBody),
   });
 
   const payload = await response.json().catch(() => ({}));
@@ -291,7 +396,12 @@ async function sendSms(
         continue;
       }
 
-      const result = await sendEmail(notification);
+      // Inside the existing try, on purpose: a failure to read the
+      // attachment throws, the row is marked failed with the reason, and it
+      // retries. It must NOT send an email whose copy says a record is
+      // attached when nothing is.
+      const attachment = await loadAttachment(supabase.storage, notification);
+      const result = await sendEmail(notification, attachment);
       await supabase.rpc("complete_notification", {
         _id: notification.id,
         _ok: result.ok,
