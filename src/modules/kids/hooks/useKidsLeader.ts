@@ -24,6 +24,8 @@ export const kidsLeaderKeys = {
   classrooms: (orgId: string) => [...kidsLeaderKeys.all, "classrooms", orgId] as const,
   stillHere: (orgId: string) => [...kidsLeaderKeys.all, "still-here", orgId] as const,
   teachers: (orgId: string) => [...kidsLeaderKeys.all, "teachers", orgId] as const,
+  latePickups: (orgId: string, from: string, to: string) =>
+    [...kidsLeaderKeys.all, "late-pickups", orgId, from, to] as const,
 };
 
 export function useLiveBoard(organizationId: string | undefined) {
@@ -106,6 +108,44 @@ export function useKidsExceptions(
     queryKey: kidsLeaderKeys.exceptions(organizationId || "", from, to),
     queryFn: () => kidsLeaderService.exceptions(organizationId!, from, to),
     enabled: !!organizationId && !!from && !!to,
+  });
+}
+
+export function useLatePickups(
+  organizationId: string | undefined,
+  from: string,
+  to: string
+) {
+  return useQuery({
+    queryKey: kidsLeaderKeys.latePickups(organizationId || "", from, to),
+    queryFn: () => kidsLeaderService.latePickups(organizationId!, from, to),
+    enabled: !!organizationId && !!from && !!to,
+  });
+}
+
+export function useNotifyLatePickup(organizationId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { id: string; message?: string | null }) =>
+      kidsLeaderService.notifyLatePickup(v.id, v.message),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [...kidsLeaderKeys.all, "late-pickups", organizationId || ""],
+      });
+    },
+  });
+}
+
+export function useDismissLatePickup(organizationId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { id: string; reason: string }) =>
+      kidsLeaderService.dismissLatePickup(v.id, v.reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [...kidsLeaderKeys.all, "late-pickups", organizationId || ""],
+      });
+    },
   });
 }
 

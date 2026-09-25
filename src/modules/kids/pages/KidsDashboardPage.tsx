@@ -276,7 +276,7 @@ export default function KidsDashboardPage() {
           </TabsContent>
 
           <TabsContent value="reports" className="pt-4">
-            <KidsReportsTab organizationId={orgId} />
+            <KidsReportsTab organizationId={orgId} canReview={canManage} />
           </TabsContent>
         </Tabs>
       </div>
