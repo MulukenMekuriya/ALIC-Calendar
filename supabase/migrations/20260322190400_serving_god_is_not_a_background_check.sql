@@ -279,7 +279,7 @@ BEGIN
 
   -- `restricted` is the only status that bars a person from the desk, and it
   -- bars them absolutely. `is_active = false` means "not on the roster this
-  -- term", which is a scheduling fact, not a safeguarding one â treating it as
+  -- term", which is a scheduling fact, not a safeguarding one — treating it as
   -- a bar locked the ministry lead out of their own module the moment their
   -- volunteer row went stale, and resolve_actor is the first statement of
   -- every kids RPC, so that is a total lockout.
@@ -300,14 +300,14 @@ BEGIN
   a.source := 'user';
   a.can_check_in  := true;
   a.can_check_out := true;
-  -- Only a kids_admin may authorise a checkout override â a DIRECTOR, not a
+  -- Only a kids_admin may authorise a checkout override — a DIRECTOR, not a
   -- team lead. _admin_orgs is deliberately kids_admin alone and does not
   -- include kids_leader.
   --
   -- This is the whole reason kids_leader exists. Team leads were made
   -- kids_admin and narrowed with kids_leader_scope, but this line never
   -- consulted the scope table, so a lead scoped to two classrooms could
-  -- authorise the release of any child in the branch â including one she could
+  -- authorise the release of any child in the branch — including one she could
   -- not see on her own board. An override that four of six leaders can
   -- self-authorise is not the two-person rule the plan asked for.
   a.can_override := (_admin_orgs IS NOT NULL AND array_length(_admin_orgs, 1) > 0);
@@ -394,7 +394,7 @@ BEGIN
   END IF;
 
   -- A person barred from working with children is never placed in a classroom,
-  -- on any path â the same rule assign_session_staff enforces for a Sunday.
+  -- on any path — the same rule assign_session_staff enforces for a Sunday.
   IF EXISTS (SELECT 1 FROM church.kids_volunteers v
              WHERE v.person_id = _person_id
                AND v.may_not_serve_with_children) THEN
@@ -514,7 +514,7 @@ BEGIN
   IF _ids IS NULL THEN RAISE EXCEPTION 'no_check_ins_supplied'; END IF;
 
   -- Anchor on the batch, not on _ids[1]. array_agg(DISTINCT) sorts, so the
-  -- first element was the lowest uuid â which meant an unknown id sorting
+  -- first element was the lowest uuid — which meant an unknown id sorting
   -- first RAISED (aborting the transaction and losing the audit row) while the
   -- same probe sorting last got the silent audited denial. Different responses
   -- for the same mistake is an oracle.
@@ -601,13 +601,13 @@ BEGIN
     RETURN;
   END IF;
 
-  -- A child under an order leaves only with an approved collector â unless an
+  -- A child under an order leaves only with an approved collector — unless an
   -- admin takes responsibility. C-3: without this, a restricted child whose
   -- family was CSV-imported (people and relationships, no household row) could
   -- not be collected by anyone at all, including their own mother with the
   -- code and photo ID, and no override existed because the gate ran first.
   --
-  -- The break-glass never reaches the person the order names â that was ruled
+  -- The break-glass never reaches the person the order names — that was ruled
   -- out above and has no override. It only answers "the paperwork does not
   -- list anyone", which is a records problem, not a custody one.
   SELECT count(*) INTO _blocked
@@ -734,7 +734,7 @@ BEGIN
 
     -- Only audit what actually changed. The loop used to write a success row
     -- unconditionally, so re-sending an already-collected child produced a
-    -- second check_out â indistinguishable from a duplicate collection, which
+    -- second check_out — indistinguishable from a duplicate collection, which
     -- is precisely the incident this log exists to detect.
     GET DIAGNOSTICS _updated = ROW_COUNT;
     IF _updated = 0 THEN CONTINUE; END IF;
@@ -833,7 +833,7 @@ BEGIN
     -- Return ZERO ROWS rather than RAISE. This is not a style preference: a
     -- RAISE aborts the surrounding transaction, which would roll back the
     -- increment immediately above it and leave the lockout counter
-    -- permanently stuck at zero. Verified by test â with a RAISE here, five
+    -- permanently stuck at zero. Verified by test — with a RAISE here, five
     -- wrong PINs followed by the correct one still succeeded.
     --
     -- Zero rows is still a single indistinguishable "denied" for every
