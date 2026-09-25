@@ -191,6 +191,55 @@ describe("check-in completion", () => {
     expect(ctx.pickupCode).toBe("3R6F4T");
     expect(ctx.checkedIn).toHaveLength(1);
   });
+
+  // A refusal arrives as a ROW, not an exception, so that one declined child
+  // cannot abort the transaction and destroy their siblings' check-in. The
+  // machine has to carry both halves of that answer to the success screen.
+  it("keeps the accepted children and the refused ones apart", () => {
+    let ctx = reduce(toSelecting(), { type: "CONFIRM_REQUESTED" });
+    ctx = reduce(ctx, {
+      type: "CHECKED_IN",
+      code: "3R6F4T",
+      token: "tok",
+      children: [
+        {
+          check_in_id: "ci1",
+          child_name: "Noah Bekele",
+          room_name: "Blossom A",
+          tag_number: 1000,
+          allergy_label: null,
+          has_restriction: false,
+        },
+      ],
+      refused: [
+        {
+          child_person_id: "p2",
+          child_name: "Selam Bekele",
+          refusal_code: "check_in_held",
+          refusal_message: "Selam stays with you this morning.",
+        },
+      ],
+    });
+    expect(ctx.state).toBe("success");
+    expect(ctx.checkedIn).toHaveLength(1);
+    expect(ctx.refused).toHaveLength(1);
+    expect(ctx.refused[0].child_name).toBe("Selam Bekele");
+    // The code belongs to the children who actually got in.
+    expect(ctx.pickupCode).toBe("3R6F4T");
+  });
+
+  it("defaults refused to empty against an RPC that does not send it", () => {
+    // Backward compatibility: the columns arrive in a later migration, and
+    // until then every response omits them.
+    let ctx = reduce(toSelecting(), { type: "CONFIRM_REQUESTED" });
+    ctx = reduce(ctx, {
+      type: "CHECKED_IN",
+      code: "3R6F4T",
+      token: "tok",
+      children: [],
+    });
+    expect(ctx.refused).toEqual([]);
+  });
 });
 
 describe("privacy between families", () => {

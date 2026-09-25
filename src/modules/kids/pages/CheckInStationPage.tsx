@@ -583,11 +583,34 @@ export default function CheckInStationPage() {
         });
         return;
       }
+
+      // The database may accept some children and decline others in the same
+      // batch — a refusal comes back as a ROW, not an exception, so that one
+      // blocked child cannot abort the transaction and destroy their siblings'
+      // check-in. Everything below has to work off the accepted rows only:
+      // printing a label for a refused child would hand a parent a tag with no
+      // code and no classroom behind it.
+      const accepted = rows.filter((r) => !r.refused);
+      const declined = rows.filter((r) => r.refused);
+
+      if (accepted.length === 0) {
+        // Every child was declined. Nothing was written, nothing prints, and
+        // the reason is the database's own words — "try again" would be a lie,
+        // because trying again will do exactly the same thing.
+        dispatch({
+          type: "BLOCKING_ERROR",
+          message:
+            declined[0]?.refusal_message ??
+            "These children cannot be checked in right now. Please see a Kids Ministry leader.",
+        });
+        return;
+      }
+
       dispatch({
         type: "CHECKED_IN",
-        code: rows[0].pickup_code,
-        token: rows[0].pickup_token,
-        children: rows.map((r) => ({
+        code: accepted[0].pickup_code,
+        token: accepted[0].pickup_token,
+        children: accepted.map((r) => ({
           check_in_id: r.check_in_id,
           child_person_id: r.child_person_id,
           child_name: r.child_name,
@@ -596,10 +619,21 @@ export default function CheckInStationPage() {
           allergy_label: r.allergy_label,
           has_restriction: r.has_restriction,
         })),
+        refused: declined.map((r) => ({
+          child_person_id: r.child_person_id,
+          child_name: r.child_name,
+          refusal_code: r.refusal_code ?? null,
+          refusal_message: r.refusal_message ?? null,
+        })),
       });
       // Print only AFTER the database has committed. A printed label with no
       // database row is the worst possible outcome.
-      void doPrint(rows[0].pickup_code, rows[0].pickup_token, rows, tagContactName());
+      void doPrint(
+        accepted[0].pickup_code,
+        accepted[0].pickup_token,
+        accepted,
+        tagContactName()
+      );
     } catch (err) {
       // errorMessage(), not `err instanceof Error`: supabase puts a PLAIN
       // OBJECT in `error`, so the instanceof test was always false and every
@@ -1223,6 +1257,37 @@ export default function CheckInStationPage() {
                 </li>
               ))}
             </ul>
+
+            {/* Who did NOT get in. A family of three where one child was
+                declined must not walk away believing all three are in
+                classrooms — this is the whole reason a refusal comes back as a
+                row instead of an exception. Amber, not red: the other children
+                are checked in and this screen is still a success. */}
+            {ctx.refused.length > 0 && (
+              <div className="mt-6 w-full max-w-md rounded-md border-2 border-amber-500 p-4 text-left">
+                <p className="flex items-center gap-2 font-semibold text-amber-700 dark:text-amber-500">
+                  <AlertTriangle className="h-5 w-5 shrink-0" />
+                  {ctx.refused.length === 1
+                    ? "One child was not checked in"
+                    : `${ctx.refused.length} children were not checked in`}
+                </p>
+                <ul className="mt-2 space-y-2">
+                  {ctx.refused.map((r) => (
+                    <li key={r.child_person_id} className="text-sm">
+                      <span className="font-medium">{r.child_name}</span>
+                      {r.refusal_message && (
+                        <span className="block text-muted-foreground">
+                          {r.refusal_message}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  The pickup code above is for the children who were checked in.
+                </p>
+              </div>
+            )}
 
             {printNote && (
               <p className="mt-4 text-amber-700 flex items-center gap-2 text-sm">
