@@ -24,6 +24,9 @@ export const kidsLeaderKeys = {
   classrooms: (orgId: string) => [...kidsLeaderKeys.all, "classrooms", orgId] as const,
   stillHere: (orgId: string) => [...kidsLeaderKeys.all, "still-here", orgId] as const,
   teachers: (orgId: string) => [...kidsLeaderKeys.all, "teachers", orgId] as const,
+  incidents: (orgId: string, settled: boolean) =>
+    [...kidsLeaderKeys.all, "incidents", orgId, settled] as const,
+  incident: (id: string) => [...kidsLeaderKeys.all, "incident", id] as const,
   latePickups: (orgId: string, from: string, to: string) =>
     [...kidsLeaderKeys.all, "late-pickups", orgId, from, to] as const,
 };
@@ -168,6 +171,89 @@ export function useRaiseCheckInHold(organizationId: string | undefined) {
       });
     },
   });
+}
+
+export function useIncidentQueue(
+  organizationId: string | undefined,
+  includeSettled = false
+) {
+  return useQuery({
+    queryKey: kidsLeaderKeys.incidents(organizationId || "", includeSettled),
+    queryFn: () => kidsLeaderService.incidentQueue(organizationId!, includeSettled),
+    enabled: !!organizationId,
+  });
+}
+
+/**
+ * Deliberately NOT prefetched and NOT kept fresh in the background: every
+ * fetch writes a sensitive_viewed audit row naming the child, so refetching
+ * on window focus would fill the access log with reads nobody performed.
+ */
+export function useIncidentDetail(id: string | null) {
+  return useQuery({
+    queryKey: kidsLeaderKeys.incident(id || ""),
+    queryFn: () => kidsLeaderService.incidentDetail(id!),
+    enabled: !!id,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+}
+
+function useIncidentMutation<TArgs>(
+  organizationId: string | undefined,
+  fn: (v: TArgs) => Promise<unknown>
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [...kidsLeaderKeys.all, "incidents", organizationId || ""],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [...kidsLeaderKeys.all, "incident"],
+      });
+    },
+  });
+}
+
+export function useReviewIncident(orgId: string | undefined) {
+  return useIncidentMutation(orgId, (v: { id: string }) =>
+    kidsLeaderService.reviewIncident(v.id)
+  );
+}
+
+export function useSignOffIncident(orgId: string | undefined) {
+  return useIncidentMutation(orgId, (v: { id: string; adminSummary?: string | null }) =>
+    kidsLeaderService.signOffIncident(v.id, v.adminSummary)
+  );
+}
+
+export function useDeclineIncident(orgId: string | undefined) {
+  return useIncidentMutation(orgId, (v: { id: string; reason: string }) =>
+    kidsLeaderService.declineIncident(v.id, v.reason)
+  );
+}
+
+export function useSetIncidentSeverity(orgId: string | undefined) {
+  return useIncidentMutation(orgId, (v: { id: string; severity: string; why?: string }) =>
+    kidsLeaderService.setIncidentSeverity(v.id, v.severity, v.why)
+  );
+}
+
+export function useRecordExternalReport(orgId: string | undefined) {
+  return useIncidentMutation(
+    orgId,
+    (v: { id: string; made: boolean; reference?: string | null; note?: string | null }) =>
+      kidsLeaderService.recordExternalReport(v.id, v.made, v.reference, v.note)
+  );
+}
+
+export function useAddIncidentNote(orgId: string | undefined) {
+  return useIncidentMutation(orgId, (v: { id: string; body: string }) =>
+    kidsLeaderService.addIncidentNote(v.id, v.body)
+  );
 }
 
 export function useEligibleVolunteers(organizationId: string | undefined) {

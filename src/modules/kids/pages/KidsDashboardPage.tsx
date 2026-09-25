@@ -41,6 +41,7 @@ import { StillHerePanel } from "../components/StillHerePanel";
 import { ClassroomsTab } from "../components/ClassroomsTab";
 import { VolunteersTab } from "../components/VolunteersTab";
 import { KidsReportsTab } from "../components/KidsReportsTab";
+import { IncidentsTab } from "../components/IncidentsTab";
 import { useLiveBoard, useKidsRealtime } from "../hooks/useKidsLeader";
 import { kidsSessionService } from "../services/kidsSessionService";
 import type { LiveBoardRoom } from "../services/kidsLeaderService";
@@ -186,7 +187,8 @@ export default function KidsDashboardPage() {
             <TabsTrigger value="live">Live</TabsTrigger>
             <TabsTrigger value="classrooms">Classrooms</TabsTrigger>
             <TabsTrigger value="volunteers">Volunteers</TabsTrigger>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
+            <TabsTrigger value="incidents">Incidents</TabsTrigger>
+              <TabsTrigger value="reports">Reports</TabsTrigger>
           </TabsList>
 
           <TabsContent value="live" className="space-y-4 pt-4">
@@ -275,7 +277,11 @@ export default function KidsDashboardPage() {
             />
           </TabsContent>
 
-          <TabsContent value="reports" className="pt-4">
+          <TabsContent value="incidents" className="mt-4">
+              <IncidentsTab organizationId={orgId} />
+            </TabsContent>
+
+            <TabsContent value="reports" className="pt-4">
             <KidsReportsTab organizationId={orgId} canReview={canManage} />
           </TabsContent>
         </Tabs>
