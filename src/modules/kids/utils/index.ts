@@ -25,3 +25,6 @@ export {
 export type { ChildLabelData, ParentLabelData } from "./labelTemplate";
 
 export { formatSessionDate, parseIsoDate, formatClockTime } from "./sessionDate";
+
+export { sortClassrooms } from "./classroomOrder";
+export type { ClassroomSort } from "./classroomOrder";
