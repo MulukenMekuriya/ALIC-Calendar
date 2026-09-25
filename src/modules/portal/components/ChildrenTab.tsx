@@ -8,11 +8,22 @@
  * could update it were four people in an office who do not know when your
  * daughter started first grade.
  *
- * WHAT IT DELIBERATELY DOES NOT TOUCH. Allergies, medical notes, and who may
- * collect a child. Those are read at the check-in desk while the child is
- * standing there, and they sit beside the custody records; widening them to a
- * web form deserves its own decision rather than arriving as a side-effect of
- * a screen about grades. The empty states say where to take them.
+ * ALLERGIES AND MEDICAL NOTES ARE NOW HERE TOO, behind their own button.
+ * This screen used to say they were not, and to tell the desk. That decision
+ * was taken deliberately and has now been reversed just as deliberately: the
+ * parent is the authoritative source, there were ten medical records on file
+ * for 534 children, and section 10 of the church's own consent form already
+ * makes it the parent's job to tell us when something changes.
+ *
+ * It is a separate dialog rather than more fields on the edit form, because
+ * the two are not the same act. Correcting a spelling is housekeeping;
+ * telling the church about an allergy puts words on a label a volunteer will
+ * read, and starts a four-week clock to sign the consent form again. That
+ * deserves its own screen that says so.
+ *
+ * STILL NOT TOUCHED. Who may collect a child. Those are custody records, they
+ * sit beside safeguarding decisions, and a parent editing them is a different
+ * decision with different stakes.
  *
  * AND NOT REMOVING ANYONE. A child added by mistake is a telephone call to the
  * office; a child silently removed from a household is not discoverable at
@@ -38,11 +49,12 @@ import {
 } from "@/shared/components/ui/table";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
-import { Baby, Pencil, UserPlus } from "lucide-react";
+import { Baby, HeartPulse, Pencil, UserPlus } from "lucide-react";
 import { usePersonPhotos, primaryPhotoUrl } from "@/modules/members/hooks";
 import { PersonAvatar } from "@/modules/members/components";
 import { useMyHouseholdDetail } from "../hooks";
 import { ChildDialog } from "./ChildDialog";
+import { ChildMedicalDialog } from "./ChildMedicalDialog";
 import type { MyChild, MyChildCheckIn } from "../types";
 
 interface ChildrenTabProps {
@@ -76,6 +88,7 @@ export function ChildrenTab({
    */
   const [editing, setEditing] = useState<MyChild | null>(null);
   const [open, setOpen] = useState(false);
+  const [medicalFor, setMedicalFor] = useState<MyChild | null>(null);
 
   const openFor = (child: MyChild | null) => {
     setEditing(child);
@@ -123,7 +136,7 @@ export function ChildrenTab({
                   <TableHead>Name</TableHead>
                   <TableHead>Grade</TableHead>
                   <TableHead>Born</TableHead>
-                  <TableHead className="w-10" />
+                  <TableHead className="w-20" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -159,15 +172,29 @@ export function ChildrenTab({
                     </TableCell>
                     <TableCell>
                       {editable && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          title={`Edit ${child.display_name}`}
-                          onClick={() => openFor(child)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
+                        /* flex-nowrap: this row has clipped off both edges at
+                           phone width before, on the check-in screen, for
+                           exactly this reason. */
+                        <span className="flex flex-nowrap items-center gap-0.5">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            title={`Health and allergies for ${child.display_name}`}
+                            onClick={() => setMedicalFor(child)}
+                          >
+                            <HeartPulse className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            title={`Edit ${child.display_name}`}
+                            onClick={() => openFor(child)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        </span>
                       )}
                     </TableCell>
                   </TableRow>
@@ -224,6 +251,15 @@ export function ChildrenTab({
           )}
         </CardContent>
       </Card>
+
+      {medicalFor && (
+        <ChildMedicalDialog
+          open={!!medicalFor}
+          onOpenChange={(v) => !v && setMedicalFor(null)}
+          childPersonId={medicalFor.person_id}
+          childName={medicalFor.preferred_name || medicalFor.display_name}
+        />
+      )}
 
       {editable && (
         <ChildDialog

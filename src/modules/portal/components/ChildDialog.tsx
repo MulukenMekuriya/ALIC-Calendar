@@ -15,11 +15,17 @@
  * authorisation for each — without both, the check-in desk would offer nobody
  * when the child is collected and their own mother could not take them home.
  *
- * WHAT IS NOT HERE. Allergies and medical notes (church.person_sensitive) and
- * anything about who may collect a child (church.kids_pickup_restrictions).
- * Those are read at the desk with the child standing there, they sit next to
- * custody records, and widening them deserves its own decision rather than
- * arriving as a side-effect of a form about names. Tell the check-in desk.
+ * WHAT IS NOT HERE. Who may collect a child (church.kids_pickup_restrictions).
+ * Those are custody records, they sit beside safeguarding decisions, and a
+ * parent editing them is a different decision with different stakes. Tell the
+ * check-in desk.
+ *
+ * Allergies and medical notes used to be on that list too, with the same
+ * reasoning. They are now in ChildMedicalDialog, reached from the heart icon
+ * next to this one. Separate dialogs on purpose: correcting a spelling is
+ * housekeeping, while telling the church about an allergy puts words on a
+ * classroom label and starts a four-week clock to sign the consent form
+ * again.
  */
 
 import { useMemo, useState } from "react";
@@ -182,7 +188,7 @@ export function ChildDialog({
           <DialogTitle>{isEdit ? `Edit ${child!.display_name}` : "Add a child"}</DialogTitle>
           <DialogDescription>
             {isEdit
-              ? "A photo helps the check-in desk hand the right child to the right adult. For allergies, medical notes or who may collect them, speak to the desk — those are not changed from here."
+              ? "A photo helps the check-in desk hand the right child to the right adult. Allergies and medical notes are under the heart icon. For who may collect them, speak to the desk — those are not changed from here."
               : "A child of your household, so the check-in desk knows them on Sunday. Allergies are recorded at the desk."}
           </DialogDescription>
         </DialogHeader>

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   CONSENT_STATES,
   isCovered,
+  resignStatus,
   familyMessage,
   deskMessage,
   type ConsentState,
@@ -19,10 +20,50 @@ describe("isCovered", () => {
     expect(isCovered("child_not_on_signature")).toBe(false);
   });
 
+  it("refuses a form that outlasted its grace period", () => {
+    expect(isCovered("consent_out_of_date")).toBe(false);
+  });
+
   it("refuses the rest", () => {
     expect(isCovered("revoked")).toBe(false);
     expect(isCovered("no_signature")).toBe(false);
     expect(isCovered("no_household")).toBe(false);
+  });
+});
+
+describe("resignStatus", () => {
+  const today = new Date(2026, 9, 1); // 1 October 2026
+
+  it("is not stale when no deadline is set", () => {
+    expect(resignStatus(null, today)).toEqual({
+      stale: false, daysLeft: null, overdue: false,
+    });
+  });
+
+  it("counts the days left inside the grace period", () => {
+    expect(resignStatus("2026-10-29", today)).toEqual({
+      stale: true, daysLeft: 28, overdue: false,
+    });
+  });
+
+  it("is stale but NOT overdue on the due date itself", () => {
+    // The family was told "by the 1st". The 1st is still theirs.
+    expect(resignStatus("2026-10-01", today)).toEqual({
+      stale: true, daysLeft: 0, overdue: false,
+    });
+  });
+
+  it("is overdue the day after", () => {
+    const r = resignStatus("2026-09-30", today);
+    expect(r.overdue).toBe(true);
+    expect(r.daysLeft).toBe(-1);
+  });
+
+  it("treats an unreadable date as not stale rather than as overdue", () => {
+    // Guessing "overdue" from a date we cannot parse would refuse a child
+    // over a bug. Failing open here is safe: the SERVER decides the state,
+    // and this only drives what the screen says.
+    expect(resignStatus("nonsense", today).stale).toBe(false);
   });
 });
 
@@ -33,6 +74,14 @@ describe("familyMessage", () => {
       expect(m.headline.length).toBeGreaterThan(0);
       expect(m.body.length).toBeGreaterThan(0);
     }
+  });
+
+  it("does not blame a family who did the right thing", () => {
+    // They told us about a change; that is what the form asks of them. The
+    // copy must read as paperwork, not as a reprimand.
+    const m = familyMessage("consent_out_of_date", "Selam");
+    expect(m.body).toContain("You told us about a change");
+    expect(m.body).not.toMatch(/failed|must|required|overdue|violation/i);
   });
 
   it("never tells a family who has signed that they have not", () => {
@@ -102,8 +151,16 @@ describe("deskMessage", () => {
     expect(m.hint ?? "").not.toMatch(/withdraw|revoke/i);
   });
 
-  it("gives the same label to all three fixable states", () => {
-    const fixable: ConsentState[] = ["child_not_on_signature", "revoked", "no_signature"];
+  it("tells a volunteer nothing about a family's medical changes", () => {
+    const m = deskMessage("consent_out_of_date");
+    expect(m.label).not.toMatch(/medical|allergy|out of date|expired/i);
+    expect(m.hint ?? "").not.toMatch(/medical|allergy/i);
+  });
+
+  it("gives the same label to all four fixable states", () => {
+    const fixable: ConsentState[] = [
+      "consent_out_of_date", "child_not_on_signature", "revoked", "no_signature",
+    ];
     const labels = new Set(fixable.map((s) => deskMessage(s).label));
     expect(labels.size).toBe(1);
   });

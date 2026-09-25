@@ -25,6 +25,7 @@
 export type ConsentState =
   | "covered"
   | "covered_elsewhere"
+  | "consent_out_of_date"
   | "child_not_on_signature"
   | "revoked"
   | "no_signature"
@@ -33,6 +34,7 @@ export type ConsentState =
 export const CONSENT_STATES: ConsentState[] = [
   "covered",
   "covered_elsewhere",
+  "consent_out_of_date",
   "child_not_on_signature",
   "revoked",
   "no_signature",
@@ -42,6 +44,27 @@ export const CONSENT_STATES: ConsentState[] = [
 /** Does this state permit check-in when the policy is enforcing? */
 export function isCovered(state: ConsentState): boolean {
   return state === "covered" || state === "covered_elsewhere";
+}
+
+/**
+ * Whether the signed form still matches the medical record.
+ *
+ * `resignDueBy` is set from the moment a parent changes a child's medical
+ * information, and the child stays COVERED until the date passes. That is
+ * deliberate and it is the important part: a parent who reports a new allergy
+ * on a Saturday evening must not find their child refused on Sunday morning,
+ * or they learn not to tell us. The classroom tag already carries the change.
+ */
+export function resignStatus(
+  resignDueBy: string | null | undefined,
+  today: Date,
+): { stale: boolean; daysLeft: number | null; overdue: boolean } {
+  if (!resignDueBy) return { stale: false, daysLeft: null, overdue: false };
+  const due = new Date(`${resignDueBy}T00:00:00`);
+  if (Number.isNaN(due.getTime())) return { stale: false, daysLeft: null, overdue: false };
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const daysLeft = Math.round((due.getTime() - start.getTime()) / 86_400_000);
+  return { stale: true, daysLeft, overdue: daysLeft < 0 };
 }
 
 export interface FamilyMessage {
@@ -76,6 +99,22 @@ export function familyMessage(state: ConsentState, childName: string): FamilyMes
           `It is still in effect and nothing is needed today. If you would like a copy in your own ` +
           `name, you are welcome to fill the form in again here.`,
         action: "Fill in the form again",
+      };
+
+    case "consent_out_of_date":
+      // They DID sign, and they DID tell us about the change. What is left is
+      // paperwork, and the copy should sound like paperwork rather than like
+      // a family who did something wrong.
+      return {
+        tone: "attention",
+        headline: "The form needs filling in again",
+        body:
+          `You told us about a change to ${childName}'s medical information, and the consent ` +
+          `form we hold was signed before that, so the two no longer match. Filling it in once ` +
+          `more puts them back together — everything you told us before is already there. ` +
+          `Until it is done, one of our team will ask you to do it at the desk before ` +
+          `${childName} goes to a classroom.`,
+        action: "Fill in the form",
       };
 
     case "child_not_on_signature":
@@ -150,9 +189,14 @@ export function deskMessage(state: ConsentState): DeskMessage {
       // Deliberately identical. See the module comment.
       return { tone: "ok", label: "Consent on file", hint: null };
 
+    case "consent_out_of_date":
     case "child_not_on_signature":
     case "revoked":
     case "no_signature":
+      // One label for all four. A volunteer needs to know that a form is
+      // wanted, not which of four reasons produced it — and three of the four
+      // would tell them something about the family that is none of their
+      // business.
       return {
         tone: "attention",
         label: "Consent form needed",
