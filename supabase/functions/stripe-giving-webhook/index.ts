@@ -37,11 +37,12 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serviceKey } from "../_shared/serviceKey.ts";
 
 const STRIPE_WEBHOOK_SECRET = Deno.env.get("STRIPE_WEBHOOK_SECRET");
 const DEFAULT_ORGANIZATION_ID = Deno.env.get("STRIPE_GIVING_ORGANIZATION_ID");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SERVICE_ROLE_KEY = serviceKey();
 
 /** Stripe's default tolerance. Older timestamps are replays. */
 const TOLERANCE_SECONDS = 300;
