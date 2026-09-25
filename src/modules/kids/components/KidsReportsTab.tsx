@@ -148,6 +148,26 @@ const EXCEPTION_GROUPS: {
   },
 ];
 
+/**
+ * Where rows land when the server does not group them.
+ *
+ * `category` arrives with a migration. Until that is deployed — and again if it
+ * is ever rolled back — every row comes back without one, and grouping by a
+ * field that does not exist would render NOTHING while the tab badge still
+ * said 124. A safety report that silently shows an empty list is worse than
+ * the unsorted list it replaced, so unknown and missing categories fall
+ * through to here rather than disappearing.
+ */
+const UNGROUPED = {
+  category: "__ungrouped__" as ExceptionCategory,
+  title: "Exceptions",
+  blurb: "Overrides, refused pickups and children never collected.",
+  tone: "serious" as const,
+  startsOpen: true,
+};
+
+const KNOWN_CATEGORIES = new Set<string>(EXCEPTION_GROUPS.map((g) => g.category));
+
 interface KidsReportsTabProps {
   organizationId: string | undefined;
   /** kids.write — a leader who may send a note or dismiss one. */
@@ -175,17 +195,36 @@ export function KidsReportsTab({
   const byCategory = useMemo(() => {
     const map = new Map<ExceptionCategory, ExceptionRow[]>();
     for (const row of exceptions.data ?? []) {
-      const bucket = map.get(row.category);
+      // A row whose category the client does not recognise still has to be
+      // shown. Never drop a safety row on the floor because a column is
+      // missing or a value is newer than this build.
+      const key = KNOWN_CATEGORIES.has(row.category)
+        ? row.category
+        : UNGROUPED.category;
+      const bucket = map.get(key);
       if (bucket) bucket.push(row);
-      else map.set(row.category, [row]);
+      else map.set(key, [row]);
     }
     return map;
   }, [exceptions.data]);
 
+  // Only offer the groups that actually have rows, plus the catch-all when
+  // anything landed in it.
+  const groupsToRender = useMemo(
+    () =>
+      byCategory.has(UNGROUPED.category)
+        ? [...EXCEPTION_GROUPS, UNGROUPED]
+        : EXCEPTION_GROUPS,
+    [byCategory]
+  );
+
   // total_count is how many rows MATCHED; the RPC returns at most 500. The
   // badge and the banner both report the true number, because the old screen
   // showed the truncated one as though it were the whole story.
-  const exceptionTotal = exceptions.data?.[0]?.total_count ?? 0;
+  // total_count also arrives with that migration. Falling back to the number
+  // of rows in hand keeps the badge honest rather than showing 0.
+  const exceptionTotal =
+    exceptions.data?.[0]?.total_count ?? exceptions.data?.length ?? 0;
   const truncated = exceptionTotal > (exceptions.data?.length ?? 0);
 
   function exportAttendance() {
@@ -494,7 +533,7 @@ export function KidsReportsTab({
                       {exceptionTotal}. Narrow the dates to see the rest.
                     </p>
                   )}
-                  {EXCEPTION_GROUPS.map((group) => {
+                  {groupsToRender.map((group) => {
                     const rows = byCategory.get(group.category);
                     if (!rows || rows.length === 0) return null;
                     const open = openGroups[group.category] ?? group.startsOpen;

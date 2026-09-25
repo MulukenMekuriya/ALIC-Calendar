@@ -114,6 +114,19 @@ export function VolunteersTab({
   // row, both resolved server-side; classroom assignments are unioned in here
   // because this component already has them. In production that is about 44
   // people out of 660 adults.
+  // on_kids_team arrives with a migration, and the client cannot compute it -
+  // a module grant is keyed by auth user, which the browser cannot read. So if
+  // the server is not sending the field yet, the honest thing is to show
+  // EVERYONE rather than to filter on a value that is undefined for every row.
+  //
+  // Getting this wrong is not hypothetical: filtering on undefined left the
+  // picker showing the three assigned classroom teachers out of 660 adults,
+  // which reads as a broken directory rather than as a filter.
+  const serverKnowsTeam = useMemo(
+    () => (people ?? []).some((p) => p.on_kids_team !== undefined),
+    [people]
+  );
+
   const teamIds = useMemo(() => {
     const ids = new Set<string>();
     for (const p of people ?? []) if (p.on_kids_team) ids.add(p.person_id);
@@ -129,7 +142,8 @@ export function VolunteersTab({
 
   const onTeam = candidates.filter((p) => teamIds.has(p.person_id));
   const offTeam = candidates.filter((p) => !teamIds.has(p.person_id));
-  const filtered = showEveryone ? candidates : onTeam;
+  const filtering = serverKnowsTeam && !showEveryone;
+  const filtered = filtering ? onTeam : candidates;
 
   if (sessions.length === 0) {
     return (
@@ -229,7 +243,7 @@ export function VolunteersTab({
               <CardTitle className="text-base">Assign someone</CardTitle>
               <CardDescription>
                 Pick a room and role, then add people to it.
-                {!showEveryone && " Showing the kids team."}
+                {filtering && " Showing the kids team."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -336,10 +350,10 @@ export function VolunteersTab({
                 {!isLoading && filtered.length === 0 && (
                   <p className="py-6 text-center text-sm text-muted-foreground">
                     {search
-                      ? showEveryone || offTeam.length === 0
+                      ? !filtering || offTeam.length === 0
                         ? "Nobody matches that."
                         : "Nobody on the kids team matches that."
-                      : showEveryone
+                      : !filtering
                         ? "Everyone is already assigned."
                         : "Everyone on the kids team is already assigned."}
                   </p>
@@ -348,7 +362,7 @@ export function VolunteersTab({
 
               {/* Never hide the rest of the church without saying how many. A
                   short list and a filtered list look identical otherwise. */}
-              {!isLoading && !showEveryone && offTeam.length > 0 && (
+              {!isLoading && filtering && offTeam.length > 0 && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -360,7 +374,7 @@ export function VolunteersTab({
                   {offTeam.length === 1 ? "" : "s"}
                 </Button>
               )}
-              {!isLoading && showEveryone && (
+              {!isLoading && serverKnowsTeam && showEveryone && (
                 <Button
                   variant="ghost"
                   size="sm"
