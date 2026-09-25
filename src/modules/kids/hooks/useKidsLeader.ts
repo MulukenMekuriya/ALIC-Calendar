@@ -17,6 +17,10 @@ export const kidsLeaderKeys = {
     [...kidsLeaderKeys.all, "roster", sessionId, roomId ?? "all"] as const,
   attendance: (orgId: string, from: string, to: string) =>
     [...kidsLeaderKeys.all, "attendance", orgId, from, to] as const,
+  accessSummary: (orgId: string, from: string, to: string) =>
+    [...kidsLeaderKeys.all, "access-summary", orgId, from, to] as const,
+  accessDetail: (orgId: string, from: string, to: string, actor: string) =>
+    [...kidsLeaderKeys.all, "access-detail", orgId, from, to, actor] as const,
   exceptions: (orgId: string, from: string, to: string) =>
     [...kidsLeaderKeys.all, "exceptions", orgId, from, to] as const,
   volunteers: (orgId: string) => [...kidsLeaderKeys.all, "volunteers", orgId] as const,
@@ -506,5 +510,48 @@ export function useToggleSessionRoom(organizationId: string | undefined) {
         });
       }
     },
+  });
+}
+
+/**
+ * The access log.
+ *
+ * `enabled` is driven by the caller so the panel only asks when it is
+ * actually open — every call writes an access_log_read audit row, and a query
+ * that fires on mount would fill the trail with reads nobody made.
+ */
+export function useAccessSummary(
+  orgId: string | undefined,
+  from: string,
+  to: string,
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: kidsLeaderKeys.accessSummary(orgId ?? "none", from, to),
+    queryFn: () => kidsLeaderService.accessSummary(orgId!, from, to),
+    enabled: !!orgId && enabled,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useAccessDetail(
+  orgId: string | undefined,
+  from: string,
+  to: string,
+  actorAuthUserId: string | null,
+) {
+  return useQuery({
+    queryKey: kidsLeaderKeys.accessDetail(orgId ?? "none", from, to, actorAuthUserId ?? "all"),
+    queryFn: () =>
+      kidsLeaderService.accessDetail({
+        organizationId: orgId!,
+        from,
+        to,
+        actorAuthUserId,
+      }),
+    enabled: !!orgId && !!actorAuthUserId,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }

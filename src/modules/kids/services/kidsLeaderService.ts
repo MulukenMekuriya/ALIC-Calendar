@@ -758,7 +758,70 @@ export const kidsLeaderService = {
       grades: gradesRes.data ?? [],
     };
   },
+  /**
+   * Who has read children's sensitive records, by person.
+   *
+   * Ordered by DISTINCT CHILDREN rather than by number of reads, because that
+   * is where the signal is: one volunteer re-reading one child's allergy card
+   * all morning is doing their job; one person reading across forty families
+   * is a question. Reading this is itself recorded.
+   */
+  async accessSummary(
+    organizationId: string,
+    from: string,
+    to: string,
+  ): Promise<AccessSummaryRow[]> {
+    const { data, error } = await church().rpc("kids_sensitive_access_summary", {
+      _organization_id: organizationId,
+      _from: from,
+      _to: to,
+    });
+    throwRpc(error);
+    return (data ?? []) as unknown as AccessSummaryRow[];
+  },
+
+  /** The rows behind one line of the summary. */
+  async accessDetail(v: {
+    organizationId: string;
+    from: string;
+    to: string;
+    actorAuthUserId?: string | null;
+    childPersonId?: string | null;
+    recordType?: string | null;
+  }): Promise<AccessDetailRow[]> {
+    const { data, error } = await church().rpc("kids_sensitive_access_report", {
+      _organization_id: v.organizationId,
+      _from: v.from,
+      _to: v.to,
+      _actor_auth_user_id: v.actorAuthUserId ?? null,
+      _child_person_id: v.childPersonId ?? null,
+      _record_type: v.recordType ?? null,
+    });
+    throwRpc(error);
+    return (data ?? []) as unknown as AccessDetailRow[];
+  },
 };
+
+/** One person's sensitive reads over a date range. */
+export interface AccessSummaryRow {
+  actor_name: string;
+  actor_auth_user_id: string | null;
+  reads: number;
+  /** The signal. Breadth, not volume. */
+  children_seen: number;
+  record_types: string[];
+  first_read: string;
+  last_read: string;
+  on_days: number;
+}
+
+export interface AccessDetailRow {
+  viewed_at: string;
+  actor_name: string;
+  record: string;
+  child_name: string | null;
+  detail: Record<string, unknown> | null;
+}
 
 export type ClassroomListing = Awaited<
   ReturnType<typeof kidsLeaderService.listClassrooms>
