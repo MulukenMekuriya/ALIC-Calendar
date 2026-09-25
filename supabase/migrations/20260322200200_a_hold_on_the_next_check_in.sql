@@ -476,8 +476,8 @@ BEGIN
   --
   -- The window on kids_events governs when a session opens and closes by
   -- itself. Enforcing it a second time here meant a leader who opened a
-  -- session deliberately â for a midweek programme, a delayed start, or simply
-  -- to try the desk before Sunday â got `outside_check_in_window` and could
+  -- session deliberately — for a midweek programme, a delayed start, or simply
+  -- to try the desk before Sunday — got `outside_check_in_window` and could
   -- check nobody in, with an open session on screen telling them they could.
   -- A session left open too long is handled by auto-close, not by refusing the
   -- volunteer standing in front of a parent.
@@ -498,7 +498,7 @@ BEGIN
     -- so a lost response cannot check the same children in twice; it is not a
     -- claim that this family can never check in again. Matching on the key
     -- alone meant a family returning later got a rotated code for children who
-    -- were already checked OUT â the screen said success, a label printed, and
+    -- were already checked OUT — the screen said success, a label printed, and
     -- the code on it resolved to nothing.
     IF FOUND AND NOT church.kids_batch_is_replayable(_existing.id) THEN
       -- The key is unique per session, so simply declining to replay would
@@ -630,7 +630,7 @@ BEGIN
   --
   -- Still the only moment the code can be sent: it is hashed with a Vault
   -- pepper on the way into kids_check_in_secrets and never stored. Never
-  -- raises â a failed text must not roll back a completed check-in.
+  -- raises — a failed text must not roll back a completed check-in.
   PERFORM church.queue_pickup_code_sms(_batch, _code);
 
   -- Accepted first, refused last, so the existing rows[0].pickup_code on the

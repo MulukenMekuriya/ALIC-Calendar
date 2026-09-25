@@ -289,7 +289,7 @@ BEGIN
   IF _ids IS NULL THEN RAISE EXCEPTION 'no_check_ins_supplied'; END IF;
 
   -- Anchor on the batch, not on _ids[1]. array_agg(DISTINCT) sorts, so the
-  -- first element was the lowest uuid â which meant an unknown id sorting
+  -- first element was the lowest uuid — which meant an unknown id sorting
   -- first RAISED (aborting the transaction and losing the audit row) while the
   -- same probe sorting last got the silent audited denial. Different responses
   -- for the same mistake is an oracle.
@@ -376,13 +376,13 @@ BEGIN
     RETURN;
   END IF;
 
-  -- A child under an order leaves only with an approved collector â unless an
+  -- A child under an order leaves only with an approved collector — unless an
   -- admin takes responsibility. C-3: without this, a restricted child whose
   -- family was CSV-imported (people and relationships, no household row) could
   -- not be collected by anyone at all, including their own mother with the
   -- code and photo ID, and no override existed because the gate ran first.
   --
-  -- The break-glass never reaches the person the order names â that was ruled
+  -- The break-glass never reaches the person the order names — that was ruled
   -- out above and has no override. It only answers "the paperwork does not
   -- list anyone", which is a records problem, not a custody one.
   SELECT count(*) INTO _blocked
@@ -509,7 +509,7 @@ BEGIN
 
     -- Only audit what actually changed. The loop used to write a success row
     -- unconditionally, so re-sending an already-collected child produced a
-    -- second check_out â indistinguishable from a duplicate collection, which
+    -- second check_out — indistinguishable from a duplicate collection, which
     -- is precisely the incident this log exists to detect.
     GET DIAGNOSTICS _updated = ROW_COUNT;
     IF _updated = 0 THEN CONTINUE; END IF;
