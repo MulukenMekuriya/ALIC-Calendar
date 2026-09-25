@@ -19,6 +19,7 @@ import {
   useOrganization,
 } from "@/shared/contexts";
 import { SearchProvider } from "@/shared/contexts/SearchContext";
+import { useIsKiosk } from "@/shared/hooks/useIsKiosk";
 import { useCapabilities } from "@/shared/hooks/useCapabilities";
 import type { Capability } from "@/shared/lib/capabilities";
 
@@ -48,6 +49,7 @@ import {
 } from "@/modules/members";
 import {
   CheckInStationPage,
+  KioskPage,
   CheckOutPage,
   IncidentsPage,
   KidsDashboardPage,
@@ -79,6 +81,31 @@ function ScrollToTop() {
 
 import { usePasswordChangeRequired } from "@/shared/hooks/usePasswordChangeRequired";
 import { ForcePasswordChange } from "@/shared/components/ForcePasswordChange";
+
+/**
+ * Keeps each account on its own check-in screen.
+ *
+ * The ministry types one shared login into every lobby tablet, and the same
+ * URL has to land a parent on the kiosk and a volunteer on the staffed desk.
+ * Doing it here rather than inside either page means neither has to know the
+ * other exists.
+ *
+ * ROUTING ONLY. The security boundary is church.resolve_actor.
+ */
+const KioskRedirect = ({
+  children,
+  to,
+  whenNotKiosk = false,
+}: {
+  children: React.ReactNode;
+  to: string;
+  whenNotKiosk?: boolean;
+}) => {
+  const { isKiosk, loading } = useIsKiosk();
+  if (loading) return <PageLoader message="Loading..." />;
+  if (whenNotKiosk ? !isKiosk : isKiosk) return <Navigate to={to} replace />;
+  return <>{children}</>;
+};
 
 const ProtectedRoute = ({
   children,
@@ -379,13 +406,41 @@ const App = () => (
                 />
 
                 {/* Kids check-in station — full-screen kiosk, deliberately
-                    OUTSIDE DashboardLayout so there is no nav to wander into. */}
+                    OUTSIDE DashboardLayout so there is no nav to wander into.
+
+                    A KIOSK SESSION IS SENT TO /kiosk INSTEAD. The lobby
+                    account holds no capability at all, so it would otherwise
+                    be bounced to /dashboard by requireAny and a parent would
+                    be looking at the church's admin shell. */}
                 <Route
                   path="/checkin"
                   element={
-                    <ProtectedRoute requireAny={["kids.checkin", "kids.write"]}>
-                      <CheckInStationPage />
-                    </ProtectedRoute>
+                    <KioskRedirect to="/kiosk">
+                      <ProtectedRoute requireAny={["kids.checkin", "kids.write"]}>
+                        <CheckInStationPage />
+                      </ProtectedRoute>
+                    </KioskRedirect>
+                  }
+                />
+
+                {/* The self-service kiosk. Its own route rather than a branch
+                    inside the staffed desk, so a staff control cannot render
+                    here by construction — and so the Sunday path for the
+                    existing volunteers is untouched.
+
+                    Gated on authentication alone: the kiosk account holds no
+                    capability by design, and everything it can actually do is
+                    decided by church.resolve_actor, which gives it
+                    can_check_out = false. A volunteer who lands here is sent
+                    back to the staffed desk, which has the tools they need. */}
+                <Route
+                  path="/kiosk"
+                  element={
+                    <KioskRedirect to="/checkin" whenNotKiosk>
+                      <ProtectedRoute>
+                        <KioskPage />
+                      </ProtectedRoute>
+                    </KioskRedirect>
                   }
                 />
 
