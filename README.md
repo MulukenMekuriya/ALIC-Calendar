@@ -94,7 +94,7 @@ This platform enables ministry leaders at Addis Lidet Ethiopian Medhanie Alem Ch
    ```env
    VITE_SUPABASE_URL=your_supabase_project_url
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-   SUPABASE_SECRET_KEY=sb_secret_your_key_here
+   ALIC_SERVICE_KEY=sb_secret_your_key_here
    ```
 
 4. **Apply database migrations**

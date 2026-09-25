@@ -12,7 +12,7 @@ The `seed-users.ts` script imports ministry leaders from the CSV file and create
 2. Set up your environment variables in `.env`:
    ```
    VITE_SUPABASE_URL=your_supabase_url
-   SUPABASE_SECRET_KEY=sb_secret_your_key_here
+   ALIC_SERVICE_KEY=sb_secret_your_key_here
    ```
 
    **Important:** You need the service role key (not the anon key) to create users via the Admin API.
@@ -52,7 +52,7 @@ All other users are assigned the "contributor" role.
 ### Troubleshooting
 
 - **"User already exists"**: This is normal if you've run the script before. Existing users are skipped.
-- **"Missing environment variables"**: Make sure your `.env` file has both `VITE_SUPABASE_URL` and `SUPABASE_SECRET_KEY` (the legacy `SUPABASE_SERVICE_ROLE_KEY` is still accepted as a fallback)
+- **"Missing environment variables"**: Make sure your `.env` file has both `VITE_SUPABASE_URL` and `ALIC_SERVICE_KEY` (the legacy `SUPABASE_SERVICE_ROLE_KEY` is still accepted as a fallback)
 - **"CSV file not found"**: Ensure the CSV file is in the project root directory
 
 ### Security Notes
