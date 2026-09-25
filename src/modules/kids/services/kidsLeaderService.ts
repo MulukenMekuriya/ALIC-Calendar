@@ -483,12 +483,32 @@ export const kidsLeaderService = {
 
     // Every active room is listed, not only the configured ones: a room with
     // no config is exactly what the leader needs to find in order to add it.
+    //
+    // Ordered by the config's sort_order, NOT by room name. `public.rooms` is
+    // fetched name-ordered because that is the only order PostgREST can give
+    // it, but sort_order is the order the ministry actually set, and it is
+    // what church.kids_live_board orders by (`rk.sort_order NULLS LAST,
+    // r.name`). Mapping straight off the name-ordered query meant the Order
+    // field on this very screen was the one thing that ignored it, and the
+    // board and the setup screen disagreed about the order of the rooms.
+    const rooms = (roomsRes.data ?? []).map((room) => ({
+      room_id: room.id,
+      room_name: room.name,
+      config: cfgByRoom.get(room.id) ?? null,
+    }));
+    rooms.sort((a, b) => {
+      const ao = a.config?.sort_order ?? null;
+      const bo = b.config?.sort_order ?? null;
+      if (ao !== bo) {
+        if (ao === null) return 1;
+        if (bo === null) return -1;
+        return ao - bo;
+      }
+      return a.room_name.localeCompare(b.room_name);
+    });
+
     return {
-      rooms: (roomsRes.data ?? []).map((room) => ({
-        room_id: room.id,
-        room_name: room.name,
-        config: cfgByRoom.get(room.id) ?? null,
-      })),
+      rooms,
       ageBands: bandsRes.data ?? [],
       grades: gradesRes.data ?? [],
     };
