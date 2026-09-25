@@ -38,6 +38,14 @@ export interface HouseholdMatch {
   }[];
 }
 
+/** A child check_in_children declined to check in, and why. */
+export interface RefusedChild {
+  child_person_id: string;
+  child_name: string;
+  refusal_code: string | null;
+  refusal_message: string | null;
+}
+
 export interface CheckedInChild {
   check_in_id: string;
   /**
@@ -79,6 +87,16 @@ export interface MachineContext {
   pickupCode: string | null;
   pickupToken: string | null;
   checkedIn: CheckedInChild[];
+  /**
+   * Children the database REFUSED in a batch that otherwise succeeded.
+   *
+   * A refusal is data, not an exception: check_in_children returns a row per
+   * child with `refused` set rather than raising, so that one blocked child
+   * cannot abort the transaction and destroy their siblings' check-in. The
+   * success screen has to say who did not get in, or a parent walks away
+   * believing all three children are in classrooms.
+   */
+  refused: RefusedChild[];
   checkoutInput: string;
   checkoutMatches: CheckedInChild[];
   /**
@@ -127,6 +145,7 @@ export const initialContext: MachineContext = {
   pickupCode: null,
   pickupToken: null,
   checkedIn: [],
+  refused: [],
   checkoutInput: "",
   checkoutMatches: [],
   checkoutSelected: [],
@@ -148,7 +167,13 @@ export type MachineEvent =
   | { type: "CHILD_TOGGLED"; childId: string }
   | { type: "ROOM_OVERRIDDEN"; childId: string; roomId: string }
   | { type: "CONFIRM_REQUESTED" }
-  | { type: "CHECKED_IN"; code: string; token: string; children: CheckedInChild[] }
+  | {
+      type: "CHECKED_IN";
+      code: string;
+      token: string;
+      children: CheckedInChild[];
+      refused?: RefusedChild[];
+    }
   | { type: "CHECKOUT_STARTED" }
   | { type: "CHECKOUT_INPUT"; value: string }
   | { type: "CHECKOUT_RESOLVED"; matches: CheckedInChild[] }
@@ -178,6 +203,7 @@ function clearFamily(ctx: MachineContext): MachineContext {
     pickupCode: null,
     pickupToken: null,
     checkedIn: [],
+  refused: [],
     checkoutInput: "",
     checkoutMatches: [],
   checkoutSelected: [],
@@ -291,6 +317,7 @@ export function reduce(ctx: MachineContext, event: MachineEvent): MachineContext
         pickupCode: event.code,
         pickupToken: event.token,
         checkedIn: event.children,
+        refused: event.refused ?? [],
         error: null,
       };
 
