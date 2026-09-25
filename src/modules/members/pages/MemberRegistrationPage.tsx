@@ -198,7 +198,18 @@ export default function MemberRegistrationPage({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!orgId) return;
+    // Never return silently: a submit that does nothing and says nothing is
+    // indistinguishable from a broken button, which is how this screen was
+    // reported.
+    if (!orgId) {
+      toast({
+        title: "No branch selected",
+        description:
+          "This screen does not know which branch to register into. Reload the page, and tell the office if it keeps happening.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (!person.first_name.trim() || !person.last_name.trim()) {
       toast({

@@ -4,7 +4,7 @@ import LandingNav from "../components/LandingNav";
 import LandingFooter from "../components/LandingFooter";
 import ArrowIcon from "../components/ArrowIcon";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/shared/hooks/use-toast";
 import "../landing.css";
 
 function useHashScroll() {
