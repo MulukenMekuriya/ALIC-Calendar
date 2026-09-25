@@ -45,7 +45,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/components/ui/dialog";
-import { AlertTriangle, Loader2, ShieldAlert, X } from "lucide-react";
+import { AlertTriangle, Loader2, Mail, ShieldAlert, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   useIncidentQueue,
@@ -54,6 +54,7 @@ import {
   useSignOffIncident,
   useDeclineIncident,
   useRecordExternalReport,
+  useSendIncidentToParent,
 } from "../hooks/useKidsLeader";
 import type { IncidentQueueRow } from "../services/kidsLeaderService";
 import { errorMessage, isDbError } from "../services/rpcError";
@@ -198,12 +199,15 @@ function IncidentDialog({
   const signOff = useSignOffIncident(organizationId);
   const decline = useDeclineIncident(organizationId);
   const record = useRecordExternalReport(organizationId);
+  const send = useSendIncidentToParent(organizationId);
 
   const [summary, setSummary] = useState("");
   const [declining, setDeclining] = useState(false);
   const [reason, setReason] = useState("");
   const [reportNote, setReportNote] = useState("");
   const [reportRef, setReportRef] = useState("");
+  const [sending, setSending] = useState(false);
+  const [source, setSource] = useState<"admin" | "teacher" | "both">("admin");
 
   const settled =
     incident?.status === "signed_off" ||
@@ -339,10 +343,30 @@ function IncidentDialog({
                 )}
                 {/* Sending to the family is a separate step, and never offered
                     for a safeguarding report - the parent may be the concern. */}
-                {incident.severity !== "safeguarding" && !incident.sent_at && (
+                {incident.sent_at ? (
                   <p className="pt-1 text-xs text-muted-foreground">
-                    The family has not been told. That is a separate step.
+                    The family was written to on{" "}
+                    {new Date(incident.sent_at).toLocaleDateString()}.
                   </p>
+                ) : incident.severity === "safeguarding" ? (
+                  // Not a disabled button. The action does not exist here: in a
+                  // safeguarding concern the parent may BE the concern, and a
+                  // button that can be pressed wrongly eventually will be.
+                  <p className="pt-1 text-xs text-muted-foreground">
+                    A safeguarding report is never sent to a family from here.
+                    Speak with the safeguarding lead.
+                  </p>
+                ) : incident.status === "declined" ? (
+                  <p className="pt-1 text-xs text-muted-foreground">
+                    Declined, so nothing was sent.
+                  </p>
+                ) : (
+                  <div className="pt-2">
+                    <Button size="sm" onClick={() => setSending(true)}>
+                      <Mail className="h-4 w-4" />
+                      Tell the family
+                    </Button>
+                  </div>
                 )}
               </div>
             ) : (
@@ -409,6 +433,83 @@ function IncidentDialog({
                 Answer the reporting question above before signing off.
               </p>
             )}
+
+            <Dialog open={sending} onOpenChange={setSending}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Tell {incident.child_name}'s family</DialogTitle>
+                  <DialogDescription>
+                    Goes to the parents and guardians on file. The teacher who
+                    wrote the report is not named.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-2">
+                  <Label className="text-xs">What should they read?</Label>
+                  {(
+                    [
+                      ["admin", "Your note", incident.admin_summary],
+                      ["teacher", "The teacher's account", incident.reported_narrative],
+                      ["both", "Both", null],
+                    ] as const
+                  ).map(([value, label, preview]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setSource(value)}
+                      disabled={value !== "teacher" && !incident.admin_summary}
+                      className={`w-full rounded-md border p-2 text-left text-sm disabled:opacity-40 ${
+                        source === value ? "border-primary bg-muted/50" : ""
+                      }`}
+                    >
+                      <span className="font-medium">{label}</span>
+                      {preview && (
+                        <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                          {preview}
+                        </span>
+                      )}
+                      {value !== "teacher" && !incident.admin_summary && (
+                        <span className="block text-xs text-muted-foreground">
+                          You have not written a note.
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setSending(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    disabled={send.isPending}
+                    onClick={async () => {
+                      try {
+                        const n = await send.mutateAsync({
+                          id: incident.id,
+                          source,
+                        });
+                        toast.success(
+                          `Sent to ${n} ${n === 1 ? "person" : "people"}`
+                        );
+                        setSending(false);
+                        onClose();
+                      } catch (err) {
+                        toast.error("Could not send", {
+                          description: isDbError(err, "nobody_to_write_to")
+                            ? "No contactable parent or guardian is on file. Speak with the family directly."
+                            : isDbError(err, "no_check_in_to_resolve_family")
+                              ? "This report is not tied to a check-in, so the desk cannot work out who to write to."
+                              : isDbError(err, "cannot_send_safeguarding_to_parent")
+                                ? "A safeguarding report is never sent to a family."
+                                : errorMessage(err),
+                        });
+                      }
+                    }}
+                  >
+                    Send
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             <Dialog open={declining} onOpenChange={setDeclining}>
               <DialogContent>
