@@ -44,6 +44,9 @@ import {
 import { useKidsAttendance, useKidsExceptions } from "../hooks/useKidsLeader";
 import { LatePickupsPanel } from "./LatePickupsPanel";
 import { ConsentCoverageCard } from "./ConsentCoverageCard";
+import { ConsentRuleCard } from "./ConsentRuleCard";
+import { useConsentPolicy } from "../hooks/useConsent";
+import { useCapabilities } from "@/shared/hooks/useCapabilities";
 import type {
   ExceptionCategory,
   ExceptionRow,
@@ -182,6 +185,16 @@ export function KidsReportsTab({
   const initial = defaultRange();
   const [from, setFrom] = useState(initial.from);
   const [to, setTo] = useState(initial.to);
+
+  // Only a kids_admin may change the rule. kids.write is that grant's
+  // capability; a leadership_viewer reading this tab sees the card without
+  // the buttons.
+  const { can } = useCapabilities();
+  const canWrite = can("kids.write");
+
+  // The card's countdown needs the date, and the date lives on the policy.
+  const policy = useConsentPolicy(organizationId);
+  const enforceFrom = policy.data?.enforce_from ?? null;
 
   const attendance = useKidsAttendance(organizationId, from, to);
   const exceptions = useKidsExceptions(organizationId, from, to);
@@ -628,8 +641,15 @@ export function KidsReportsTab({
           * stand today", and wiring it to the range would let somebody scroll
           * back to September and read 0% as the current position.
           */}
-        <TabsContent value="consent" className="pt-4">
-          <ConsentCoverageCard organizationId={organizationId} />
+        <TabsContent value="consent" className="pt-4 space-y-4">
+          {/* The rule first, then the numbers. Somebody opening this tab on a
+              difficult Sunday morning is looking for the pause button, not
+              for a progress bar. */}
+          <ConsentRuleCard organizationId={organizationId} canEdit={canWrite} />
+          <ConsentCoverageCard
+            organizationId={organizationId}
+            enforceFrom={enforceFrom}
+          />
         </TabsContent>
       </Tabs>
     </div>
