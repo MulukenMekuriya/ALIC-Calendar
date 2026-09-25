@@ -33,12 +33,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/components/ui/dialog";
-import { Loader2, Mail, X } from "lucide-react";
+import { Loader2, Mail, PauseCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   useLatePickups,
   useNotifyLatePickup,
   useDismissLatePickup,
+  useRaiseCheckInHold,
 } from "../hooks/useKidsLeader";
 import type { LatePickupRow } from "../services/kidsLeaderService";
 import { errorMessage, isDbError } from "../services/rpcError";
@@ -59,11 +60,14 @@ export function LatePickupsPanel({
   const { data, isLoading } = useLatePickups(organizationId, from, to);
   const notify = useNotifyLatePickup(organizationId);
   const dismiss = useDismissLatePickup(organizationId);
+  const hold = useRaiseCheckInHold(organizationId);
 
   const [sending, setSending] = useState<LatePickupRow | null>(null);
   const [message, setMessage] = useState("");
   const [dismissing, setDismissing] = useState<LatePickupRow | null>(null);
   const [reason, setReason] = useState("");
+  const [holding, setHolding] = useState<LatePickupRow | null>(null);
+  const [holdReason, setHoldReason] = useState("");
 
   const rows = data ?? [];
   const unreviewed = rows.filter((r) => r.status === "recorded").length;
@@ -145,6 +149,17 @@ export function LatePickupsPanel({
                       </Button>
                       <Button
                         size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setHolding(row);
+                          setHoldReason("");
+                        }}
+                      >
+                        <PauseCircle className="h-4 w-4" />
+                        Hold next check-in
+                      </Button>
+                      <Button
+                        size="sm"
                         variant="ghost"
                         onClick={() => {
                           setDismissing(row);
@@ -217,6 +232,68 @@ export function LatePickupsPanel({
               }}
             >
               Send
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={holding !== null} onOpenChange={(o) => !o && setHolding(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Hold {holding?.child_name}'s next check-in
+            </DialogTitle>
+            <DialogDescription>
+              {holding?.child_name} will not be checked in at the next service,
+              and stays with their parents for it. One service only — after
+              that, check-in works as normal. The family is emailed now, so
+              they hear it from you rather than from a screen on Sunday.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="hold-reason">Why — the family will read this</Label>
+            <Textarea
+              id="hold-reason"
+              rows={4}
+              value={holdReason}
+              placeholder="Collected very late three Sundays running; asked to keep them in the service."
+              onChange={(e) => setHoldReason(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              At least 10 characters. The desk is never shown this — a
+              volunteer only sees that check-in is not available.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHolding(null)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={hold.isPending || holdReason.trim().length < 10}
+              onClick={async () => {
+                if (!holding) return;
+                try {
+                  await hold.mutateAsync({
+                    childPersonId: holding.child_person_id,
+                    reason: holdReason.trim(),
+                    sourceLatePickupId: holding.id,
+                  });
+                  toast.success("Hold raised", {
+                    description: `${holding.child_name} stays with their parents next service. The family has been emailed.`,
+                  });
+                  setHolding(null);
+                } catch (err) {
+                  toast.error("Could not hold", {
+                    description: isDbError(err, "hold_already_live")
+                      ? "This child already has a hold waiting to be served."
+                      : isDbError(err, "not_permitted")
+                        ? "Holding a child out of check-in is a Kids Ministry director action."
+                        : errorMessage(err),
+                  });
+                }
+              }}
+            >
+              Hold next check-in
             </Button>
           </DialogFooter>
         </DialogContent>
