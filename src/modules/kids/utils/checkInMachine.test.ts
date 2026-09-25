@@ -582,3 +582,45 @@ describe("a full classroom", () => {
     expect(reduce(ctx, { type: "RESET" }).capacityBlocked).toBeNull();
   });
 });
+
+describe("the consent sheet is set aside per household", () => {
+  it("records the household, so the sheet is not shown twice for one family", () => {
+    // ONCE PER HOUSEHOLD, NOT ONCE PER CHILD. A per-child dialog across 216
+    // unsigned families is how volunteers learn to tap past things, and then
+    // the enforcement date arrives having changed nobody's behaviour.
+    let ctx = toSelecting();
+    ctx = reduce(ctx, { type: "CONSENT_SET_ASIDE", householdId: "h1" });
+    expect(ctx.consentDismissed).toEqual(["h1"]);
+  });
+
+  it("is idempotent, so a double tap does not grow the list", () => {
+    let ctx = toSelecting();
+    ctx = reduce(ctx, { type: "CONSENT_SET_ASIDE", householdId: "h1" });
+    ctx = reduce(ctx, { type: "CONSENT_SET_ASIDE", householdId: "h1" });
+    expect(ctx.consentDismissed).toEqual(["h1"]);
+  });
+
+  it("keeps households separate", () => {
+    let ctx = toSelecting();
+    ctx = reduce(ctx, { type: "CONSENT_SET_ASIDE", householdId: "h1" });
+    ctx = reduce(ctx, { type: "CONSENT_SET_ASIDE", householdId: "h2" });
+    expect(ctx.consentDismissed).toEqual(["h1", "h2"]);
+  });
+
+  it("is cleared by every reset, so a tablet cannot quietly stop asking", () => {
+    // Including the 45-second idle wipe. A dismissal that outlived the family
+    // would mean the next parent is never shown the form at all.
+    let ctx = toSelecting();
+    ctx = reduce(ctx, { type: "CONSENT_SET_ASIDE", householdId: "h1" });
+    expect(reduce(ctx, { type: "RESET" }).consentDismissed).toEqual([]);
+  });
+
+  it("does not disturb anything else on the screen", () => {
+    let ctx = toSelecting();
+    const before = ctx.selectedChildIds.length;
+    ctx = reduce(ctx, { type: "CONSENT_SET_ASIDE", householdId: "h1" });
+    expect(ctx.state).toBe("selecting");
+    expect(ctx.selectedChildIds.length).toBe(before);
+    expect(reduce(ctx, { type: "CONFIRM_REQUESTED" }).state).toBe("confirming");
+  });
+});

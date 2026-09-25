@@ -130,6 +130,19 @@ export interface MachineContext {
    * the database has no matching row.
    */
   blockingError: string | null;
+  /**
+   * Households whose consent sheet has been shown and set aside this session.
+   *
+   * ONCE PER HOUSEHOLD, NOT ONCE PER CHILD. 216 unsigned families times a
+   * per-child dialog is roughly 1,200 dialogs a month, which is how
+   * volunteers learn to tap past things — and then the enforcement date
+   * arrives having changed nobody's behaviour at all.
+   *
+   * It lives here rather than in component state so that clearFamily() wipes
+   * it on EVERY reset path, the 45-second idle timer included. A tablet that
+   * remembered dismissals across families would quietly stop asking.
+   */
+  consentDismissed: string[];
 }
 
 export const initialContext: MachineContext = {
@@ -155,6 +168,7 @@ export const initialContext: MachineContext = {
   error: null,
   capacityBlocked: null,
   blockingError: null,
+  consentDismissed: [],
 };
 
 export type MachineEvent =
@@ -167,6 +181,7 @@ export type MachineEvent =
   | { type: "CHILD_TOGGLED"; childId: string }
   | { type: "ROOM_OVERRIDDEN"; childId: string; roomId: string }
   | { type: "CONFIRM_REQUESTED" }
+  | { type: "CONSENT_SET_ASIDE"; householdId: string }
   | {
       type: "CHECKED_IN";
       code: string;
@@ -213,6 +228,7 @@ function clearFamily(ctx: MachineContext): MachineContext {
     error: null,
     capacityBlocked: null,
     blockingError: null,
+    consentDismissed: [],
   };
 }
 
@@ -301,6 +317,14 @@ export function reduce(ctx: MachineContext, event: MachineEvent): MachineContext
     case "CONFIRM_REQUESTED":
       if (ctx.state !== "selecting" || ctx.selectedChildIds.length === 0) return ctx;
       return { ...ctx, state: "confirming", error: null, capacityBlocked: null };
+
+    case "CONSENT_SET_ASIDE":
+      // Idempotent: a volunteer tapping twice must not grow the list.
+      if (ctx.consentDismissed.includes(event.householdId)) return ctx;
+      return {
+        ...ctx,
+        consentDismissed: [...ctx.consentDismissed, event.householdId],
+      };
 
     case "CHECKED_IN":
       // Accepted from `selecting` as well as `confirming`. A committed
