@@ -28,6 +28,17 @@ import type { PickupCandidate } from "../utils/checkInMachine";
 
 const church = () => supabase.schema("church");
 
+/** A classroom remembered for a child. */
+export interface RoomPreference {
+  child_person_id: string;
+  room_id: string;
+  room_name: string;
+  /** School years since it was chosen. >0 means it has climbed and wants confirming. */
+  carried_years: number;
+  set_by_name: string;
+  set_at: string;
+}
+
 export const kidsStationService = {
   async listStations(organizationId: string): Promise<CheckInStation[]> {
     const { data, error } = await church()
@@ -448,5 +459,44 @@ export const kidsStationService = {
       destination: string;
       status: string;
     }[];
+  },
+
+  /**
+   * Remember the classroom a volunteer chose for a child.
+   *
+   * `null` clears it — "Room by grade" in the dropdown is a real answer,
+   * meaning "stop remembering and follow the grade again", and a volunteer
+   * has to be able to undo a choice as easily as they made it.
+   *
+   * The server stamps the school year and the room's grade, so next
+   * September the child climbs one rung of the ladder by itself.
+   */
+  async setRoomPreference(
+    childPersonId: string,
+    roomId: string | null,
+    token?: string | null,
+  ): Promise<void> {
+    const { error } = await church().rpc("kids_set_child_room_preference", {
+      _child_person_id: childPersonId,
+      _room_id: roomId,
+      _shift_token: token ?? null,
+    });
+    throwRpc(error);
+  },
+
+  /** The remembered rooms for a family, so the dropdown opens on them. */
+  async roomPreferences(
+    childPersonIds: string[],
+    kidsSessionId: string | null,
+    token?: string | null,
+  ): Promise<RoomPreference[]> {
+    if (childPersonIds.length === 0) return [];
+    const { data, error } = await church().rpc("kids_child_room_preferences", {
+      _child_person_ids: childPersonIds,
+      _kids_session_id: kidsSessionId,
+      _shift_token: token ?? null,
+    });
+    throwRpc(error);
+    return (data ?? []) as unknown as RoomPreference[];
   },
 };
