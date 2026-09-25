@@ -17,11 +17,11 @@ const supabaseUrl = process.env.VITE_SUPABASE_URL;
 // keeps running either side of the migration - but the legacy one cannot be
 // revoked without rotating the JWT secret, which signs every user out.
 const supabaseServiceKey =
-  process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+  process.env.ALIC_SERVICE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
   console.error('Missing required environment variables');
-  console.error('Required: VITE_SUPABASE_URL, and SUPABASE_SECRET_KEY');
+  console.error('Required: VITE_SUPABASE_URL, and ALIC_SERVICE_KEY');
   console.error('(SUPABASE_SERVICE_ROLE_KEY is accepted as a legacy fallback)');
   process.exit(1);
 }
