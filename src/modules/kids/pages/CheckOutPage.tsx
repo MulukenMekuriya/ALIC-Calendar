@@ -49,6 +49,7 @@ import { kidsStationService, kidsSessionService } from "../services";
 import { errorMessage, isDbError } from "../services/rpcError";
 import type { KidsSession, PickupMatchRow } from "../types";
 import type { PickupCandidate } from "../utils/checkInMachine";
+import { defaultCollector } from "../utils/pickupDefault";
 
 export default function CheckOutPage() {
   const navigate = useNavigate();
@@ -140,9 +141,15 @@ export default function CheckOutPage() {
           else counts.set(c.person_id, { c, n: 1 });
         }
       }
-      setCandidates(
-        [...counts.values()].filter((v) => v.n === lists.length).map((v) => v.c)
-      );
+      const intersection = [...counts.values()]
+        .filter((v) => v.n === lists.length)
+        .map((v) => v.c);
+      setCandidates(intersection);
+
+      // Offer the person who brought them. See utils/pickupDefault for the
+      // three rules — chiefly that two different droppers, or any pickup
+      // restriction in the family, mean no default at all.
+      setCollectorId(defaultCollector(lists, intersection));
     } catch (err) {
       setError(
         isDbError(err, "not_permitted_to_check_out")
@@ -349,6 +356,13 @@ export default function CheckOutPage() {
                   <span className="font-medium">{c.display_name}</span>
                   <span className="block text-xs text-muted-foreground">
                     {c.relationship}
+                    {c.dropped_off && (
+                      /* Says WHY this one is already chosen. Two people in a
+                         household can share a name on this screen, so "the
+                         one who brought them in" is often the only thing
+                         telling them apart. */
+                      <span className="text-primary"> · dropped them off</span>
+                    )}
                   </span>
                 </button>
               ))}

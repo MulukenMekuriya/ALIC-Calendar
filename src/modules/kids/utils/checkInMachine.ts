@@ -71,6 +71,15 @@ export interface PickupCandidate {
   is_authorized: boolean;
   is_guardian: boolean;
   child_has_restriction: boolean;
+  /**
+   * This person handed the child over this morning.
+   *
+   * NOT an authorisation — it rides alongside is_authorized and is_guardian
+   * and changes neither. Bringing a child in does not earn the right to take
+   * them out, and a restricted person is excluded from the list either way.
+   * All it does is decide which name is offered first.
+   */
+  dropped_off?: boolean;
 }
 
 export interface MachineContext {
