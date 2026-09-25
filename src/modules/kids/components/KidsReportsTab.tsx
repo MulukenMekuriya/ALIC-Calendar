@@ -42,6 +42,7 @@ import {
   getDateStamp,
 } from "@/shared/lib/exportPrimitives";
 import { useKidsAttendance, useKidsExceptions } from "../hooks/useKidsLeader";
+import { LatePickupsPanel } from "./LatePickupsPanel";
 import type {
   ExceptionCategory,
   ExceptionRow,
@@ -149,9 +150,14 @@ const EXCEPTION_GROUPS: {
 
 interface KidsReportsTabProps {
   organizationId: string | undefined;
+  /** kids.write — a leader who may send a note or dismiss one. */
+  canReview?: boolean;
 }
 
-export function KidsReportsTab({ organizationId }: KidsReportsTabProps) {
+export function KidsReportsTab({
+  organizationId,
+  canReview = false,
+}: KidsReportsTabProps) {
   const initial = defaultRange();
   const [from, setFrom] = useState(initial.from);
   const [to, setTo] = useState(initial.to);
@@ -311,6 +317,7 @@ export function KidsReportsTab({ organizationId }: KidsReportsTabProps) {
       <Tabs defaultValue="attendance">
         <TabsList>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
+          <TabsTrigger value="late">Late collections</TabsTrigger>
           <TabsTrigger value="exceptions">
             Exceptions
             {(exceptions.data?.length ?? 0) > 0 && (
@@ -439,6 +446,15 @@ export function KidsReportsTab({ organizationId }: KidsReportsTabProps) {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="late" className="pt-4">
+          <LatePickupsPanel
+            organizationId={organizationId}
+            from={from}
+            to={to}
+            canReview={canReview}
+          />
         </TabsContent>
 
         <TabsContent value="exceptions" className="pt-4">

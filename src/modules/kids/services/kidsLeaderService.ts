@@ -112,6 +112,25 @@ export interface ExceptionRow {
   total_count: number;
 }
 
+/** One row from church.kids_late_pickup_report. */
+export interface LatePickupRow {
+  id: string;
+  session_date: string;
+  detected_at: string;
+  child_person_id: string;
+  child_name: string;
+  room_name: string | null;
+  minutes_late: number | null;
+  /** 'checkout' is measured; 'never_collected' means nobody recorded one. */
+  source: "checkout" | "never_collected";
+  status: "recorded" | "notified" | "dismissed";
+  reviewed_by_name: string | null;
+  parent_notified_at: string | null;
+  dismissed_reason: string | null;
+  /** How many times this child was late in the range, for spotting a pattern. */
+  times_in_range: number;
+}
+
 export interface EligibleVolunteer {
   person_id: string;
   volunteer_id: string | null;
@@ -312,6 +331,38 @@ export const kidsLeaderService = {
     });
     throwRpc(error);
     return (data ?? []) as unknown as ExceptionRow[];
+  },
+
+  async latePickups(
+    organizationId: string,
+    from: string,
+    to: string
+  ): Promise<LatePickupRow[]> {
+    const { data, error } = await church().rpc("kids_late_pickup_report", {
+      _organization_id: organizationId,
+      _from: from,
+      _to: to,
+    });
+    throwRpc(error);
+    return (data ?? []) as unknown as LatePickupRow[];
+  },
+
+  /** Send the parent a note. Nothing else queues one. */
+  async notifyLatePickup(id: string, message?: string | null): Promise<number> {
+    const { data, error } = await church().rpc("kids_notify_late_pickup", {
+      _late_pickup_id: id,
+      _message: message ?? null,
+    });
+    throwRpc(error);
+    return (data as number) ?? 0;
+  },
+
+  async dismissLatePickup(id: string, reason: string): Promise<void> {
+    const { error } = await church().rpc("kids_dismiss_late_pickup", {
+      _late_pickup_id: id,
+      _reason: reason,
+    });
+    throwRpc(error);
   },
 
   async eligibleVolunteers(organizationId: string): Promise<EligibleVolunteer[]> {
