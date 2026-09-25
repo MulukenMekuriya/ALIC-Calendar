@@ -51,7 +51,51 @@ export interface ChildConsentState {
   signature_id: string | null;
   signed_at: string | null;
   document_version: number | null;
+  /** When the medical record first changed after that form was signed. */
+  medical_changed_at: string | null;
+  /**
+   * The date the family was told they have until. Set as soon as the form
+   * goes out of date, and the child stays COVERED until it passes — see
+   * resignStatus() in utils/consentState for why that direction matters.
+   */
+  resign_due_by: string | null;
 }
+
+/** A child's medical record, as their own household sees it. */
+export interface ChildMedical {
+  child_person_id: string;
+  child_name: string;
+  /**
+   * False means nobody has ever filled this in — NOT "no allergies". The
+   * distinction is the whole reason the column exists: a form that cannot
+   * tell a stated negative from an unasked question will assert one.
+   */
+  has_record: boolean;
+  allergy_severity: string | null;
+  allergies: string | null;
+  medications: string | null;
+  medical_notes: string | null;
+  special_needs: string | null;
+  special_needs_flag: boolean | null;
+  updated_at: string | null;
+  updated_by_name: string | null;
+}
+
+export interface MedicalUpdateResult {
+  changed: boolean;
+  allergy_label: string | null;
+  consent_now_stale: boolean;
+  resign_due_by: string | null;
+}
+
+/** The four the database permits. There is deliberately no "moderate". */
+export const ALLERGY_SEVERITIES = [
+  "none",
+  "mild",
+  "severe",
+  "life_threatening",
+] as const;
+export type AllergySeverity = (typeof ALLERGY_SEVERITIES)[number];
 
 export const consentService = {
   /**
@@ -128,5 +172,44 @@ export const consentService = {
     });
     throwRpc(error);
     return (data as unknown as ChildConsentState[] | null)?.[0] ?? null;
+  },
+
+  /** A child's medical record, for their own household. */
+  async childMedical(childPersonId: string): Promise<ChildMedical | null> {
+    const { data, error } = await church().rpc("my_child_medical", {
+      _child_person_id: childPersonId,
+    });
+    throwRpc(error);
+    return (data as unknown as ChildMedical[] | null)?.[0] ?? null;
+  },
+
+  /**
+   * A parent says what they know.
+   *
+   * The server derives the classroom label, writes a history row, tells the
+   * Kids Ministry admins, and starts the re-signing clock — all in the one
+   * transaction, so none of it can be half-done. The caller's job is only to
+   * show what came back.
+   */
+  async updateChildMedical(v: {
+    childPersonId: string;
+    allergies?: string | null;
+    allergySeverity?: AllergySeverity | null;
+    medications?: string | null;
+    medicalNotes?: string | null;
+    specialNeeds?: string | null;
+    noKnownConditions?: boolean;
+  }): Promise<MedicalUpdateResult | null> {
+    const { data, error } = await church().rpc("update_child_medical", {
+      _child_person_id: v.childPersonId,
+      _allergies: v.allergies ?? null,
+      _allergy_severity: v.allergySeverity ?? null,
+      _medications: v.medications ?? null,
+      _medical_notes: v.medicalNotes ?? null,
+      _special_needs: v.specialNeeds ?? null,
+      _no_known_conditions: v.noKnownConditions ?? false,
+    });
+    throwRpc(error);
+    return (data as unknown as MedicalUpdateResult[] | null)?.[0] ?? null;
   },
 };

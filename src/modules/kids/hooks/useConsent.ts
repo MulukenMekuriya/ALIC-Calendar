@@ -9,7 +9,7 @@
  * window focus.
  */
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { consentService } from "../services/consentService";
 
 export const consentKeys = {
@@ -19,6 +19,7 @@ export const consentKeys = {
   coverage: (orgId: string) => [...consentKeys.all, "coverage", orgId] as const,
   childState: (childId: string, householdId: string | null) =>
     [...consentKeys.all, "child", childId, householdId ?? "desk"] as const,
+  medical: (childId: string) => [...consentKeys.all, "medical", childId] as const,
 };
 
 export function useConsentDocument(
@@ -65,5 +66,34 @@ export function useChildConsentState(
     queryFn: () => consentService.childState(childPersonId!, forHouseholdId),
     enabled: !!childPersonId,
     staleTime: 60 * 1000,
+  });
+}
+
+export function useChildMedical(childPersonId: string | undefined) {
+  return useQuery({
+    queryKey: consentKeys.medical(childPersonId ?? "none"),
+    queryFn: () => consentService.childMedical(childPersonId!),
+    enabled: !!childPersonId,
+  });
+}
+
+/**
+ * Saving a medical change.
+ *
+ * Invalidates the child's consent state as well as their medical record,
+ * because one save can move both: the record changes, and the signed form
+ * goes out of date with a deadline attached. Leaving the consent state cached
+ * would show a parent "signed and on file" on the same screen that just told
+ * them to fill it in again.
+ */
+export function useUpdateChildMedical() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: consentService.updateChildMedical,
+    onSuccess: (_result, vars) => {
+      qc.invalidateQueries({ queryKey: consentKeys.medical(vars.childPersonId) });
+      qc.invalidateQueries({ queryKey: [...consentKeys.all, "child", vars.childPersonId] });
+      qc.invalidateQueries({ queryKey: consentKeys.all });
+    },
   });
 }
