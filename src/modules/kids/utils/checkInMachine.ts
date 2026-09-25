@@ -61,6 +61,15 @@ export interface CheckedInChild {
   tag_number: number;
   allergy_label: string | null;
   has_restriction: boolean;
+  /**
+   * The consent position of a child who was nonetheless CHECKED IN.
+   *
+   * A note, never a refusal. In warn mode a child with no form on file comes
+   * in exactly as before and this says so, so the desk can mention it while
+   * the parent is still standing there. Null when the form is on file, or
+   * when consent is switched off.
+   */
+  consent_state?: string | null;
 }
 
 /** Someone the database says may collect this child. */
