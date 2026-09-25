@@ -88,15 +88,28 @@ export interface AttendanceRow {
   avg_minutes: number | null;
 }
 
+/** One row from church.kids_exceptions_report. */
+export type ExceptionCategory =
+  | "not_collected"
+  | "refused"
+  | "override"
+  | "error"
+  | "transfer"
+  | "placement";
+
 export interface ExceptionRow {
   occurred_at: string;
   session_date: string | null;
+  /** Seriousness bucket; rows come back most serious first. */
+  category: ExceptionCategory;
   action: string;
-  outcome: string | null;
+  outcome: string;
   child_name: string;
   room_name: string | null;
   actor_name: string | null;
   reason: string | null;
+  /** How many rows MATCHED, which may exceed the 500 returned. */
+  total_count: number;
 }
 
 export interface EligibleVolunteer {
