@@ -547,7 +547,11 @@ async function renderIncident(payload: any): Promise<Uint8Array> {
 // ---------------------------------------------------------------------------
 
 async function sha256Hex(bytes: Uint8Array): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  // .slice().buffer, not the Uint8Array: a view's buffer may be a
+  // SharedArrayBuffer as far as the types are concerned, and digest() only
+  // accepts an ArrayBuffer. The copy is over identical bytes, so the hash is
+  // unchanged - which matters, because these hashes are already stored.
+  const digest = await crypto.subtle.digest("SHA-256", bytes.slice().buffer as ArrayBuffer);
   return Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
