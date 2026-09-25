@@ -526,11 +526,22 @@ BEGIN
        -- unqualified reference here is ambiguous to plpgsql.
        WHERE kids_check_in_secrets.batch_id = _existing.id;
 
+      -- Fifteen columns, matching the widened RETURNS TABLE. A replay reports
+      -- what was already written, and nothing in it was refused - the refusal
+      -- happens on the FIRST call, before the batch exists.
+      --
+      -- This branch is the reason the idempotency key exists, and it is the
+      -- one a signature change is most likely to miss: plpgsql validates
+      -- RETURN QUERY arity at EXECUTION, not at CREATE, so a short select list
+      -- here applies cleanly and then throws 42804 only on a retry after a
+      -- lost response - with the batch already committed, the children already
+      -- in rooms, and a pickup code nobody has seen.
       RETURN QUERY
       SELECT _existing.id, _code, _token, ci.id, ci.child_person_id,
              ci.label_child_name, ci.room_id, ci.label_room_name, ci.tag_number,
              ci.label_allergy_short, ci.has_pickup_restriction,
-             church.household_contact_phone(ci.household_id)
+             church.household_contact_phone(ci.household_id),
+             false, NULL::TEXT, NULL::TEXT
       FROM church.kids_check_ins ci
       WHERE ci.batch_id = _existing.id
       ORDER BY ci.tag_number;
