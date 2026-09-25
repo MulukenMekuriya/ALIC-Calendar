@@ -11,11 +11,18 @@ import * as path from 'path';
 
 // Load environment variables
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// Prefer the newer, independently revocable secret key (sb_secret_...). The
+// legacy SUPABASE_SERVICE_ROLE_KEY still works as a fallback, so this script
+// keeps running either side of the migration - but the legacy one cannot be
+// revoked without rotating the JWT secret, which signs every user out.
+const supabaseServiceKey =
+  process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
   console.error('Missing required environment variables');
-  console.error('Required: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY');
+  console.error('Required: VITE_SUPABASE_URL, and SUPABASE_SECRET_KEY');
+  console.error('(SUPABASE_SERVICE_ROLE_KEY is accepted as a legacy fallback)');
   process.exit(1);
 }
 

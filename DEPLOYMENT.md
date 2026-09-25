@@ -122,7 +122,12 @@ VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your_anon_key_here
 ```
 
-**Important:** Do NOT add `SUPABASE_SERVICE_ROLE_KEY` to Vercel. This is only for local scripts.
+**Important:** Do NOT add any service key to Vercel — not
+`SUPABASE_SECRET_KEY` and not the legacy `SUPABASE_SERVICE_ROLE_KEY`. Vercel
+builds the browser bundle, and anything it can read can end up shipped to a
+browser. These keys bypass Row Level Security entirely. They belong only in
+local scripts and in Supabase's own edge-function secrets, which Supabase
+injects server-side.
 
 ### 4. Deploy
 
