@@ -23,6 +23,12 @@
  * August onward a child is treated as being in the year they are about to
  * start rather than the one they have just finished.
  *
+ * BELOW SCHOOL AGE. Kidventure takes ages 1 to 3, which is one classroom and
+ * therefore one grade — "Ages 1-3" at sort_order 0. The formula already sends
+ * age 3 to 0, so ages 1 and 2 are clamped there rather than continuing down
+ * into negative orders that match no row. A one-year-old and a three-year-old
+ * are suggested the same room because it is the same room.
+ *
  * Only birth YEAR is on file — the plan dropped day-of-month deliberately — so
  * the age here is an approximation and the September cutoff cannot be applied
  * exactly. That is a further reason this is a default and not an assignment.
@@ -32,8 +38,15 @@
 const SCHOOL_YEAR_STARTS_MONTH = 8;
 
 /** Youngest and oldest ages this maps; outside it, no suggestion is offered. */
-const YOUNGEST_AGE = 4;
+const YOUNGEST_AGE = 1;
 const OLDEST_AGE = 18;
+
+/**
+ * The floor of the grade ladder. Ages 1-3 all sit in one nursery-age room, so
+ * everything below Pre-K resolves to the same sort_order rather than stepping
+ * on down into negatives.
+ */
+const YOUNGEST_GRADE_SORT_ORDER = 0;
 
 export interface GradeOption {
   school_grade_id: string;
@@ -58,9 +71,10 @@ export function schoolYearAge(birthYear: number, today: Date): number {
  *
  * Pre-K is 10 and each grade steps by 10, matching church.school_grades, so
  * age 4 -> 10 (Pre-K), age 5 -> 20 (Kindergarten), age 13 -> 100 (Grade 8).
+ * Ages 1, 2 and 3 all return 0, which is "Ages 1-3" — one room, one grade.
  *
- * Returns null outside the range — a two-year-old and a nineteen-year-old both
- * want a human decision, not a guess.
+ * Returns null outside the range — a nineteen-year-old wants a human decision,
+ * not a guess.
  */
 export function suggestedGradeSortOrder(
   birthYear: number | null | undefined,
@@ -69,7 +83,7 @@ export function suggestedGradeSortOrder(
   if (!birthYear || !Number.isFinite(birthYear)) return null;
   const age = schoolYearAge(birthYear, today);
   if (age < YOUNGEST_AGE || age > OLDEST_AGE) return null;
-  return (age - 3) * 10;
+  return Math.max((age - 3) * 10, YOUNGEST_GRADE_SORT_ORDER);
 }
 
 /**
