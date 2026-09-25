@@ -43,6 +43,7 @@ import {
 } from "@/shared/lib/exportPrimitives";
 import { useKidsAttendance, useKidsExceptions } from "../hooks/useKidsLeader";
 import { LatePickupsPanel } from "./LatePickupsPanel";
+import { ConsentCoverageCard } from "./ConsentCoverageCard";
 import type {
   ExceptionCategory,
   ExceptionRow,
@@ -365,6 +366,7 @@ export function KidsReportsTab({
               </Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="consent">Consent</TabsTrigger>
         </TabsList>
 
         <TabsContent value="attendance" className="pt-4">
@@ -618,6 +620,16 @@ export function KidsReportsTab({
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/*
+          * Outside the date range on purpose. Every other pane answers "what
+          * happened between these two dates"; this one answers "where do we
+          * stand today", and wiring it to the range would let somebody scroll
+          * back to September and read 0% as the current position.
+          */}
+        <TabsContent value="consent" className="pt-4">
+          <ConsentCoverageCard organizationId={organizationId} />
         </TabsContent>
       </Tabs>
     </div>
