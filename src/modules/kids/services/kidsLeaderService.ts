@@ -481,6 +481,21 @@ export const kidsLeaderService = {
     throwRpc(error);
   },
 
+  /**
+   * Tell the family. Never available for a safeguarding report - the RPC
+   * refuses it and the table CHECK blocks it besides.
+   */
+  async sendIncidentToParent(
+    id: string,
+    source: "admin" | "teacher" | "both"
+  ): Promise<number> {
+    const { data, error } = await church().rpc("kids_send_incident_to_parent", {
+      _incident_id: id, _source: source,
+    });
+    throwRpc(error);
+    return (data as number) ?? 0;
+  },
+
   async eligibleVolunteers(organizationId: string): Promise<EligibleVolunteer[]> {
     const { data, error } = await church().rpc("kids_eligible_volunteers", {
       _organization_id: organizationId,

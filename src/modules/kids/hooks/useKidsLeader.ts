@@ -256,6 +256,14 @@ export function useAddIncidentNote(orgId: string | undefined) {
   );
 }
 
+export function useSendIncidentToParent(orgId: string | undefined) {
+  return useIncidentMutation(
+    orgId,
+    (v: { id: string; source: "admin" | "teacher" | "both" }) =>
+      kidsLeaderService.sendIncidentToParent(v.id, v.source)
+  );
+}
+
 export function useEligibleVolunteers(organizationId: string | undefined) {
   return useQuery({
     queryKey: kidsLeaderKeys.volunteers(organizationId || ""),
