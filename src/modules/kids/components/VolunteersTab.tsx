@@ -1,13 +1,28 @@
 /**
  * Who is serving in Kids Ministry today, and in which room.
  *
- * The list shows every adult member, not just people who already have a
- * volunteer record — someone helping for the first time has no record yet, and
- * an inner join would hide exactly the person the leader is trying to add.
+ * church.kids_eligible_volunteers returns every adult member of the branch,
+ * and that is deliberate: someone helping for the first time has no volunteer
+ * record yet, and an inner join would hide exactly the person the leader is
+ * trying to add. But 295 names is not a list a leader can work with on a
+ * Sunday morning when they are looking for one of about thirty regulars.
  *
- * A volunteer whose background check is marked `restricted` is refused
- * server-side by assign_session_staff, on every path. This screen greys them
- * out so the leader never gets that far, but the refusal is the real control.
+ * So the picker opens on the KIDS TEAM — anyone with a volunteer record, plus
+ * anyone currently assigned to a classroom — and puts the rest of the church
+ * behind a button that says how many it is hiding. Nobody is removed from
+ * reach; they are one click away, and the count makes it obvious the list is
+ * filtered rather than short.
+ *
+ * The two sets genuinely differ. In production church.kids_volunteers is empty
+ * while four people hold current classroom assignments, so a list built on
+ * volunteer records alone would open on nobody at all.
+ *
+ * ALIC does not run background checks — everyone serving is a member of the
+ * church — so nothing here reports a clearance. The one safeguarding fact that
+ * survives is `may_not_serve_with_children`, a decision the church has made
+ * about an individual. assign_session_staff refuses them server-side on every
+ * path; this screen greys them out so the leader never gets that far, but the
+ * refusal is the real control.
  */
 
 import { useMemo, useState } from "react";
@@ -21,7 +36,6 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
-import { Badge } from "@/shared/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -29,9 +43,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
-import { Loader2, Search, UserMinus, UserPlus, ShieldAlert } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  Search,
+  UserMinus,
+  UserPlus,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
+  useClassroomTeachers,
   useEligibleVolunteers,
   useSessionStaffing,
   useAssignStaff,
@@ -65,12 +87,14 @@ export function VolunteersTab({
   const { data: people, isLoading } = useEligibleVolunteers(organizationId);
   const { data: staffing } = useSessionStaffing(activeSession || undefined);
   const { data: board } = useLiveBoard(organizationId);
+  const { data: teachers } = useClassroomTeachers(organizationId);
   const assign = useAssignStaff(organizationId);
   const endStaff = useEndStaff(organizationId, activeSession || undefined);
 
   const [search, setSearch] = useState("");
   const [roomId, setRoomId] = useState(NO_ROOM);
   const [role, setRole] = useState("classroom_volunteer");
+  const [showEveryone, setShowEveryone] = useState(false);
 
   // Rooms of the selected session only, de-duplicated: the board carries one
   // row per session-room pair.
@@ -86,11 +110,40 @@ export function VolunteersTab({
   const assignedIds = new Set((staffing ?? []).map((s) => s.person_id));
   const roomNameById = new Map(rooms.map((r) => [r.id, r.name]));
 
-  const filtered = (people ?? []).filter((person) => {
+  // The kids team. on_kids_team is a kids module grant or a kids_volunteers
+  // row, both resolved server-side; classroom assignments are unioned in here
+  // because this component already has them. In production that is about 44
+  // people out of 660 adults.
+  // on_kids_team arrives with a migration, and the client cannot compute it -
+  // a module grant is keyed by auth user, which the browser cannot read. So if
+  // the server is not sending the field yet, the honest thing is to show
+  // EVERYONE rather than to filter on a value that is undefined for every row.
+  //
+  // Getting this wrong is not hypothetical: filtering on undefined left the
+  // picker showing the three assigned classroom teachers out of 660 adults,
+  // which reads as a broken directory rather than as a filter.
+  const serverKnowsTeam = useMemo(
+    () => (people ?? []).some((p) => p.on_kids_team !== undefined),
+    [people]
+  );
+
+  const teamIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const p of people ?? []) if (p.on_kids_team) ids.add(p.person_id);
+    for (const t of teachers ?? []) ids.add(t.person_id);
+    return ids;
+  }, [people, teachers]);
+
+  const candidates = (people ?? []).filter((person) => {
     if (assignedIds.has(person.person_id)) return false;
     if (!search.trim()) return true;
     return person.display_name.toLowerCase().includes(search.trim().toLowerCase());
   });
+
+  const onTeam = candidates.filter((p) => teamIds.has(p.person_id));
+  const offTeam = candidates.filter((p) => !teamIds.has(p.person_id));
+  const filtering = serverKnowsTeam && !showEveryone;
+  const filtered = filtering ? onTeam : candidates;
 
   if (sessions.length === 0) {
     return (
@@ -158,15 +211,6 @@ export function VolunteersTab({
                       {ROLES.find((r) => r.value === row.role)?.label ?? row.role}
                     </p>
                   </div>
-                  {row.was_background_check_current === false && (
-                    <Badge
-                      variant="outline"
-                      className="border-amber-400 gap-1 shrink-0"
-                      title="Background check was not current when assigned"
-                    >
-                      <ShieldAlert className="h-3 w-3" />
-                    </Badge>
-                  )}
                   {canManage && (
                     <Button
                       variant="ghost"
@@ -199,6 +243,7 @@ export function VolunteersTab({
               <CardTitle className="text-base">Assign someone</CardTitle>
               <CardDescription>
                 Pick a room and role, then add people to it.
+                {filtering && " Showing the kids team."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -253,7 +298,7 @@ export function VolunteersTab({
                   </div>
                 )}
                 {filtered.map((person) => {
-                  const restricted = person.background_check_status === "restricted";
+                  const restricted = person.may_not_serve_with_children;
                   return (
                     <div
                       key={person.person_id}
@@ -261,13 +306,17 @@ export function VolunteersTab({
                     >
                       <div className="min-w-0 flex-1">
                         <p className="text-sm truncate">{person.display_name}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {restricted
-                            ? "Restricted — cannot serve with children"
-                            : person.is_eligible
-                              ? "Background check current"
-                              : `Background check: ${person.background_check_status.replace("_", " ")}`}
-                        </p>
+                        {restricted ? (
+                          <p className="text-xs text-muted-foreground truncate">
+                            Not to be placed with children
+                          </p>
+                        ) : (
+                          person.phone && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              {person.phone}
+                            </p>
+                          )
+                        )}
                       </div>
                       <Button
                         variant="outline"
@@ -300,10 +349,42 @@ export function VolunteersTab({
                 })}
                 {!isLoading && filtered.length === 0 && (
                   <p className="py-6 text-center text-sm text-muted-foreground">
-                    {search ? "Nobody matches that." : "Everyone is already assigned."}
+                    {search
+                      ? !filtering || offTeam.length === 0
+                        ? "Nobody matches that."
+                        : "Nobody on the kids team matches that."
+                      : !filtering
+                        ? "Everyone is already assigned."
+                        : "Everyone on the kids team is already assigned."}
                   </p>
                 )}
               </div>
+
+              {/* Never hide the rest of the church without saying how many. A
+                  short list and a filtered list look identical otherwise. */}
+              {!isLoading && filtering && offTeam.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => setShowEveryone(true)}
+                >
+                  <ChevronDown className="h-4 w-4" />
+                  More options — {offTeam.length} other church member
+                  {offTeam.length === 1 ? "" : "s"}
+                </Button>
+              )}
+              {!isLoading && serverKnowsTeam && showEveryone && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => setShowEveryone(false)}
+                >
+                  <ChevronUp className="h-4 w-4" />
+                  Show the kids team only
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}

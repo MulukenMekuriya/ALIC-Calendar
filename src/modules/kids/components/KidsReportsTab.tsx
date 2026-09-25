@@ -7,7 +7,7 @@
  * Sundays that most need reviewing.
  */
 
-import { useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import {
   Card,
   CardContent,
@@ -24,11 +24,17 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
-import { Download, Loader2 } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Download,
+  Loader2,
+} from "lucide-react";
 import {
   toCSV,
   withUTF8BOM,
@@ -36,6 +42,16 @@ import {
   getDateStamp,
 } from "@/shared/lib/exportPrimitives";
 import { useKidsAttendance, useKidsExceptions } from "../hooks/useKidsLeader";
+import { LatePickupsPanel } from "./LatePickupsPanel";
+import type {
+  ExceptionCategory,
+  ExceptionRow,
+} from "../services/kidsLeaderService";
+import {
+  groupByDay,
+  sumAttendance,
+  type AttendanceTotals,
+} from "../utils/attendanceTotals";
 
 /** Default window: the last 12 weeks, which is about a quarter of Sundays. */
 function defaultRange() {
@@ -45,11 +61,123 @@ function defaultRange() {
   return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) };
 }
 
-interface KidsReportsTabProps {
-  organizationId: string | undefined;
+/**
+ * The five numeric cells of a total row. Shared so a day subtotal and the
+ * grand total cannot drift apart in which columns they fill or how they
+ * align — the bug where a footer silently omits a column is invisible until
+ * somebody adds the numbers up by hand.
+ */
+function TotalCells({ totals }: { totals: AttendanceTotals }) {
+  return (
+    <>
+      <TableCell className="text-right font-medium tabular-nums">
+        {totals.children}
+      </TableCell>
+      <TableCell className="text-right font-medium tabular-nums">
+        {totals.first_time_visitors}
+      </TableCell>
+      <TableCell className="text-right font-medium tabular-nums">
+        {totals.volunteers}
+      </TableCell>
+      <TableCell className="text-right font-medium tabular-nums">
+        {totals.overrides}
+      </TableCell>
+      <TableCell className="text-right font-medium tabular-nums">
+        {totals.not_checked_out}
+      </TableCell>
+    </>
+  );
 }
 
-export function KidsReportsTab({ organizationId }: KidsReportsTabProps) {
+/**
+ * How each category of exception is introduced, in the order the SQL returns
+ * them. Grouping rather than one flat list, because 164 children nobody
+ * recorded collecting and 108 routine age-band placements are not the same
+ * kind of event and must not share a scrollbar.
+ */
+const EXCEPTION_GROUPS: {
+  category: ExceptionCategory;
+  title: string;
+  blurb: string;
+  tone: "serious" | "neutral";
+  startsOpen: boolean;
+}[] = [
+  {
+    category: "not_collected",
+    title: "Never collected",
+    blurb:
+      "Nobody recorded collecting these children. The record was closed off automatically after the service.",
+    tone: "serious",
+    startsOpen: true,
+  },
+  {
+    category: "refused",
+    title: "Refused",
+    blurb: "Pickup codes that did not match, and blocked pickup attempts.",
+    tone: "serious",
+    startsOpen: true,
+  },
+  {
+    category: "override",
+    title: "Overrides",
+    blurb: "A leader released a child, or a full room was used anyway.",
+    tone: "serious",
+    startsOpen: true,
+  },
+  {
+    category: "error",
+    title: "Errors",
+    blurb: "Something failed part-way through.",
+    tone: "serious",
+    startsOpen: true,
+  },
+  {
+    category: "transfer",
+    title: "Transfers",
+    blurb: "Children moved between classrooms mid-service.",
+    tone: "neutral",
+    startsOpen: false,
+  },
+  {
+    category: "placement",
+    title: "Placed without a grade",
+    blurb:
+      "These children have no school grade on file, so check-in used their age instead. Worth fixing in the directory, but nothing went wrong on the day.",
+    tone: "neutral",
+    startsOpen: false,
+  },
+];
+
+/**
+ * Where rows land when the server does not group them.
+ *
+ * `category` arrives with a migration. Until that is deployed — and again if it
+ * is ever rolled back — every row comes back without one, and grouping by a
+ * field that does not exist would render NOTHING while the tab badge still
+ * said 124. A safety report that silently shows an empty list is worse than
+ * the unsorted list it replaced, so unknown and missing categories fall
+ * through to here rather than disappearing.
+ */
+const UNGROUPED = {
+  category: "__ungrouped__" as ExceptionCategory,
+  title: "Exceptions",
+  blurb: "Overrides, refused pickups and children never collected.",
+  tone: "serious" as const,
+  startsOpen: true,
+};
+
+const KNOWN_CATEGORIES = new Set<string>(EXCEPTION_GROUPS.map((g) => g.category));
+
+interface KidsReportsTabProps {
+  organizationId: string | undefined;
+  /** kids.write — a leader who may send a note or dismiss one. */
+  canReview?: boolean;
+}
+
+export function KidsReportsTab({
+  organizationId,
+  canReview = false,
+}: KidsReportsTabProps) {
   const initial = defaultRange();
   const [from, setFrom] = useState(initial.from);
   const [to, setTo] = useState(initial.to);
@@ -57,19 +185,94 @@ export function KidsReportsTab({ organizationId }: KidsReportsTabProps) {
   const attendance = useKidsAttendance(organizationId, from, to);
   const exceptions = useKidsExceptions(organizationId, from, to);
 
+  const days = useMemo(() => groupByDay(attendance.data ?? []), [attendance.data]);
+  const grand = useMemo(() => sumAttendance(attendance.data ?? []), [attendance.data]);
+
+  const [openGroups, setOpenGroups] = useState<
+    Partial<Record<ExceptionCategory, boolean>>
+  >({});
+
+  const byCategory = useMemo(() => {
+    const map = new Map<ExceptionCategory, ExceptionRow[]>();
+    for (const row of exceptions.data ?? []) {
+      // A row whose category the client does not recognise still has to be
+      // shown. Never drop a safety row on the floor because a column is
+      // missing or a value is newer than this build.
+      const key = KNOWN_CATEGORIES.has(row.category)
+        ? row.category
+        : UNGROUPED.category;
+      const bucket = map.get(key);
+      if (bucket) bucket.push(row);
+      else map.set(key, [row]);
+    }
+    return map;
+  }, [exceptions.data]);
+
+  // Only offer the groups that actually have rows, plus the catch-all when
+  // anything landed in it.
+  const groupsToRender = useMemo(
+    () =>
+      byCategory.has(UNGROUPED.category)
+        ? [...EXCEPTION_GROUPS, UNGROUPED]
+        : EXCEPTION_GROUPS,
+    [byCategory]
+  );
+
+  // total_count is how many rows MATCHED; the RPC returns at most 500. The
+  // badge and the banner both report the true number, because the old screen
+  // showed the truncated one as though it were the whole story.
+  // total_count also arrives with that migration. Falling back to the number
+  // of rows in hand keeps the badge honest rather than showing 0.
+  const exceptionTotal =
+    exceptions.data?.[0]?.total_count ?? exceptions.data?.length ?? 0;
+  const truncated = exceptionTotal > (exceptions.data?.length ?? 0);
+
   function exportAttendance() {
-    const rows = (attendance.data ?? []).map((row) => [
-      row.session_date,
-      row.service_label,
-      row.room_name,
-      row.age_band_name,
-      row.children,
-      row.first_time_visitors,
-      row.volunteers,
-      row.overrides,
-      row.not_checked_out,
-      row.avg_minutes,
-    ]);
+    // Each day's rooms, then that day's total, then a grand total — the same
+    // shape as the screen, so a spreadsheet and the report agree.
+    const rows: (string | number | null)[][] = [];
+    for (const day of days) {
+      for (const row of day.rows) {
+        rows.push([
+          row.session_date,
+          row.service_label,
+          row.room_name,
+          row.age_band_name,
+          row.children,
+          row.first_time_visitors,
+          row.volunteers,
+          row.overrides,
+          row.not_checked_out,
+          row.avg_minutes,
+        ]);
+      }
+      rows.push([
+        day.session_date,
+        day.serviceCount > 1 ? `Total (${day.serviceCount} services)` : "Total",
+        "",
+        "",
+        day.totals.children,
+        day.totals.first_time_visitors,
+        day.totals.volunteers,
+        day.totals.overrides,
+        day.totals.not_checked_out,
+        day.totals.avg_minutes,
+      ]);
+    }
+    if (days.length > 1) {
+      rows.push([
+        "",
+        `All ${days.length} days`,
+        "",
+        "",
+        grand.children,
+        grand.first_time_visitors,
+        grand.volunteers,
+        grand.overrides,
+        grand.not_checked_out,
+        grand.avg_minutes,
+      ]);
+    }
     downloadFile(
       withUTF8BOM(
         toCSV(
@@ -97,6 +300,7 @@ export function KidsReportsTab({ organizationId }: KidsReportsTabProps) {
     const rows = (exceptions.data ?? []).map((row) => [
       row.occurred_at,
       row.session_date,
+      row.category,
       row.action,
       row.outcome,
       row.child_name,
@@ -107,7 +311,17 @@ export function KidsReportsTab({ organizationId }: KidsReportsTabProps) {
     downloadFile(
       withUTF8BOM(
         toCSV(
-          ["When", "Service date", "Event", "Outcome", "Child", "Room", "By", "Reason"],
+          [
+            "When",
+            "Service date",
+            "Category",
+            "Event",
+            "Outcome",
+            "Child",
+            "Room",
+            "By",
+            "Reason",
+          ],
           rows
         )
       ),
@@ -142,11 +356,12 @@ export function KidsReportsTab({ organizationId }: KidsReportsTabProps) {
       <Tabs defaultValue="attendance">
         <TabsList>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
+          <TabsTrigger value="late">Late collections</TabsTrigger>
           <TabsTrigger value="exceptions">
             Exceptions
             {(exceptions.data?.length ?? 0) > 0 && (
               <Badge variant="secondary" className="ml-1.5">
-                {exceptions.data?.length}
+                {exceptionTotal || exceptions.data?.length}
               </Badge>
             )}
           </TabsTrigger>
@@ -195,53 +410,90 @@ export function KidsReportsTab({ organizationId }: KidsReportsTabProps) {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {attendance.data?.map((row, index) => (
-                        <TableRow key={`${row.session_date}-${row.room_name}-${index}`}>
-                          <TableCell className="whitespace-nowrap">
-                            {row.session_date}
-                            <span className="block text-xs text-muted-foreground">
-                              {row.service_label}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            {row.room_name}
-                            <span className="block text-xs text-muted-foreground">
-                              {row.age_band_name ?? "—"}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            {row.children}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            {row.first_time_visitors}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            {row.volunteers}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            {row.overrides > 0 ? (
-                              <Badge variant="outline" className="border-amber-400">
-                                {row.overrides}
-                              </Badge>
-                            ) : (
-                              0
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            {row.not_checked_out > 0 ? (
-                              <Badge variant="destructive">{row.not_checked_out}</Badge>
-                            ) : (
-                              0
-                            )}
-                          </TableCell>
-                        </TableRow>
+                      {days.map((day) => (
+                        <Fragment key={day.session_date}>
+                          {day.rows.map((row, index) => (
+                            <TableRow key={`${row.room_name}-${index}`}>
+                              <TableCell className="whitespace-nowrap">
+                                {row.session_date}
+                                <span className="block text-xs text-muted-foreground">
+                                  {row.service_label}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                {row.room_name}
+                                <span className="block text-xs text-muted-foreground">
+                                  {row.age_band_name ?? "—"}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums">
+                                {row.children}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums">
+                                {row.first_time_visitors}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums">
+                                {row.volunteers}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums">
+                                {row.overrides > 0 ? (
+                                  <Badge variant="outline" className="border-amber-400">
+                                    {row.overrides}
+                                  </Badge>
+                                ) : (
+                                  0
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums">
+                                {row.not_checked_out > 0 ? (
+                                  <Badge variant="destructive">
+                                    {row.not_checked_out}
+                                  </Badge>
+                                ) : (
+                                  0
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          <TableRow className="border-t-2 bg-muted/40 hover:bg-muted/40">
+                            <TableCell colSpan={2} className="font-medium">
+                              Total for {day.session_date}
+                              {day.serviceCount > 1 && (
+                                <span className="block text-xs font-normal text-muted-foreground">
+                                  across {day.serviceCount} services — a child at
+                                  more than one is counted once per service
+                                </span>
+                              )}
+                            </TableCell>
+                            <TotalCells totals={day.totals} />
+                          </TableRow>
+                        </Fragment>
                       ))}
                     </TableBody>
+                    {days.length > 1 && (
+                      <TableFooter>
+                        <TableRow className="hover:bg-transparent">
+                          <TableCell colSpan={2} className="font-semibold">
+                            All {days.length} days
+                          </TableCell>
+                          <TotalCells totals={grand} />
+                        </TableRow>
+                      </TableFooter>
+                    )}
                   </Table>
                 </div>
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="late" className="pt-4">
+          <LatePickupsPanel
+            organizationId={organizationId}
+            from={from}
+            to={to}
+            canReview={canReview}
+          />
         </TabsContent>
 
         <TabsContent value="exceptions" className="pt-4">
@@ -250,8 +502,8 @@ export function KidsReportsTab({ organizationId }: KidsReportsTabProps) {
               <div>
                 <CardTitle className="text-base">Exceptions</CardTitle>
                 <CardDescription>
-                  Overrides, blocked pickups and failed codes — including
-                  attempts that were refused.
+                  Children never collected, refused pickups, overrides and
+                  errors — including attempts that left no check-in behind.
                 </CardDescription>
               </div>
               <Button
@@ -274,40 +526,94 @@ export function KidsReportsTab({ organizationId }: KidsReportsTabProps) {
                   Nothing to review in this period.
                 </p>
               ) : (
-                <div className="space-y-2">
-                  {exceptions.data?.map((row, index) => (
-                    <div
-                      key={`${row.occurred_at}-${index}`}
-                      className="rounded-md border p-3 space-y-1"
-                    >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge
-                          variant={
-                            row.outcome === "denied" ? "destructive" : "outline"
+                <div className="space-y-4">
+                  {truncated && (
+                    <p className="rounded-md border border-amber-400 p-2 text-xs text-amber-700 dark:text-amber-500">
+                      Showing the first {exceptions.data?.length} of{" "}
+                      {exceptionTotal}. Narrow the dates to see the rest.
+                    </p>
+                  )}
+                  {groupsToRender.map((group) => {
+                    const rows = byCategory.get(group.category);
+                    if (!rows || rows.length === 0) return null;
+                    const open = openGroups[group.category] ?? group.startsOpen;
+                    return (
+                      <div key={group.category}>
+                        <button
+                          type="button"
+                          className="flex w-full items-center gap-2 rounded-md px-1 py-1.5 text-left hover:bg-muted/50"
+                          onClick={() =>
+                            setOpenGroups((g) => ({ ...g, [group.category]: !open }))
                           }
                         >
-                          {row.action.replace(/_/g, " ")}
-                        </Badge>
-                        <span className="text-sm font-medium">{row.child_name}</span>
-                        {row.room_name && (
-                          <span className="text-xs text-muted-foreground">
-                            {row.room_name}
-                          </span>
-                        )}
-                        <span className="ml-auto text-xs text-muted-foreground">
-                          {new Date(row.occurred_at).toLocaleString()}
-                        </span>
-                      </div>
-                      {row.reason && (
-                        <p className="text-sm text-muted-foreground">{row.reason}</p>
-                      )}
-                      {row.actor_name && (
-                        <p className="text-xs text-muted-foreground">
-                          by {row.actor_name}
+                          {open ? (
+                            <ChevronDown className="h-4 w-4 shrink-0" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 shrink-0" />
+                          )}
+                          <span className="text-sm font-medium">{group.title}</span>
+                          <Badge
+                            variant={
+                              group.tone === "serious" ? "destructive" : "secondary"
+                            }
+                          >
+                            {rows.length}
+                          </Badge>
+                        </button>
+                        <p className="pb-2 pl-7 text-xs text-muted-foreground">
+                          {group.blurb}
                         </p>
-                      )}
-                    </div>
-                  ))}
+                        {open && (
+                          <div className="space-y-2 pl-7">
+                            {rows.map((row, index) => (
+                              <div
+                                key={`${row.occurred_at}-${index}`}
+                                className="rounded-md border p-3 space-y-1"
+                              >
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <Badge
+                                    variant={
+                                      group.tone === "serious"
+                                        ? "destructive"
+                                        : "outline"
+                                    }
+                                  >
+                                    {row.action.replace(/_/g, " ")}
+                                  </Badge>
+                                  {row.outcome !== "success" && (
+                                    <Badge variant="outline">{row.outcome}</Badge>
+                                  )}
+                                  <span className="text-sm font-medium">
+                                    {row.child_name}
+                                  </span>
+                                  {row.room_name && (
+                                    <span className="text-xs text-muted-foreground">
+                                      {row.room_name}
+                                    </span>
+                                  )}
+                                  <span className="ml-auto text-xs text-muted-foreground">
+                                    {row.session_date ?? "—"}
+                                    {" · "}
+                                    {new Date(row.occurred_at).toLocaleTimeString()}
+                                  </span>
+                                </div>
+                                {row.reason && (
+                                  <p className="text-sm text-muted-foreground">
+                                    {row.reason}
+                                  </p>
+                                )}
+                                {row.actor_name && (
+                                  <p className="text-xs text-muted-foreground">
+                                    by {row.actor_name}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

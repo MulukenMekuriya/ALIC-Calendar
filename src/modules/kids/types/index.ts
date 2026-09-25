@@ -18,8 +18,6 @@ export type RoomKidsConfig = Tables<ChurchSchema, "room_kids_config">;
 export interface VolunteerOption {
   volunteer_id: string;
   display_name: string;
-  is_eligible: boolean;
-  background_check_status: string;
 }
 
 /** One row from church.station_search_households. */
@@ -48,6 +46,19 @@ export interface CheckInResultRow {
   tag_number: number;
   allergy_label: string | null;
   has_restriction: boolean;
+  /**
+   * Set when the database declined this child. Optional because the columns
+   * arrive with a later migration: against today's RPC these are `undefined`,
+   * which is falsy, so the desk behaves exactly as it does now.
+   *
+   * A refusal is returned as DATA rather than raised, because a RAISE aborts
+   * the transaction and would destroy the batch, the pickup secret and every
+   * sibling already inserted. One blocked child must not turn a family of
+   * three away.
+   */
+  refused?: boolean;
+  refusal_code?: string | null;
+  refusal_message?: string | null;
 }
 
 /** One row from church.resolve_pickup. */

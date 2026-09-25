@@ -62,9 +62,9 @@ import {
   Trash2,
   UserPlus,
   X,
-  ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
+import { sortClassrooms, type ClassroomSort } from "../utils/classroomOrder";
 import {
   useClassrooms,
   useUpsertClassroom,
@@ -106,6 +106,8 @@ export function ClassroomsTab({ organizationId, canManage }: ClassroomsTabProps)
   const [creating, setCreating] = useState(false);
   const [retiring, setRetiring] = useState<ClassroomRow | null>(null);
   const [staffing, setStaffing] = useState<ClassroomRow | null>(null);
+  // Defaults to the ministry's own order, which is what the live board shows.
+  const [sort, setSort] = useState<ClassroomSort>("order");
 
   if (isLoading) {
     return (
@@ -118,8 +120,18 @@ export function ClassroomsTab({ organizationId, canManage }: ClassroomsTabProps)
   const rooms = data?.rooms ?? [];
   const grades = data?.grades ?? [];
   const ageBands = data?.ageBands ?? [];
-  const classrooms = rooms.filter((r) => r.config?.is_checkin_location);
-  const others = rooms.filter((r) => !r.config?.is_checkin_location);
+  const classrooms = sortClassrooms(
+    rooms.filter((r) => r.config?.is_checkin_location),
+    grades,
+    sort
+  );
+  // "Other rooms" are not classrooms and have no order or grade of their own,
+  // so they stay alphabetical whatever the classrooms are sorted by.
+  const others = sortClassrooms(
+    rooms.filter((r) => !r.config?.is_checkin_location),
+    grades,
+    "name"
+  );
   const ungraded = classrooms.filter((r) => !r.config?.school_grade_id);
 
   async function save(values: ClassroomFormValues) {
@@ -182,12 +194,30 @@ export function ClassroomsTab({ organizationId, canManage }: ClassroomsTabProps)
               children at check-in.
             </CardDescription>
           </div>
-          {canManage && (
-            <Button size="sm" onClick={() => setCreating(true)}>
-              <Plus className="h-4 w-4" />
-              Add classroom
-            </Button>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            <Label htmlFor="classroom-sort" className="text-xs shrink-0">
+              Sort by
+            </Label>
+            <Select
+              value={sort}
+              onValueChange={(v) => setSort(v as ClassroomSort)}
+            >
+              <SelectTrigger id="classroom-sort" className="h-9 w-[7.5rem]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="order">Order</SelectItem>
+                <SelectItem value="name">Name</SelectItem>
+                <SelectItem value="grade">Grade</SelectItem>
+              </SelectContent>
+            </Select>
+            {canManage && (
+              <Button size="sm" onClick={() => setCreating(true)}>
+                <Plus className="h-4 w-4" />
+                Add classroom
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-2">
           {classrooms.length === 0 && (
@@ -327,7 +357,6 @@ function RoomRow({
   const ordered = [...teachers].sort(
     (a, b) => Number(b.is_lead) - Number(a.is_lead)
   );
-  const barred = ordered.filter((t) => !t.is_eligible);
 
   return (
     <div className="rounded-md border p-3 space-y-2">
@@ -393,7 +422,6 @@ function RoomRow({
                 variant={t.is_lead ? "default" : "secondary"}
                 className="gap-1 font-normal"
               >
-                {!t.is_eligible && <ShieldAlert className="h-3 w-3" />}
                 {t.display_name}
                 {t.is_lead && " · lead"}
               </Badge>
@@ -402,12 +430,6 @@ function RoomRow({
         </div>
       )}
 
-      {barred.length > 0 && (
-        <p className="text-xs text-amber-700 dark:text-amber-500">
-          Background check not current for{" "}
-          {barred.map((t) => t.display_name).join(", ")}.
-        </p>
-      )}
     </div>
   );
 }
@@ -433,7 +455,9 @@ function TeachersDialog({
   const assigned = new Set(teachers.map((t) => t.person_id));
   const candidates = (people ?? []).filter((p) => {
     if (assigned.has(p.person_id)) return false;
-    if (p.background_check_status === "restricted") return false;
+    // A safeguarding decision the church has made about this person. Not a
+    // background check - ALIC does not run them.
+    if (p.may_not_serve_with_children) return false;
     if (!search.trim()) return true;
     return p.display_name.toLowerCase().includes(search.trim().toLowerCase());
   });
@@ -472,11 +496,6 @@ function TeachersDialog({
                     {t.phone ? ` · ${t.phone}` : ""}
                   </p>
                 </div>
-                {!t.is_eligible && (
-                  <Badge variant="outline" className="border-amber-400 gap-1">
-                    <ShieldAlert className="h-3 w-3" />
-                  </Badge>
-                )}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -532,11 +551,11 @@ function TeachersDialog({
                 >
                   <div className="min-w-0 flex-1">
                     <p className="text-sm truncate">{person.display_name}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {person.is_eligible
-                        ? "Background check current"
-                        : `Background check: ${person.background_check_status.replace("_", " ")}`}
-                    </p>
+                    {person.phone && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        {person.phone}
+                      </p>
+                    )}
                   </div>
                   <Button
                     variant="outline"

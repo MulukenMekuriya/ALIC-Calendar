@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/shared/components/ui/sonner";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
 import { PageLoader } from "@/shared/components/ui/loading";
 import { Suspense, useEffect } from "react";
+import { ErrorBoundary } from "@/shared/components/ErrorBoundary";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   BrowserRouter,
@@ -182,11 +183,17 @@ const ProtectedRoute = ({
     return <Navigate to={fallbackTo} replace />;
   }
 
-  return <>{children}</>;
+  // A second net per routed screen. A failure inside one page then shows a
+  // panel in place of that page, and the sidebar still works, so somebody can
+  // navigate away instead of reloading blind.
+  return <ErrorBoundary what="this page">{children}</ErrorBoundary>;
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  // The outermost net. Without it, any render-time exception anywhere in the
+  // tree unmounts the whole root and leaves a white page with no way back.
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -434,7 +441,8 @@ const App = () => (
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
-  </QueryClientProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

@@ -88,15 +88,47 @@ export interface AttendanceRow {
   avg_minutes: number | null;
 }
 
+/** One row from church.kids_exceptions_report. */
+export type ExceptionCategory =
+  | "not_collected"
+  | "refused"
+  | "override"
+  | "error"
+  | "transfer"
+  | "placement";
+
 export interface ExceptionRow {
   occurred_at: string;
   session_date: string | null;
+  /** Seriousness bucket; rows come back most serious first. */
+  category: ExceptionCategory;
   action: string;
-  outcome: string | null;
+  outcome: string;
   child_name: string;
   room_name: string | null;
   actor_name: string | null;
   reason: string | null;
+  /** How many rows MATCHED, which may exceed the 500 returned. */
+  total_count: number;
+}
+
+/** One row from church.kids_late_pickup_report. */
+export interface LatePickupRow {
+  id: string;
+  session_date: string;
+  detected_at: string;
+  child_person_id: string;
+  child_name: string;
+  room_name: string | null;
+  minutes_late: number | null;
+  /** 'checkout' is measured; 'never_collected' means nobody recorded one. */
+  source: "checkout" | "never_collected";
+  status: "recorded" | "notified" | "dismissed";
+  reviewed_by_name: string | null;
+  parent_notified_at: string | null;
+  dismissed_reason: string | null;
+  /** How many times this child was late in the range, for spotting a pattern. */
+  times_in_range: number;
 }
 
 export interface EligibleVolunteer {
@@ -104,12 +136,21 @@ export interface EligibleVolunteer {
   volunteer_id: string | null;
   display_name: string;
   phone: string | null;
-  background_check_status: string;
-  background_check_expires_on: string | null;
-  training_completed_on: string | null;
   is_active: boolean;
   can_override: boolean;
-  is_eligible: boolean;
+  /**
+   * A safeguarding decision the church has made about this person, not a
+   * background-check result — ALIC does not run background checks. False for
+   * everyone unless a leader has set it.
+   */
+  may_not_serve_with_children: boolean;
+  /**
+   * Already in the Children's Ministry: a kids module grant, or a
+   * church.kids_volunteers row. Computed server-side because the grant lives
+   * in church.module_grants keyed by auth user, which the client cannot read.
+   * Classroom assignments are unioned in by the caller, which already has them.
+   */
+  on_kids_team: boolean;
 }
 
 export interface StaffingRow {
@@ -120,7 +161,6 @@ export interface StaffingRow {
   role: string;
   started_at: string;
   ended_at: string | null;
-  was_background_check_current: boolean | null;
 }
 
 /** One standing teaching assignment for a classroom. */
@@ -133,8 +173,6 @@ export interface ClassroomTeacher {
   phone: string | null;
   role: string;
   is_lead: boolean;
-  background_check_status: string;
-  is_eligible: boolean;
 }
 
 /** One child who has not been collected. */
@@ -293,6 +331,57 @@ export const kidsLeaderService = {
     });
     throwRpc(error);
     return (data ?? []) as unknown as ExceptionRow[];
+  },
+
+  async latePickups(
+    organizationId: string,
+    from: string,
+    to: string
+  ): Promise<LatePickupRow[]> {
+    const { data, error } = await church().rpc("kids_late_pickup_report", {
+      _organization_id: organizationId,
+      _from: from,
+      _to: to,
+    });
+    throwRpc(error);
+    return (data ?? []) as unknown as LatePickupRow[];
+  },
+
+  /** Send the parent a note. Nothing else queues one. */
+  async notifyLatePickup(id: string, message?: string | null): Promise<number> {
+    const { data, error } = await church().rpc("kids_notify_late_pickup", {
+      _late_pickup_id: id,
+      _message: message ?? null,
+    });
+    throwRpc(error);
+    return (data as number) ?? 0;
+  },
+
+  async dismissLatePickup(id: string, reason: string): Promise<void> {
+    const { error } = await church().rpc("kids_dismiss_late_pickup", {
+      _late_pickup_id: id,
+      _reason: reason,
+    });
+    throwRpc(error);
+  },
+
+  /**
+   * Hold a child out of the next check-in. kids_admin only, reason required,
+   * and the parent is emailed when it is raised rather than discovering it at
+   * the desk.
+   */
+  async raiseCheckInHold(
+    childPersonId: string,
+    reason: string,
+    sourceLatePickupId?: string | null
+  ): Promise<string> {
+    const { data, error } = await church().rpc("kids_raise_check_in_hold", {
+      _child_person_id: childPersonId,
+      _reason: reason,
+      _source_late_pickup_id: sourceLatePickupId ?? null,
+    });
+    throwRpc(error);
+    return data as string;
   },
 
   async eligibleVolunteers(organizationId: string): Promise<EligibleVolunteer[]> {
@@ -484,12 +573,32 @@ export const kidsLeaderService = {
 
     // Every active room is listed, not only the configured ones: a room with
     // no config is exactly what the leader needs to find in order to add it.
+    //
+    // Ordered by the config's sort_order, NOT by room name. `public.rooms` is
+    // fetched name-ordered because that is the only order PostgREST can give
+    // it, but sort_order is the order the ministry actually set, and it is
+    // what church.kids_live_board orders by (`rk.sort_order NULLS LAST,
+    // r.name`). Mapping straight off the name-ordered query meant the Order
+    // field on this very screen was the one thing that ignored it, and the
+    // board and the setup screen disagreed about the order of the rooms.
+    const rooms = (roomsRes.data ?? []).map((room) => ({
+      room_id: room.id,
+      room_name: room.name,
+      config: cfgByRoom.get(room.id) ?? null,
+    }));
+    rooms.sort((a, b) => {
+      const ao = a.config?.sort_order ?? null;
+      const bo = b.config?.sort_order ?? null;
+      if (ao !== bo) {
+        if (ao === null) return 1;
+        if (bo === null) return -1;
+        return ao - bo;
+      }
+      return a.room_name.localeCompare(b.room_name);
+    });
+
     return {
-      rooms: (roomsRes.data ?? []).map((room) => ({
-        room_id: room.id,
-        room_name: room.name,
-        config: cfgByRoom.get(room.id) ?? null,
-      })),
+      rooms,
       ageBands: bandsRes.data ?? [],
       grades: gradesRes.data ?? [],
     };
