@@ -45,6 +45,7 @@ import { useKidsAttendance, useKidsExceptions } from "../hooks/useKidsLeader";
 import { LatePickupsPanel } from "./LatePickupsPanel";
 import { ConsentCoverageCard } from "./ConsentCoverageCard";
 import { ConsentRuleCard } from "./ConsentRuleCard";
+import { AccessLogPanel } from "./AccessLogPanel";
 import { useConsentPolicy } from "../hooks/useConsent";
 import { useCapabilities } from "@/shared/hooks/useCapabilities";
 import type {
@@ -380,6 +381,11 @@ export function KidsReportsTab({
             )}
           </TabsTrigger>
           <TabsTrigger value="consent">Consent</TabsTrigger>
+          {/* kids_admin only — reading who read what is itself a sensitive
+              act, and a read-only reporting role is not a safeguarding one.
+              The server refuses it too; this just avoids offering a tab that
+              would error. */}
+          {canWrite && <TabsTrigger value="access">Who read what</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="attendance" className="pt-4">
@@ -641,6 +647,12 @@ export function KidsReportsTab({
           * stand today", and wiring it to the range would let somebody scroll
           * back to September and read 0% as the current position.
           */}
+        {canWrite && (
+          <TabsContent value="access" className="pt-4">
+            <AccessLogPanel organizationId={organizationId} from={from} to={to} />
+          </TabsContent>
+        )}
+
         <TabsContent value="consent" className="pt-4 space-y-4">
           {/* The rule first, then the numbers. Somebody opening this tab on a
               difficult Sunday morning is looking for the pause button, not
