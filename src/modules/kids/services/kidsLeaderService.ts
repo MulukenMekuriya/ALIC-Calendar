@@ -365,6 +365,25 @@ export const kidsLeaderService = {
     throwRpc(error);
   },
 
+  /**
+   * Hold a child out of the next check-in. kids_admin only, reason required,
+   * and the parent is emailed when it is raised rather than discovering it at
+   * the desk.
+   */
+  async raiseCheckInHold(
+    childPersonId: string,
+    reason: string,
+    sourceLatePickupId?: string | null
+  ): Promise<string> {
+    const { data, error } = await church().rpc("kids_raise_check_in_hold", {
+      _child_person_id: childPersonId,
+      _reason: reason,
+      _source_late_pickup_id: sourceLatePickupId ?? null,
+    });
+    throwRpc(error);
+    return data as string;
+  },
+
   async eligibleVolunteers(organizationId: string): Promise<EligibleVolunteer[]> {
     const { data, error } = await church().rpc("kids_eligible_volunteers", {
       _organization_id: organizationId,

@@ -149,6 +149,27 @@ export function useDismissLatePickup(organizationId: string | undefined) {
   });
 }
 
+export function useRaiseCheckInHold(organizationId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (v: {
+      childPersonId: string;
+      reason: string;
+      sourceLatePickupId?: string | null;
+    }) =>
+      kidsLeaderService.raiseCheckInHold(
+        v.childPersonId,
+        v.reason,
+        v.sourceLatePickupId
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [...kidsLeaderKeys.all, "late-pickups", organizationId || ""],
+      });
+    },
+  });
+}
+
 export function useEligibleVolunteers(organizationId: string | undefined) {
   return useQuery({
     queryKey: kidsLeaderKeys.volunteers(organizationId || ""),
