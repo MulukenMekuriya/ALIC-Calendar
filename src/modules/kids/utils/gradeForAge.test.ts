@@ -6,8 +6,9 @@ import {
   type GradeOption,
 } from "./gradeForAge";
 
-/** ALIC's ten rooms, in the order church.school_grades sorts them. */
+/** ALIC's rooms, in the order church.school_grades sorts them. */
 const ROOMS: GradeOption[] = [
+  { school_grade_id: "age1_3", grade_name: "Ages 1-3", sort_order: 0 },
   { school_grade_id: "prek", grade_name: "Pre-K", sort_order: 10 },
   { school_grade_id: "k", grade_name: "Kindergarten", sort_order: 20 },
   { school_grade_id: "g1", grade_name: "Grade 1", sort_order: 30 },
@@ -44,8 +45,17 @@ describe("suggestedGradeSortOrder", () => {
     expect(suggestedGradeSortOrder(2022, AUG)).toBe(10);
   });
 
-  it("offers nothing for an age that wants a human", () => {
-    expect(suggestedGradeSortOrder(2025, AUG)).toBeNull(); // toddler
+  it("sends every nursery age to the one nursery grade", () => {
+    // Kidventure takes 1 to 3 and is a single classroom, so all three ages
+    // resolve to sort_order 0 rather than stepping down into negatives that
+    // match no row in church.school_grades.
+    expect(suggestedGradeSortOrder(2023, AUG)).toBe(0); // age 3
+    expect(suggestedGradeSortOrder(2024, AUG)).toBe(0); // age 2
+    expect(suggestedGradeSortOrder(2025, AUG)).toBe(0); // age 1
+  });
+
+  it("offers nothing below one or for an age that wants a human", () => {
+    expect(suggestedGradeSortOrder(2026, AUG)).toBeNull(); // under one
     expect(suggestedGradeSortOrder(2000, AUG)).toBeNull(); // adult
     expect(suggestedGradeSortOrder(null, AUG)).toBeNull();
     expect(suggestedGradeSortOrder(undefined, AUG)).toBeNull();
@@ -65,9 +75,25 @@ describe("suggestGrade", () => {
     expect(suggestGrade(2010, ROOMS, AUG)?.grade_name).toBe("Grade 8");
   });
 
-  it("returns null rather than guessing for a toddler", () => {
-    // Nursery is a different conversation; the volunteer must choose.
-    expect(suggestGrade(2025, ROOMS, AUG)).toBeNull();
+  it("preselects the nursery room for a toddler", () => {
+    expect(suggestGrade(2025, ROOMS, AUG)?.school_grade_id).toBe("age1_3");
+    expect(suggestGrade(2023, ROOMS, AUG)?.school_grade_id).toBe("age1_3");
+  });
+
+  it("does not put a four-year-old in the nursery", () => {
+    // The boundary that matters: Pre-K starts at four and Kidventure stops at
+    // three, so an off-by-one here puts a school-age child with the toddlers.
+    expect(suggestGrade(2022, ROOMS, AUG)?.school_grade_id).toBe("prek");
+  });
+
+  it("falls back to the closest room at a church with no nursery", () => {
+    // Still a suggestion the volunteer can change, not an assignment.
+    const noNursery = ROOMS.filter((r) => r.school_grade_id !== "age1_3");
+    expect(suggestGrade(2025, noNursery, AUG)?.school_grade_id).toBe("prek");
+  });
+
+  it("offers nothing for a baby under one", () => {
+    expect(suggestGrade(2026, ROOMS, AUG)).toBeNull();
   });
 
   it("copes with a church that offers no classrooms", () => {
