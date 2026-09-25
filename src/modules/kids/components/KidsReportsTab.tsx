@@ -7,7 +7,7 @@
  * Sundays that most need reviewing.
  */
 
-import { useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import {
   Card,
   CardContent,
@@ -24,6 +24,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -36,6 +37,11 @@ import {
   getDateStamp,
 } from "@/shared/lib/exportPrimitives";
 import { useKidsAttendance, useKidsExceptions } from "../hooks/useKidsLeader";
+import {
+  groupByDay,
+  sumAttendance,
+  type AttendanceTotals,
+} from "../utils/attendanceTotals";
 
 /** Default window: the last 12 weeks, which is about a quarter of Sundays. */
 function defaultRange() {
@@ -43,6 +49,34 @@ function defaultRange() {
   const from = new Date();
   from.setDate(from.getDate() - 84);
   return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) };
+}
+
+/**
+ * The five numeric cells of a total row. Shared so a day subtotal and the
+ * grand total cannot drift apart in which columns they fill or how they
+ * align — the bug where a footer silently omits a column is invisible until
+ * somebody adds the numbers up by hand.
+ */
+function TotalCells({ totals }: { totals: AttendanceTotals }) {
+  return (
+    <>
+      <TableCell className="text-right font-medium tabular-nums">
+        {totals.children}
+      </TableCell>
+      <TableCell className="text-right font-medium tabular-nums">
+        {totals.first_time_visitors}
+      </TableCell>
+      <TableCell className="text-right font-medium tabular-nums">
+        {totals.volunteers}
+      </TableCell>
+      <TableCell className="text-right font-medium tabular-nums">
+        {totals.overrides}
+      </TableCell>
+      <TableCell className="text-right font-medium tabular-nums">
+        {totals.not_checked_out}
+      </TableCell>
+    </>
+  );
 }
 
 interface KidsReportsTabProps {
@@ -57,19 +91,55 @@ export function KidsReportsTab({ organizationId }: KidsReportsTabProps) {
   const attendance = useKidsAttendance(organizationId, from, to);
   const exceptions = useKidsExceptions(organizationId, from, to);
 
+  const days = useMemo(() => groupByDay(attendance.data ?? []), [attendance.data]);
+  const grand = useMemo(() => sumAttendance(attendance.data ?? []), [attendance.data]);
+
   function exportAttendance() {
-    const rows = (attendance.data ?? []).map((row) => [
-      row.session_date,
-      row.service_label,
-      row.room_name,
-      row.age_band_name,
-      row.children,
-      row.first_time_visitors,
-      row.volunteers,
-      row.overrides,
-      row.not_checked_out,
-      row.avg_minutes,
-    ]);
+    // Each day's rooms, then that day's total, then a grand total — the same
+    // shape as the screen, so a spreadsheet and the report agree.
+    const rows: (string | number | null)[][] = [];
+    for (const day of days) {
+      for (const row of day.rows) {
+        rows.push([
+          row.session_date,
+          row.service_label,
+          row.room_name,
+          row.age_band_name,
+          row.children,
+          row.first_time_visitors,
+          row.volunteers,
+          row.overrides,
+          row.not_checked_out,
+          row.avg_minutes,
+        ]);
+      }
+      rows.push([
+        day.session_date,
+        day.serviceCount > 1 ? `Total (${day.serviceCount} services)` : "Total",
+        "",
+        "",
+        day.totals.children,
+        day.totals.first_time_visitors,
+        day.totals.volunteers,
+        day.totals.overrides,
+        day.totals.not_checked_out,
+        day.totals.avg_minutes,
+      ]);
+    }
+    if (days.length > 1) {
+      rows.push([
+        "",
+        `All ${days.length} days`,
+        "",
+        "",
+        grand.children,
+        grand.first_time_visitors,
+        grand.volunteers,
+        grand.overrides,
+        grand.not_checked_out,
+        grand.avg_minutes,
+      ]);
+    }
     downloadFile(
       withUTF8BOM(
         toCSV(
@@ -195,48 +265,76 @@ export function KidsReportsTab({ organizationId }: KidsReportsTabProps) {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {attendance.data?.map((row, index) => (
-                        <TableRow key={`${row.session_date}-${row.room_name}-${index}`}>
-                          <TableCell className="whitespace-nowrap">
-                            {row.session_date}
-                            <span className="block text-xs text-muted-foreground">
-                              {row.service_label}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            {row.room_name}
-                            <span className="block text-xs text-muted-foreground">
-                              {row.age_band_name ?? "—"}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            {row.children}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            {row.first_time_visitors}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            {row.volunteers}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            {row.overrides > 0 ? (
-                              <Badge variant="outline" className="border-amber-400">
-                                {row.overrides}
-                              </Badge>
-                            ) : (
-                              0
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            {row.not_checked_out > 0 ? (
-                              <Badge variant="destructive">{row.not_checked_out}</Badge>
-                            ) : (
-                              0
-                            )}
-                          </TableCell>
-                        </TableRow>
+                      {days.map((day) => (
+                        <Fragment key={day.session_date}>
+                          {day.rows.map((row, index) => (
+                            <TableRow key={`${row.room_name}-${index}`}>
+                              <TableCell className="whitespace-nowrap">
+                                {row.session_date}
+                                <span className="block text-xs text-muted-foreground">
+                                  {row.service_label}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                {row.room_name}
+                                <span className="block text-xs text-muted-foreground">
+                                  {row.age_band_name ?? "—"}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums">
+                                {row.children}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums">
+                                {row.first_time_visitors}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums">
+                                {row.volunteers}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums">
+                                {row.overrides > 0 ? (
+                                  <Badge variant="outline" className="border-amber-400">
+                                    {row.overrides}
+                                  </Badge>
+                                ) : (
+                                  0
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums">
+                                {row.not_checked_out > 0 ? (
+                                  <Badge variant="destructive">
+                                    {row.not_checked_out}
+                                  </Badge>
+                                ) : (
+                                  0
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          <TableRow className="border-t-2 bg-muted/40 hover:bg-muted/40">
+                            <TableCell colSpan={2} className="font-medium">
+                              Total for {day.session_date}
+                              {day.serviceCount > 1 && (
+                                <span className="block text-xs font-normal text-muted-foreground">
+                                  across {day.serviceCount} services — a child at
+                                  more than one is counted once per service
+                                </span>
+                              )}
+                            </TableCell>
+                            <TotalCells totals={day.totals} />
+                          </TableRow>
+                        </Fragment>
                       ))}
                     </TableBody>
+                    {days.length > 1 && (
+                      <TableFooter>
+                        <TableRow className="hover:bg-transparent">
+                          <TableCell colSpan={2} className="font-semibold">
+                            All {days.length} days
+                          </TableCell>
+                          <TotalCells totals={grand} />
+                        </TableRow>
+                      </TableFooter>
+                    )}
                   </Table>
                 </div>
               )}

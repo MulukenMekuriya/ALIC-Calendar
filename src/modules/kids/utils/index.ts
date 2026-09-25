@@ -28,3 +28,6 @@ export { formatSessionDate, parseIsoDate, formatClockTime } from "./sessionDate"
 
 export { sortClassrooms } from "./classroomOrder";
 export type { ClassroomSort } from "./classroomOrder";
+
+export { sumAttendance, groupByDay } from "./attendanceTotals";
+export type { AttendanceTotals, AttendanceDay } from "./attendanceTotals";
