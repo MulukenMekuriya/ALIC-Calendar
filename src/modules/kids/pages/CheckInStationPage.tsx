@@ -51,6 +51,7 @@ import { StationRoomsPanel } from "../components/StationRoomsPanel";
 import { VisitorFamilyDialog } from "../components/VisitorFamilyDialog";
 import { ReprintLabelDialog } from "../components/ReprintLabelDialog";
 import { ConsentSheet } from "../components/ConsentSheet";
+import type { RoomPreference } from "../services/kidsStationService";
 import { consentService, type ScreenedChild } from "../services/consentService";
 import { errorMessage, isDbError } from "../services/rpcError";
 import { cn } from "@/lib/utils";
@@ -560,6 +561,44 @@ export default function CheckInStationPage() {
    * proceeds exactly as it does today.
    */
   const [consentFor, setConsentFor] = useState<ScreenedChild[]>([]);
+
+  /**
+   * The classroom each child was last put in, keyed by child.
+   *
+   * Loaded when a family is picked so the dropdown opens on the remembered
+   * room rather than on "Room by grade" — the point of remembering it is that
+   * a volunteer can see it was remembered, not just that placement quietly
+   * agrees with them.
+   */
+  const [roomPrefs, setRoomPrefs] = useState<Record<string, RoomPreference>>({});
+
+  const householdChildIds = useMemo(
+    () => (ctx.household?.children ?? []).map((c) => c.child_person_id).join(","),
+    [ctx.household],
+  );
+
+  useEffect(() => {
+    // Keyed on the household's children rather than on the selection, so the
+    // remembered room shows on a tile before anybody taps it.
+    const ids = householdChildIds ? householdChildIds.split(",") : [];
+    if (ids.length === 0) {
+      setRoomPrefs({});
+      return;
+    }
+    let cancelled = false;
+    void kidsStationService
+      .roomPreferences(ids, session?.id ?? null)
+      .then((rows) => {
+        if (cancelled) return;
+        setRoomPrefs(Object.fromEntries(rows.map((r) => [r.child_person_id, r])));
+      })
+      // A failure here loses a convenience, never a check-in: without it the
+      // dropdown simply opens on "Room by grade" as it always has.
+      .catch((err) => console.error("could not load remembered rooms", err));
+    return () => {
+      cancelled = true;
+    };
+  }, [householdChildIds, session?.id]);
 
   /**
    * Returns true when the caller should stop and let the sheet handle it.
@@ -1192,17 +1231,50 @@ export default function CheckInStationPage() {
                       {openRooms.length > 0 && selected && (
                         <select
                           className="mt-2 w-full rounded-md border bg-background px-2 py-1.5 text-sm"
-                          value={ctx.roomOverrides[c.child_person_id] ?? ""}
+                          value={
+                            ctx.roomOverrides[c.child_person_id] ??
+                            roomPrefs[c.child_person_id]?.room_id ??
+                            ""
+                          }
                           // The tile itself toggles the child; changing the
                           // room must not also deselect them.
                           onClick={(e) => e.stopPropagation()}
                           onChange={(e) => {
                             e.stopPropagation();
+                            const roomId = e.target.value;
                             dispatch({
                               type: "ROOM_OVERRIDDEN",
                               childId: c.child_person_id,
-                              roomId: e.target.value,
+                              roomId,
                             });
+                            // Remembered for next week, and it climbs a grade
+                            // each school year by itself. Fire-and-forget on
+                            // purpose: a failure here must never hold up a
+                            // check-in, and the choice still applies today
+                            // because the machine already has it.
+                            void kidsStationService
+                              .setRoomPreference(c.child_person_id, roomId || null)
+                              .then(() =>
+                                setRoomPrefs((prev) => {
+                                  const next = { ...prev };
+                                  if (!roomId) delete next[c.child_person_id];
+                                  else
+                                    next[c.child_person_id] = {
+                                      ...(prev[c.child_person_id] ?? {
+                                        child_person_id: c.child_person_id,
+                                        room_name: "",
+                                        set_by_name: "",
+                                        set_at: "",
+                                      }),
+                                      room_id: roomId,
+                                      carried_years: 0,
+                                    } as RoomPreference;
+                                  return next;
+                                }),
+                              )
+                              .catch((err) =>
+                                console.error("could not remember the room", err),
+                              );
                           }}
                         >
                           <option value="">Room by grade</option>
@@ -1212,6 +1284,14 @@ export default function CheckInStationPage() {
                             </option>
                           ))}
                         </select>
+                      )}
+                      {(roomPrefs[c.child_person_id]?.carried_years ?? 0) > 0 && (
+                        /* It moved up with the school year. Worth a glance
+                           from a volunteer who knows the child, because
+                           nobody re-checked the placement — the calendar did. */
+                        <Badge variant="outline" className="border-amber-400">
+                          Moved up — please confirm
+                        </Badge>
                       )}
                       {(c.grade_name ?? c.age_band_code) && (
                         <Badge variant="outline" className="capitalize">
