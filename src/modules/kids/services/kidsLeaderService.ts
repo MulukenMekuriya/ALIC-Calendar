@@ -131,6 +131,38 @@ export interface LatePickupRow {
   times_in_range: number;
 }
 
+/** One row from church.kids_incident_queue. Carries no narrative on purpose. */
+export interface IncidentQueueRow {
+  id: string;
+  child_person_id: string;
+  child_name: string;
+  room_name: string | null;
+  occurred_on: string;
+  severity: "behaviour" | "injury" | "safeguarding";
+  status: "submitted" | "under_review" | "signed_off" | "sent" | "declined";
+  reported_by_name: string;
+  reported_at: string;
+  signed_off_by_name: string | null;
+  signed_off_at: string | null;
+  external_report_made: boolean | null;
+  note_count: number;
+  age_hours: number;
+  /** A safeguarding report nobody has answered the reporting question on. */
+  needs_reporting_answer: boolean;
+}
+
+/** The full report. Reading this writes a sensitive_viewed audit row. */
+export interface IncidentDetail extends IncidentQueueRow {
+  reported_narrative: string;
+  admin_summary: string | null;
+  decline_reason: string | null;
+  parent_message: string | null;
+  sent_at: string | null;
+  external_report_reference: string | null;
+  external_reported_at: string | null;
+  external_report_note: string | null;
+}
+
 export interface EligibleVolunteer {
   person_id: string;
   volunteer_id: string | null;
@@ -382,6 +414,71 @@ export const kidsLeaderService = {
     });
     throwRpc(error);
     return data as string;
+  },
+
+  async incidentQueue(
+    organizationId: string,
+    includeSettled = false
+  ): Promise<IncidentQueueRow[]> {
+    const { data, error } = await church().rpc("kids_incident_queue", {
+      _organization_id: organizationId,
+      _include_settled: includeSettled,
+    });
+    throwRpc(error);
+    return (data ?? []) as unknown as IncidentQueueRow[];
+  },
+
+  /** Audited: every call records who opened which child's report. */
+  async incidentDetail(id: string): Promise<IncidentDetail | null> {
+    const { data, error } = await church().rpc("kids_incident_detail", {
+      _incident_id: id,
+    });
+    throwRpc(error);
+    const rows = (data ?? []) as unknown as IncidentDetail[];
+    return rows[0] ?? null;
+  },
+
+  async reviewIncident(id: string): Promise<void> {
+    const { error } = await church().rpc("kids_review_incident", { _incident_id: id });
+    throwRpc(error);
+  },
+
+  async setIncidentSeverity(id: string, severity: string, why?: string): Promise<void> {
+    const { error } = await church().rpc("kids_set_incident_severity", {
+      _incident_id: id, _severity: severity, _why: why ?? null,
+    });
+    throwRpc(error);
+  },
+
+  async recordExternalReport(
+    id: string, made: boolean, reference?: string | null, note?: string | null
+  ): Promise<void> {
+    const { error } = await church().rpc("kids_record_external_report", {
+      _incident_id: id, _made: made,
+      _reference: reference ?? null, _note: note ?? null,
+    });
+    throwRpc(error);
+  },
+
+  async signOffIncident(id: string, adminSummary?: string | null): Promise<void> {
+    const { error } = await church().rpc("kids_sign_off_incident", {
+      _incident_id: id, _admin_summary: adminSummary ?? null,
+    });
+    throwRpc(error);
+  },
+
+  async declineIncident(id: string, reason: string): Promise<void> {
+    const { error } = await church().rpc("kids_decline_incident", {
+      _incident_id: id, _reason: reason,
+    });
+    throwRpc(error);
+  },
+
+  async addIncidentNote(id: string, body: string): Promise<void> {
+    const { error } = await church().rpc("kids_add_incident_note", {
+      _incident_id: id, _body: body,
+    });
+    throwRpc(error);
   },
 
   async eligibleVolunteers(organizationId: string): Promise<EligibleVolunteer[]> {
