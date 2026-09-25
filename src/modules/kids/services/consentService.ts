@@ -16,6 +16,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { throwRpc } from "./rpcError";
 import type { ConsentDocument, ConsentSection } from "../utils/consentDocument";
+import type { ConsentState as ConsentStateValue } from "../utils/consentState";
 
 const church = () => supabase.schema("church");
 
@@ -31,6 +32,25 @@ interface RawConsentDocument {
   body_sha256: string;
   required_acknowledgments: string[] | null;
   effective_from: string;
+}
+
+/** The coverage card a kids admin reads before deciding on the go-live date. */
+export interface ConsentCoverage {
+  children_total: number;
+  children_covered: number;
+  children_uncovered: number;
+  children_no_household: number;
+  households_total: number;
+  households_signed: number;
+  signatures_unreviewed: number;
+}
+
+/** One child's consent position. See utils/consentState for what to say about it. */
+export interface ChildConsentState {
+  state: ConsentStateValue;
+  signature_id: string | null;
+  signed_at: string | null;
+  document_version: number | null;
 }
 
 export const consentService = {
@@ -69,5 +89,44 @@ export const consentService = {
       required_acknowledgments: row.required_acknowledgments ?? [],
       effective_from: row.effective_from,
     };
+  },
+
+  /**
+   * How the signature collection is going, for the admin card.
+   *
+   * The two numbers answer different questions and both matter: 216
+   * signatures cover 534 children, so "how many families" and "how many
+   * children" diverge by a factor of two and a half. Reading only the child
+   * count makes the job look larger than it is; reading only the household
+   * count hides a family who signed without naming a new baby.
+   */
+  async coverage(organizationId: string): Promise<ConsentCoverage | null> {
+    const { data, error } = await church().rpc("kids_consent_coverage", {
+      _organization_id: organizationId,
+    });
+    throwRpc(error);
+    return (data as unknown as ConsentCoverage[] | null)?.[0] ?? null;
+  },
+
+  /**
+   * One child's consent position.
+   *
+   * Pass `forHouseholdId` from the portal so a parent is told the truth about
+   * a child whose consent lives with another household. DO NOT pass it from a
+   * check-in screen: the desk is meant to see plain 'covered', because a
+   * volunteer must not learn a custody history from a check-in screen. The
+   * server applies the same rule, so omitting it here is belt and braces
+   * rather than the only guard.
+   */
+  async childState(
+    childPersonId: string,
+    forHouseholdId?: string | null,
+  ): Promise<ChildConsentState | null> {
+    const { data, error } = await church().rpc("child_consent_state", {
+      _child_person_id: childPersonId,
+      _for_household_id: forHouseholdId ?? null,
+    });
+    throwRpc(error);
+    return (data as unknown as ChildConsentState[] | null)?.[0] ?? null;
   },
 };
