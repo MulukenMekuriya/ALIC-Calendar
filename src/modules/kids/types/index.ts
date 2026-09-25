@@ -59,6 +59,15 @@ export interface CheckInResultRow {
   refused?: boolean;
   refusal_code?: string | null;
   refusal_message?: string | null;
+  /**
+   * The consent position of a child who WAS checked in.
+   *
+   * Deliberately not one of the refusal columns: those mean "this child was
+   * not checked in", and borrowing them to carry a note would make a desk
+   * treat a warning as a refusal. Null when the form is on file, or when
+   * consent is switched off.
+   */
+  consent_state?: string | null;
 }
 
 /** One row from church.resolve_pickup. */

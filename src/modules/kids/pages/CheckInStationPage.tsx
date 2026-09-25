@@ -702,6 +702,7 @@ export default function CheckInStationPage() {
           tag_number: r.tag_number,
           allergy_label: r.allergy_label,
           has_restriction: r.has_restriction,
+          consent_state: r.consent_state ?? null,
         })),
         refused: declined.map((r) => ({
           child_person_id: r.child_person_id,
@@ -1369,6 +1370,16 @@ export default function CheckInStationPage() {
                   {c.allergy_label && (
                     <Badge variant="destructive" className="ml-2">
                       {c.allergy_label}
+                    </Badge>
+                  )}
+                  {c.consent_state && (
+                    /* The child IS checked in — this is a note, not a
+                       refusal. Said here because the parent is still standing
+                       at the desk, which is the only moment it is easy to
+                       fix. Outline rather than destructive: nothing has gone
+                       wrong and nobody is in trouble. */
+                    <Badge variant="outline" className="ml-2">
+                      Consent form still needed
                     </Badge>
                   )}
                   {/* Not gated on allergy_label: a child on daily medication
