@@ -264,6 +264,33 @@ export function useSendIncidentToParent(orgId: string | undefined) {
   );
 }
 
+export function useMyIncidents() {
+  return useQuery({
+    queryKey: [...kidsLeaderKeys.all, "my-incidents"] as const,
+    queryFn: () => kidsLeaderService.myIncidents(),
+  });
+}
+
+export function useRaiseIncident(orgId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (v: {
+      childPersonId: string;
+      severity: string;
+      narrative: string;
+      checkInId?: string | null;
+    }) => kidsLeaderService.raiseIncident(v),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [...kidsLeaderKeys.all, "my-incidents"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [...kidsLeaderKeys.all, "incidents", orgId || ""],
+      });
+    },
+  });
+}
+
 export function useEligibleVolunteers(organizationId: string | undefined) {
   return useQuery({
     queryKey: kidsLeaderKeys.volunteers(organizationId || ""),

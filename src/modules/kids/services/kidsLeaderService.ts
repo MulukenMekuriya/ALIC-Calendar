@@ -163,6 +163,20 @@ export interface IncidentDetail extends IncidentQueueRow {
   external_report_note: string | null;
 }
 
+/** One row from church.kids_my_incidents. */
+export interface MyIncidentRow {
+  id: string;
+  child_name: string;
+  room_name: string | null;
+  occurred_on: string;
+  severity: string;
+  status: string;
+  reported_at: string;
+  reported_narrative: string;
+  decline_reason: string | null;
+  note_count: number;
+}
+
 export interface EligibleVolunteer {
   person_id: string;
   volunteer_id: string | null;
@@ -494,6 +508,35 @@ export const kidsLeaderService = {
     });
     throwRpc(error);
     return (data as number) ?? 0;
+  },
+
+  /** A teacher's own reports. Gated on auth.uid() server-side, not on a role. */
+  async myIncidents(): Promise<MyIncidentRow[]> {
+    const { data, error } = await church().rpc("kids_my_incidents", {});
+    throwRpc(error);
+    return (data ?? []) as unknown as MyIncidentRow[];
+  },
+
+  async raiseIncident(v: {
+    childPersonId: string;
+    severity: string;
+    narrative: string;
+    occurredOn?: string;
+    kidsSessionId?: string | null;
+    roomId?: string | null;
+    checkInId?: string | null;
+  }): Promise<string> {
+    const { data, error } = await church().rpc("kids_raise_incident", {
+      _child_person_id: v.childPersonId,
+      _occurred_on: v.occurredOn ?? new Date().toISOString().slice(0, 10),
+      _severity: v.severity,
+      _narrative: v.narrative,
+      _kids_session_id: v.kidsSessionId ?? null,
+      _room_id: v.roomId ?? null,
+      _check_in_id: v.checkInId ?? null,
+    });
+    throwRpc(error);
+    return data as string;
   },
 
   async eligibleVolunteers(organizationId: string): Promise<EligibleVolunteer[]> {

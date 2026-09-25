@@ -22,6 +22,7 @@ import { useCapabilities } from "@/shared/hooks/useCapabilities";
 import { useMyAvatar } from "@/shared/hooks/useMyAvatar";
 import { getLogoSrc } from "@/shared/constants/branding";
 import {
+  ClipboardList,
   LogOut,
   Users,
   Settings,
@@ -275,6 +276,27 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 href: "/checkin",
                 icon: ScanLine,
                 description: "Open the kiosk",
+              },
+              /*
+               * Check-out and Incident Reports are gated on kids.checkin, not
+               * kids.read, and that is the whole point. A kids_volunteer holds
+               * checkin and deliberately NOT read, so they cannot open /kids —
+               * and they are exactly the people who collect children at a
+               * classroom door and write incident reports. Hanging these off
+               * the dashboard would have made them invisible to their only
+               * users.
+               */
+              {
+                name: "Check-Out",
+                href: "/checkout",
+                icon: LogOut,
+                description: "Hand a child back",
+              },
+              {
+                name: "Incident Reports",
+                href: "/incidents",
+                icon: ClipboardList,
+                description: "Report something, or review reports",
               },
             ]
           : []),
