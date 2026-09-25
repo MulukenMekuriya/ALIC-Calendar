@@ -134,6 +134,18 @@ export interface ConsentSigner {
   has_email: boolean;
 }
 
+/** What the rule currently says, for the admin card. */
+export interface ConsentPolicy {
+  mode: "off" | "warn" | "block";
+  enforce_from: string | null;
+  notice_text: string | null;
+  resign_grace_days: number;
+  /** The same test the gate makes, so the screen cannot contradict it. */
+  enforcing_now: boolean;
+  updated_by_name: string | null;
+  updated_at: string;
+}
+
 export const consentService = {
   /**
    * The form currently in force for a branch, filtered to one surface.
@@ -357,5 +369,13 @@ export const consentService = {
       _notice_text: v.noticeText ?? null,
     });
     throwRpc(error);
+  },
+
+  async policy(organizationId: string): Promise<ConsentPolicy | null> {
+    const { data, error } = await church().rpc("kids_consent_policy_for", {
+      _organization_id: organizationId,
+    });
+    throwRpc(error);
+    return (data as unknown as ConsentPolicy[] | null)?.[0] ?? null;
   },
 };
