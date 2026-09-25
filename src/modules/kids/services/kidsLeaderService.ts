@@ -104,12 +104,14 @@ export interface EligibleVolunteer {
   volunteer_id: string | null;
   display_name: string;
   phone: string | null;
-  background_check_status: string;
-  background_check_expires_on: string | null;
-  training_completed_on: string | null;
   is_active: boolean;
   can_override: boolean;
-  is_eligible: boolean;
+  /**
+   * A safeguarding decision the church has made about this person, not a
+   * background-check result — ALIC does not run background checks. False for
+   * everyone unless a leader has set it.
+   */
+  may_not_serve_with_children: boolean;
 }
 
 export interface StaffingRow {
@@ -120,7 +122,6 @@ export interface StaffingRow {
   role: string;
   started_at: string;
   ended_at: string | null;
-  was_background_check_current: boolean | null;
 }
 
 /** One standing teaching assignment for a classroom. */
@@ -133,8 +134,6 @@ export interface ClassroomTeacher {
   phone: string | null;
   role: string;
   is_lead: boolean;
-  background_check_status: string;
-  is_eligible: boolean;
 }
 
 /** One child who has not been collected. */

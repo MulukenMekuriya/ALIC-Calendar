@@ -5,9 +5,12 @@
  * volunteer record — someone helping for the first time has no record yet, and
  * an inner join would hide exactly the person the leader is trying to add.
  *
- * A volunteer whose background check is marked `restricted` is refused
- * server-side by assign_session_staff, on every path. This screen greys them
- * out so the leader never gets that far, but the refusal is the real control.
+ * ALIC does not run background checks — everyone serving is a member of the
+ * church — so nothing here reports a clearance. The one safeguarding fact that
+ * survives is `may_not_serve_with_children`, a decision the church has made
+ * about an individual. assign_session_staff refuses them server-side on every
+ * path; this screen greys them out so the leader never gets that far, but the
+ * refusal is the real control.
  */
 
 import { useMemo, useState } from "react";
@@ -21,7 +24,6 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
-import { Badge } from "@/shared/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -29,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
-import { Loader2, Search, UserMinus, UserPlus, ShieldAlert } from "lucide-react";
+import { Loader2, Search, UserMinus, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import {
   useEligibleVolunteers,
@@ -158,15 +160,6 @@ export function VolunteersTab({
                       {ROLES.find((r) => r.value === row.role)?.label ?? row.role}
                     </p>
                   </div>
-                  {row.was_background_check_current === false && (
-                    <Badge
-                      variant="outline"
-                      className="border-amber-400 gap-1 shrink-0"
-                      title="Background check was not current when assigned"
-                    >
-                      <ShieldAlert className="h-3 w-3" />
-                    </Badge>
-                  )}
                   {canManage && (
                     <Button
                       variant="ghost"
@@ -253,7 +246,7 @@ export function VolunteersTab({
                   </div>
                 )}
                 {filtered.map((person) => {
-                  const restricted = person.background_check_status === "restricted";
+                  const restricted = person.may_not_serve_with_children;
                   return (
                     <div
                       key={person.person_id}
@@ -261,13 +254,17 @@ export function VolunteersTab({
                     >
                       <div className="min-w-0 flex-1">
                         <p className="text-sm truncate">{person.display_name}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {restricted
-                            ? "Restricted — cannot serve with children"
-                            : person.is_eligible
-                              ? "Background check current"
-                              : `Background check: ${person.background_check_status.replace("_", " ")}`}
-                        </p>
+                        {restricted ? (
+                          <p className="text-xs text-muted-foreground truncate">
+                            Not to be placed with children
+                          </p>
+                        ) : (
+                          person.phone && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              {person.phone}
+                            </p>
+                          )
+                        )}
                       </div>
                       <Button
                         variant="outline"

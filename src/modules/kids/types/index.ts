@@ -18,8 +18,6 @@ export type RoomKidsConfig = Tables<ChurchSchema, "room_kids_config">;
 export interface VolunteerOption {
   volunteer_id: string;
   display_name: string;
-  is_eligible: boolean;
-  background_check_status: string;
 }
 
 /** One row from church.station_search_households. */
