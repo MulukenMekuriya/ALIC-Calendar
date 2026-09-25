@@ -112,6 +112,13 @@ export interface EligibleVolunteer {
    * everyone unless a leader has set it.
    */
   may_not_serve_with_children: boolean;
+  /**
+   * Already in the Children's Ministry: a kids module grant, or a
+   * church.kids_volunteers row. Computed server-side because the grant lives
+   * in church.module_grants keyed by auth user, which the client cannot read.
+   * Classroom assignments are unioned in by the caller, which already has them.
+   */
+  on_kids_team: boolean;
 }
 
 export interface StaffingRow {

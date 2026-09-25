@@ -1,9 +1,21 @@
 /**
  * Who is serving in Kids Ministry today, and in which room.
  *
- * The list shows every adult member, not just people who already have a
- * volunteer record — someone helping for the first time has no record yet, and
- * an inner join would hide exactly the person the leader is trying to add.
+ * church.kids_eligible_volunteers returns every adult member of the branch,
+ * and that is deliberate: someone helping for the first time has no volunteer
+ * record yet, and an inner join would hide exactly the person the leader is
+ * trying to add. But 295 names is not a list a leader can work with on a
+ * Sunday morning when they are looking for one of about thirty regulars.
+ *
+ * So the picker opens on the KIDS TEAM — anyone with a volunteer record, plus
+ * anyone currently assigned to a classroom — and puts the rest of the church
+ * behind a button that says how many it is hiding. Nobody is removed from
+ * reach; they are one click away, and the count makes it obvious the list is
+ * filtered rather than short.
+ *
+ * The two sets genuinely differ. In production church.kids_volunteers is empty
+ * while four people hold current classroom assignments, so a list built on
+ * volunteer records alone would open on nobody at all.
  *
  * ALIC does not run background checks — everyone serving is a member of the
  * church — so nothing here reports a clearance. The one safeguarding fact that
@@ -31,9 +43,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
-import { Loader2, Search, UserMinus, UserPlus } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  Search,
+  UserMinus,
+  UserPlus,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
+  useClassroomTeachers,
   useEligibleVolunteers,
   useSessionStaffing,
   useAssignStaff,
@@ -67,12 +87,14 @@ export function VolunteersTab({
   const { data: people, isLoading } = useEligibleVolunteers(organizationId);
   const { data: staffing } = useSessionStaffing(activeSession || undefined);
   const { data: board } = useLiveBoard(organizationId);
+  const { data: teachers } = useClassroomTeachers(organizationId);
   const assign = useAssignStaff(organizationId);
   const endStaff = useEndStaff(organizationId, activeSession || undefined);
 
   const [search, setSearch] = useState("");
   const [roomId, setRoomId] = useState(NO_ROOM);
   const [role, setRole] = useState("classroom_volunteer");
+  const [showEveryone, setShowEveryone] = useState(false);
 
   // Rooms of the selected session only, de-duplicated: the board carries one
   // row per session-room pair.
@@ -88,11 +110,26 @@ export function VolunteersTab({
   const assignedIds = new Set((staffing ?? []).map((s) => s.person_id));
   const roomNameById = new Map(rooms.map((r) => [r.id, r.name]));
 
-  const filtered = (people ?? []).filter((person) => {
+  // The kids team. on_kids_team is a kids module grant or a kids_volunteers
+  // row, both resolved server-side; classroom assignments are unioned in here
+  // because this component already has them. In production that is about 44
+  // people out of 660 adults.
+  const teamIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const p of people ?? []) if (p.on_kids_team) ids.add(p.person_id);
+    for (const t of teachers ?? []) ids.add(t.person_id);
+    return ids;
+  }, [people, teachers]);
+
+  const candidates = (people ?? []).filter((person) => {
     if (assignedIds.has(person.person_id)) return false;
     if (!search.trim()) return true;
     return person.display_name.toLowerCase().includes(search.trim().toLowerCase());
   });
+
+  const onTeam = candidates.filter((p) => teamIds.has(p.person_id));
+  const offTeam = candidates.filter((p) => !teamIds.has(p.person_id));
+  const filtered = showEveryone ? candidates : onTeam;
 
   if (sessions.length === 0) {
     return (
@@ -192,6 +229,7 @@ export function VolunteersTab({
               <CardTitle className="text-base">Assign someone</CardTitle>
               <CardDescription>
                 Pick a room and role, then add people to it.
+                {!showEveryone && " Showing the kids team."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -297,10 +335,42 @@ export function VolunteersTab({
                 })}
                 {!isLoading && filtered.length === 0 && (
                   <p className="py-6 text-center text-sm text-muted-foreground">
-                    {search ? "Nobody matches that." : "Everyone is already assigned."}
+                    {search
+                      ? showEveryone || offTeam.length === 0
+                        ? "Nobody matches that."
+                        : "Nobody on the kids team matches that."
+                      : showEveryone
+                        ? "Everyone is already assigned."
+                        : "Everyone on the kids team is already assigned."}
                   </p>
                 )}
               </div>
+
+              {/* Never hide the rest of the church without saying how many. A
+                  short list and a filtered list look identical otherwise. */}
+              {!isLoading && !showEveryone && offTeam.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => setShowEveryone(true)}
+                >
+                  <ChevronDown className="h-4 w-4" />
+                  More options — {offTeam.length} other church member
+                  {offTeam.length === 1 ? "" : "s"}
+                </Button>
+              )}
+              {!isLoading && showEveryone && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => setShowEveryone(false)}
+                >
+                  <ChevronUp className="h-4 w-4" />
+                  Show the kids team only
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}
