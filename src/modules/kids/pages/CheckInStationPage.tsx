@@ -50,6 +50,8 @@ import { kidsStationService, kidsSessionService, printLabels, renderQrSvg } from
 import { StationRoomsPanel } from "../components/StationRoomsPanel";
 import { VisitorFamilyDialog } from "../components/VisitorFamilyDialog";
 import { ReprintLabelDialog } from "../components/ReprintLabelDialog";
+import { ConsentSheet } from "../components/ConsentSheet";
+import { consentService, type ScreenedChild } from "../services/consentService";
 import { errorMessage, isDbError } from "../services/rpcError";
 import { cn } from "@/lib/utils";
 import { usePersonPhotos, primaryPhotoUrl } from "@/modules/members/hooks";
@@ -546,6 +548,49 @@ export default function CheckInStationPage() {
         type: "BLOCKING_ERROR",
         message: "Could not load the safety card: " + errorMessage(err),
       });
+    }
+  };
+
+  /**
+   * The consent sheet, shown between Confirm and the check-in RPC.
+   *
+   * Screening is a SEPARATE call rather than something inside
+   * check_in_children, so in warn mode nothing here can refuse anybody: the
+   * sheet is shown, the volunteer signs or sets it aside, and the check-in
+   * proceeds exactly as it does today.
+   */
+  const [consentFor, setConsentFor] = useState<ScreenedChild[]>([]);
+
+  /**
+   * Returns true when the caller should stop and let the sheet handle it.
+   *
+   * Fails OPEN on every error. If the screening call is slow, broken or the
+   * policy row is missing, a family still gets checked in — a consent form is
+   * paperwork and a child standing at a desk is not. The gate that can
+   * actually refuse lives in the database, not here.
+   */
+  const needsConsentSheet = async (): Promise<boolean> => {
+    if (!session || ctx.selectedChildIds.length === 0) return false;
+    const householdId = ctx.household?.household_id ?? null;
+    if (householdId && ctx.consentDismissed.includes(householdId)) return false;
+
+    try {
+      const rows = await consentService.screenChildren(
+        ctx.selectedChildIds,
+        session.id,
+      );
+      if (rows.length === 0 || rows[0].policy_mode === "off") return false;
+
+      const wanting = rows.filter(
+        (r) => r.state !== "covered" && r.state !== "covered_elsewhere",
+      );
+      if (wanting.length === 0) return false;
+
+      setConsentFor(wanting);
+      return true;
+    } catch (err) {
+      console.error("consent screening failed; checking in anyway", err);
+      return false;
     }
   };
 
@@ -1207,10 +1252,15 @@ export default function CheckInStationPage() {
                 className="flex-[2] h-16 text-lg"
                 disabled={ctx.selectedChildIds.length === 0 || busy || !online}
                 onClick={() => {
-                  if (ctx.state === "selecting") {
+                  if (ctx.state !== "selecting") return;
+                  void (async () => {
+                    // Ask before checking in, not after. The sheet resolves
+                    // to either a signature or "set aside", and both paths
+                    // then run the same doCheckIn().
+                    if (await needsConsentSheet()) return;
                     dispatch({ type: "CONFIRM_REQUESTED" });
                     void doCheckIn();
-                  }
+                  })();
                 }}
               >
                 {busy && <Loader2 className="h-5 w-5 mr-2 animate-spin" />}
@@ -1820,6 +1870,40 @@ export default function CheckInStationPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* The consent sheet, between Confirm and the check-in RPC. Both ways
+          out of it run the same doCheckIn(): signing does not change what
+          happens next, it only means the form is on file when it does. */}
+      {consentFor.length > 0 && orgId && (
+        <ConsentSheet
+          open={consentFor.length > 0}
+          onOpenChange={(v) => {
+            // Closing by the X or the backdrop is a "not now", not a refusal.
+            // The family is still checked in; the tablet must not strand
+            // somebody at a desk because a dialog was dismissed.
+            if (!v) {
+              const hh = consentFor[0]?.household_id;
+              if (hh) dispatch({ type: "CONSENT_SET_ASIDE", householdId: hh });
+              setConsentFor([]);
+            }
+          }}
+          organizationId={orgId}
+          kidsSessionId={session?.id ?? null}
+          screened={consentFor}
+          canGrantException={canOverride}
+          onResolved={(outcome) => {
+            const hh = consentFor[0]?.household_id;
+            // Recorded either way, so one family is asked once per visit
+            // rather than once per child.
+            if (hh) dispatch({ type: "CONSENT_SET_ASIDE", householdId: hh });
+            setConsentFor([]);
+            if (outcome === "signed" || outcome === "set_aside") {
+              dispatch({ type: "CONFIRM_REQUESTED" });
+              void doCheckIn();
+            }
+          }}
+        />
+      )}
 
       {/* The New Family desk. Registering hands straight over to the normal
           check-in flow — the family is in the directory now, so nothing about

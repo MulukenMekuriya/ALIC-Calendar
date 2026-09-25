@@ -97,6 +97,43 @@ export const ALLERGY_SEVERITIES = [
 ] as const;
 export type AllergySeverity = (typeof ALLERGY_SEVERITIES)[number];
 
+/** One child, as the desk sees them before check-in. */
+export interface ScreenedChild {
+  child_person_id: string;
+  child_name: string;
+  /** How the sheet is shown once per family rather than once per child. */
+  household_id: string | null;
+  state: ConsentStateValue;
+  /** False ONLY when the policy is enforcing. In warn mode this is always true. */
+  allow: boolean;
+  refusal_code: string | null;
+  enforcing: boolean;
+  excepted: boolean;
+  resign_due_by: string | null;
+  policy_mode: "off" | "warn" | "block";
+  enforce_from: string | null;
+  notice_text: string | null;
+}
+
+/** What is already on file for a child. Reading this is audited server-side. */
+export interface ConsentPrefill {
+  child_person_id: string;
+  child_name: string;
+  has_record: boolean;
+  allergy_severity: string | null;
+  allergies: string | null;
+  medications: string | null;
+  special_needs: string | null;
+}
+
+export interface ConsentSigner {
+  person_id: string;
+  full_name: string;
+  household_id: string;
+  /** Whether a copy can actually be emailed. 10 of 216 households cannot. */
+  has_email: boolean;
+}
+
 export const consentService = {
   /**
    * The form currently in force for a branch, filtered to one surface.
@@ -211,5 +248,114 @@ export const consentService = {
     });
     throwRpc(error);
     return (data as unknown as MedicalUpdateResult[] | null)?.[0] ?? null;
+  },
+
+  /**
+   * What the desk asks before it checks anybody in.
+   *
+   * A SEPARATE CALL, made before check_in_children rather than inside it.
+   * Its answer drives what the screen says, not what the database does —
+   * which is what lets the whole consent feature be visible and usable weeks
+   * before anything can refuse anybody.
+   */
+  async screenChildren(
+    childPersonIds: string[],
+    kidsSessionId: string | null,
+    shiftToken?: string | null,
+  ): Promise<ScreenedChild[]> {
+    if (childPersonIds.length === 0) return [];
+    const { data, error } = await church().rpc("screen_children_for_check_in", {
+      _child_person_ids: childPersonIds,
+      _kids_session_id: kidsSessionId,
+      _shift_token: shiftToken ?? null,
+    });
+    throwRpc(error);
+    return (data ?? []) as unknown as ScreenedChild[];
+  },
+
+  /**
+   * What is already on file, for section 4 of the sheet.
+   *
+   * Every call writes a sensitive_viewed audit row server-side, so this is
+   * fetched when the sheet opens and not on a hover or a render.
+   */
+  async consentPrefill(
+    childPersonIds: string[],
+    shiftToken?: string | null,
+  ): Promise<ConsentPrefill[]> {
+    if (childPersonIds.length === 0) return [];
+    const { data, error } = await church().rpc("station_child_consent_prefill", {
+      _child_person_ids: childPersonIds,
+      _shift_token: shiftToken ?? null,
+    });
+    throwRpc(error);
+    return (data ?? []) as unknown as ConsentPrefill[];
+  },
+
+  /** Who may sign for this child. Picked, never typed. */
+  async signers(
+    childPersonId: string,
+    shiftToken?: string | null,
+  ): Promise<ConsentSigner[]> {
+    const { data, error } = await church().rpc("station_consent_signers", {
+      _child_person_id: childPersonId,
+      _shift_token: shiftToken ?? null,
+    });
+    throwRpc(error);
+    return (data ?? []) as unknown as ConsentSigner[];
+  },
+
+  async signAtStation(v: {
+    householdId: string;
+    childPersonIds: string[];
+    signerPersonId: string;
+    signerPrintedName: string;
+    answers: Record<string, boolean>;
+    perChildAnswers?: Record<string, Record<string, boolean>>;
+    signerRelationship?: string | null;
+    shiftToken?: string | null;
+  }): Promise<{ signature_id: string; children_named: number } | null> {
+    const { data, error } = await church().rpc("station_sign_consent", {
+      _household_id: v.householdId,
+      _child_person_ids: v.childPersonIds,
+      _signer_person_id: v.signerPersonId,
+      _signer_printed_name: v.signerPrintedName,
+      _answers: v.answers,
+      _per_child_answers: v.perChildAnswers ?? {},
+      _signer_relationship: v.signerRelationship ?? null,
+      _shift_token: v.shiftToken ?? null,
+    });
+    throwRpc(error);
+    return (data as unknown as { signature_id: string; children_named: number }[] | null)?.[0] ?? null;
+  },
+
+  /** A leader letting one family through for one service. Not a waiver. */
+  async grantException(v: {
+    childPersonId: string;
+    kidsSessionId: string;
+    reason: string;
+  }): Promise<string | null> {
+    const { data, error } = await church().rpc("kids_grant_consent_exception", {
+      _child_person_id: v.childPersonId,
+      _kids_session_id: v.kidsSessionId,
+      _reason: v.reason,
+    });
+    throwRpc(error);
+    return (data as unknown as string) ?? null;
+  },
+
+  async setMode(v: {
+    organizationId: string;
+    mode: "off" | "warn" | "block";
+    enforceFrom?: string | null;
+    noticeText?: string | null;
+  }): Promise<void> {
+    const { error } = await church().rpc("set_kids_consent_mode", {
+      _organization_id: v.organizationId,
+      _mode: v.mode,
+      _enforce_from: v.enforceFrom ?? null,
+      _notice_text: v.noticeText ?? null,
+    });
+    throwRpc(error);
   },
 };
