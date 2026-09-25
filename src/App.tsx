@@ -46,7 +46,12 @@ import {
   MemberImportPage,
   HouseholdsPage,
 } from "@/modules/members";
-import { CheckInStationPage, KidsDashboardPage } from "@/modules/kids";
+import {
+  CheckInStationPage,
+  CheckOutPage,
+  IncidentsPage,
+  KidsDashboardPage,
+} from "@/modules/kids";
 import { GivingDashboard, GivingImportPage } from "@/modules/giving";
 import { WorkflowsPage } from "@/modules/workflows";
 import { MyChurchPage } from "@/modules/portal";
@@ -380,6 +385,32 @@ const App = () => (
                   element={
                     <ProtectedRoute requireAny={["kids.checkin", "kids.write"]}>
                       <CheckInStationPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Check-out gets its own door, inside the layout. The
+                    station is heading towards being a self-service kiosk a
+                    parent operates, and releasing a child must never be
+                    reachable from there. resolve_actor decides can_check_out;
+                    this route is the door, the database is the lock. */}
+                <Route
+                  path="/checkout"
+                  element={
+                    <ProtectedRoute requireAny={["kids.checkin", "kids.write"]}>
+                      <CheckOutPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Incident reports. Gated on kids.checkin, NOT kids.read: a
+                    teacher holds kids_volunteer and cannot open /kids at all,
+                    and they are exactly who writes these. */}
+                <Route
+                  path="/incidents"
+                  element={
+                    <ProtectedRoute requireAny={["kids.checkin", "kids.write"]}>
+                      <IncidentsPage />
                     </ProtectedRoute>
                   }
                 />
