@@ -15,7 +15,7 @@ import { useQueryClient } from "@tanstack/react-query";
  * public.is_staff(). Keep the two in step: the database one is what actually
  * enforces, this one is what stops the UI offering an empty screen.
  */
-const STAFF_ROLES: readonly string[] = ["admin", "contributor", "treasury", "finance"];
+const STAFF_ROLES: readonly string[] = ["admin", "contributor", "treasury", "finance", "board"];
 
 interface AuthContextType {
   user: User | null;
@@ -23,6 +23,16 @@ interface AuthContextType {
   isAdmin: boolean;
   isTreasury: boolean;
   isFinance: boolean;
+  /**
+   * Sits on the Board of some branch.
+   *
+   * The Board reads the year's budget requests together, against the money the
+   * church has, and says what it thinks before anything is approved. The tier
+   * carries a contributor's view of the app and, on top of it, the Board
+   * Review screen — it does NOT carry approval: the office still edits and
+   * approves. See 20260322330000.
+   */
+  isBoard: boolean;
   /**
    * Holds the `contributor` tier in some branch.
    *
@@ -61,6 +71,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isContributor, setIsContributor] = useState(false);
   const [isTreasury, setIsTreasury] = useState(false);
   const [isFinance, setIsFinance] = useState(false);
+  const [isBoard, setIsBoard] = useState(false);
   const [isStaff, setIsStaff] = useState(false);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -128,6 +139,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsAdmin(false);
         setIsTreasury(false);
         setIsFinance(false);
+        setIsBoard(false);
       }
     });
 
@@ -161,6 +173,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsAdmin(false);
         setIsTreasury(false);
         setIsFinance(false);
+        setIsBoard(false);
         setIsStaff(false);
         return;
       }
@@ -170,6 +183,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsContributor(roles.includes("contributor"));
       setIsTreasury(roles.includes("treasury"));
       setIsFinance(roles.includes("finance"));
+      setIsBoard(roles.includes("board"));
       // Mirrors public.is_staff(). An ALLOWLIST, so a role added to the enum
       // later is not silently treated as staff by the UI before anyone has
       // decided it should be.
@@ -179,6 +193,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsAdmin(false);
       setIsTreasury(false);
       setIsFinance(false);
+      setIsBoard(false);
       setIsStaff(false);
     } finally {
       setLoading(false);
@@ -192,6 +207,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setIsAdmin(false);
     setIsTreasury(false);
     setIsFinance(false);
+    setIsBoard(false);
     syncSessionWithExternalApp(null);
     navigate("/auth");
   };
@@ -271,6 +287,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isContributor,
         isTreasury,
         isFinance,
+        isBoard,
         isStaff,
         loading,
         signOut,

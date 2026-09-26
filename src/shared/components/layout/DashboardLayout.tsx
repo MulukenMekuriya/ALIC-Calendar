@@ -1,6 +1,7 @@
 import { ReactNode, useState, useEffect, useRef } from "react";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useOrganization } from "@/shared/contexts/OrganizationContext";
+import { BranchSwitcher } from "@/shared/components/BranchSwitcher";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
@@ -754,6 +755,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">
+              <BranchSwitcher />
               <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
                 <PopoverTrigger asChild>
                   <Button
