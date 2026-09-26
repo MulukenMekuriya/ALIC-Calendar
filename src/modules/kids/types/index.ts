@@ -47,6 +47,18 @@ export interface CheckInResultRow {
   allergy_label: string | null;
   has_restriction: boolean;
   /**
+   * The guardian's real number, returned by check_in_children specifically so
+   * it can go on the label. It is deliberately NOT in the search results,
+   * which render on screen for every hit — so the full number reaches paper,
+   * not a lobby display.
+   *
+   * Optional because an older deployment of the RPC does not return it, and
+   * both callers fall back. It was previously declared inline in
+   * CheckInStationPage, which meant the kiosk — written later — did not know
+   * the field existed and shipped a label with no number on it.
+   */
+  guardian_phone?: string | null;
+  /**
    * Set when the database declined this child. Optional because the columns
    * arrive with a later migration: against today's RPC these are `undefined`,
    * which is falsy, so the desk behaves exactly as it does now.

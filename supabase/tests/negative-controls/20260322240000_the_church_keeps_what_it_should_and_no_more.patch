@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322240000_the_church_keeps_what_it_should_and_no_more.sql	2026-09-25 17:29:34
++++ /dev/fd/12	2026-09-25 22:05:54
+@@ -395,7 +395,7 @@
+     WITH doomed AS (
+       SELECT i.id FROM church.kids_incidents i
+       WHERE i.organization_id = _organization_id
+-        AND i.severity = 'behaviour' AND NOT i.legal_hold
++        AND i.severity = 'behaviour'
+         AND i.occurred_on < current_date - make_interval(years => _years)
+     ), gone AS (
+       DELETE FROM church.kids_incidents WHERE id IN (SELECT id FROM doomed) RETURNING 1

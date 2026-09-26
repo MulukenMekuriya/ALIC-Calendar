@@ -1,0 +1,13 @@
+--- supabase/migrations/20260322210000_a_form_the_church_can_show_and_keep.sql	2026-09-25 15:10:33
++++ /dev/fd/12	2026-09-25 22:05:53
+@@ -650,3 +650,10 @@
+ $seed$;
+ 
+ NOTIFY pgrst, 'reload schema';
++-- NEGATIVE CONTROL: hash over body::text, the mistake the canonical
++-- serialisation exists to prevent. Stored hashes are refreshed so that
++-- test 3b passes and test 4 is the one that has to catch it.
++CREATE OR REPLACE FUNCTION church.consent_document_digest(_body JSONB)
++RETURNS TEXT LANGUAGE sql IMMUTABLE SET search_path = church, public, extensions
++AS $$ SELECT _body::TEXT $$;
++UPDATE church.consent_documents SET body_sha256 = church.consent_document_sha256(body);

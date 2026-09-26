@@ -1,0 +1,90 @@
+# Runs on every push and every pull request.
+#
+# WHY THIS EXISTS. Three bugs reached a tablet in the church lobby on 25
+# September before anyone noticed: children listed twice with a database error
+# shown to a parent, the kiosk reporting check-in closed while the board said
+# open, and the kiosk landing in the admin portal. Each had a check written
+# for it afterwards — and those checks only ran because somebody remembered to
+# run them.
+#
+# This is not here to find new bugs. A new bug is found by a person using the
+# thing, which is exactly how those three were found. This is here so that
+# once something has been found and fixed, it stays fixed — including after
+# the person who fixed it has forgotten why.
+#
+# Free: both repositories are public, and standard GitHub-hosted runners are
+# unmetered for public repositories.
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  # So a red result can be re-checked without an empty commit.
+  workflow_dispatch:
+
+# A second push supersedes the first. No point finishing a run for code that
+# has already been replaced.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Typecheck, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      # `npm ci` and not `npm install`: it installs exactly what the lockfile
+      # says and fails if package.json and the lockfile disagree, so CI tests
+      # the dependency tree that actually ships rather than a fresh
+      # resolution that might differ.
+      #
+      # This step was impossible until 26 September: react-day-picker@8 wants
+      # date-fns ^2 || ^3 and the project had 4, so `npm ci` failed outright.
+      # Fixed by moving to date-fns 3 — only twelve basic functions were in
+      # use, all unchanged, and none of v4's timezone API.
+      - name: Install
+        run: npm ci
+
+      # A GATE, but on the delta rather than the total.
+      #
+      # `npm run typecheck` reports 40 errors, all in budget/ and calendar/
+      # and all older than this workflow. Failing on those means red from day
+      # one and a team that stops reading the colour, so the gate compares
+      # against scripts/typecheck-baseline.txt and fails only on a NEW error.
+      #
+      # This step was almost `npx tsc --noEmit || true`. That command reports
+      # zero errors on this repo — it resolves the root tsconfig, which checks
+      # nothing — so the workflow would have printed a reassuring 0 while 81
+      # real errors sat in tsconfig.app.json, two of them bugs on the kiosk.
+      # Run the project's own script.
+      - name: Typecheck (no new errors)
+        run: ./scripts/typecheck-gate.sh
+
+      # THE GATE. 547 tests, including the ones that pin the behaviour of the
+      # check-in machine, the consent states, the ten-digit kiosk rule and the
+      # classroom ordering.
+      - name: Tests
+        run: npm test -- --run
+
+      # Second gate. A build failure is a broken deploy, and Vercel builds
+      # from the same source — better to find it here than on alic.org.
+      - name: Build
+        run: npm run build
+
+      # Cheap and worth knowing about: a dependency with a known critical
+      # advisory should be visible even while the backlog is being worked
+      # through. Informational for the same reason as the typecheck — there
+      # are known advisories today, and a permanently red build teaches
+      # people to stop looking.
+      - name: Known vulnerabilities (informational)
+        run: npm audit --audit-level=critical || true

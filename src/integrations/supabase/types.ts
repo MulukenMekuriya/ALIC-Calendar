@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.5"
   }
   budget: {
     Tables: {
@@ -703,6 +703,308 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      claim_attempts: {
+        Row: {
+          action: string
+          created_at: string
+          id: number
+          identifier: string
+          ip: string | null
+          outcome: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: number
+          identifier: string
+          ip?: string | null
+          outcome?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: number
+          identifier?: string
+          ip?: string | null
+          outcome?: string | null
+        }
+        Relationships: []
+      }
+      consent_children: {
+        Row: {
+          child_dob_text: string | null
+          child_grade_text: string | null
+          child_name_at_signing: string
+          child_person_id: string
+          consent_signature_id: string
+          created_at: string
+          id: string
+          medical_changed_at: string | null
+          organization_id: string
+          per_child_answers: Json
+          resign_due_by: string | null
+          resign_overdue_notified_at: string | null
+          resign_reminded_at: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
+          withdrawn_by_name: string | null
+          withdrawn_reason: string | null
+        }
+        Insert: {
+          child_dob_text?: string | null
+          child_grade_text?: string | null
+          child_name_at_signing: string
+          child_person_id: string
+          consent_signature_id: string
+          created_at?: string
+          id?: string
+          medical_changed_at?: string | null
+          organization_id: string
+          per_child_answers?: Json
+          resign_due_by?: string | null
+          resign_overdue_notified_at?: string | null
+          resign_reminded_at?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+          withdrawn_by_name?: string | null
+          withdrawn_reason?: string | null
+        }
+        Update: {
+          child_dob_text?: string | null
+          child_grade_text?: string | null
+          child_name_at_signing?: string
+          child_person_id?: string
+          consent_signature_id?: string
+          created_at?: string
+          id?: string
+          medical_changed_at?: string | null
+          organization_id?: string
+          per_child_answers?: Json
+          resign_due_by?: string | null
+          resign_overdue_notified_at?: string | null
+          resign_reminded_at?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+          withdrawn_by_name?: string | null
+          withdrawn_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consent_children_consent_signature_id_fkey"
+            columns: ["consent_signature_id"]
+            isOneToOne: false
+            referencedRelation: "consent_signatures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_consent_child_person"
+            columns: ["child_person_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
+      consent_documents: {
+        Row: {
+          body: Json
+          body_sha256: string
+          code: string
+          created_at: string
+          effective_from: string
+          id: string
+          organization_id: string
+          published_by: string | null
+          published_by_name: string
+          required_acknowledgments: string[]
+          retired_at: string | null
+          title: string
+          version: number
+        }
+        Insert: {
+          body: Json
+          body_sha256: string
+          code: string
+          created_at?: string
+          effective_from: string
+          id?: string
+          organization_id: string
+          published_by?: string | null
+          published_by_name: string
+          required_acknowledgments?: string[]
+          retired_at?: string | null
+          title: string
+          version: number
+        }
+        Update: {
+          body?: Json
+          body_sha256?: string
+          code?: string
+          created_at?: string
+          effective_from?: string
+          id?: string
+          organization_id?: string
+          published_by?: string | null
+          published_by_name?: string
+          required_acknowledgments?: string[]
+          retired_at?: string | null
+          title?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      consent_signatures: {
+        Row: {
+          answers: Json
+          client_ip_reported: string | null
+          consent_document_id: string
+          created_at: string
+          document_code: string
+          document_sha256: string
+          document_version: number
+          household_id: string | null
+          id: string
+          legal_hold: boolean
+          organization_id: string
+          pdf_attempts: number
+          pdf_bytes: number | null
+          pdf_error: string | null
+          pdf_sha256: string | null
+          pdf_storage_path: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewed_by_name: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          revoked_by_name: string | null
+          revoked_reason: string | null
+          secondary_signed_at: string | null
+          secondary_signer_person_id: string | null
+          secondary_signer_printed_name: string | null
+          signed_at: string
+          signer_auth_user_id: string | null
+          signer_person_id: string
+          signer_printed_name: string
+          signer_relationship: string | null
+          source: string
+          superseded_by_signature_id: string | null
+          updated_at: string
+          user_agent: string | null
+          witness_name: string | null
+          witness_station_id: string | null
+          witness_volunteer_id: string | null
+        }
+        Insert: {
+          answers?: Json
+          client_ip_reported?: string | null
+          consent_document_id: string
+          created_at?: string
+          document_code: string
+          document_sha256: string
+          document_version: number
+          household_id?: string | null
+          id?: string
+          legal_hold?: boolean
+          organization_id: string
+          pdf_attempts?: number
+          pdf_bytes?: number | null
+          pdf_error?: string | null
+          pdf_sha256?: string | null
+          pdf_storage_path?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_by_name?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          revoked_by_name?: string | null
+          revoked_reason?: string | null
+          secondary_signed_at?: string | null
+          secondary_signer_person_id?: string | null
+          secondary_signer_printed_name?: string | null
+          signed_at?: string
+          signer_auth_user_id?: string | null
+          signer_person_id: string
+          signer_printed_name: string
+          signer_relationship?: string | null
+          source: string
+          superseded_by_signature_id?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          witness_name?: string | null
+          witness_station_id?: string | null
+          witness_volunteer_id?: string | null
+        }
+        Update: {
+          answers?: Json
+          client_ip_reported?: string | null
+          consent_document_id?: string
+          created_at?: string
+          document_code?: string
+          document_sha256?: string
+          document_version?: number
+          household_id?: string | null
+          id?: string
+          legal_hold?: boolean
+          organization_id?: string
+          pdf_attempts?: number
+          pdf_bytes?: number | null
+          pdf_error?: string | null
+          pdf_sha256?: string | null
+          pdf_storage_path?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_by_name?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          revoked_by_name?: string | null
+          revoked_reason?: string | null
+          secondary_signed_at?: string | null
+          secondary_signer_person_id?: string | null
+          secondary_signer_printed_name?: string | null
+          signed_at?: string
+          signer_auth_user_id?: string | null
+          signer_person_id?: string
+          signer_printed_name?: string
+          signer_relationship?: string | null
+          source?: string
+          superseded_by_signature_id?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          witness_name?: string | null
+          witness_station_id?: string | null
+          witness_volunteer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consent_signatures_consent_document_id_fkey"
+            columns: ["consent_document_id"]
+            isOneToOne: false
+            referencedRelation: "consent_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consent_signatures_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consent_signatures_superseded_by_signature_id_fkey"
+            columns: ["superseded_by_signature_id"]
+            isOneToOne: false
+            referencedRelation: "consent_signatures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_consent_signature_signer"
+            columns: ["signer_person_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
       }
       crypto_config: {
         Row: {
@@ -1489,6 +1791,103 @@ export type Database = {
           },
         ]
       }
+      kids_check_in_holds: {
+        Row: {
+          child_person_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          leaders_notified_at: string | null
+          lifted_by: string | null
+          lifted_by_name: string | null
+          lifted_reason: string | null
+          organization_id: string
+          parent_notified_at: string | null
+          raised_at: string
+          raised_by: string | null
+          raised_by_name: string
+          reason: string
+          serving_kids_session_id: string | null
+          serving_session_date: string | null
+          serving_started_at: string | null
+          settled_at: string | null
+          source: string
+          source_late_pickup_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          child_person_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          leaders_notified_at?: string | null
+          lifted_by?: string | null
+          lifted_by_name?: string | null
+          lifted_reason?: string | null
+          organization_id: string
+          parent_notified_at?: string | null
+          raised_at?: string
+          raised_by?: string | null
+          raised_by_name: string
+          reason: string
+          serving_kids_session_id?: string | null
+          serving_session_date?: string | null
+          serving_started_at?: string | null
+          settled_at?: string | null
+          source?: string
+          source_late_pickup_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          child_person_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          leaders_notified_at?: string | null
+          lifted_by?: string | null
+          lifted_by_name?: string | null
+          lifted_reason?: string | null
+          organization_id?: string
+          parent_notified_at?: string | null
+          raised_at?: string
+          raised_by?: string | null
+          raised_by_name?: string
+          reason?: string
+          serving_kids_session_id?: string | null
+          serving_session_date?: string | null
+          serving_started_at?: string | null
+          settled_at?: string | null
+          source?: string
+          source_late_pickup_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_kids_hold_child"
+            columns: ["child_person_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "kids_check_in_holds_serving_kids_session_id_fkey"
+            columns: ["serving_kids_session_id"]
+            isOneToOne: false
+            referencedRelation: "kids_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kids_check_in_holds_source_late_pickup_id_fkey"
+            columns: ["source_late_pickup_id"]
+            isOneToOne: false
+            referencedRelation: "kids_late_pickups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kids_check_in_location_history: {
         Row: {
           changed_at: string
@@ -1775,6 +2174,47 @@ export type Database = {
           },
         ]
       }
+      kids_child_room_preference: {
+        Row: {
+          child_person_id: string
+          grade_sort_at_set: number | null
+          organization_id: string
+          room_id: string
+          school_year_set: number
+          set_at: string
+          set_by: string | null
+          set_by_name: string
+        }
+        Insert: {
+          child_person_id: string
+          grade_sort_at_set?: number | null
+          organization_id: string
+          room_id: string
+          school_year_set: number
+          set_at?: string
+          set_by?: string | null
+          set_by_name: string
+        }
+        Update: {
+          child_person_id?: string
+          grade_sort_at_set?: number | null
+          organization_id?: string
+          room_id?: string
+          school_year_set?: number
+          set_at?: string
+          set_by?: string | null
+          set_by_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_kids_room_pref_child"
+            columns: ["child_person_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
       kids_classroom_teachers: {
         Row: {
           created_at: string
@@ -1831,6 +2271,90 @@ export type Database = {
           },
         ]
       }
+      kids_consent_exceptions: {
+        Row: {
+          child_person_id: string
+          granted_at: string
+          granted_by: string | null
+          granted_by_name: string
+          id: string
+          kids_session_id: string
+          organization_id: string
+          reason: string
+        }
+        Insert: {
+          child_person_id: string
+          granted_at?: string
+          granted_by?: string | null
+          granted_by_name: string
+          id?: string
+          kids_session_id: string
+          organization_id: string
+          reason: string
+        }
+        Update: {
+          child_person_id?: string
+          granted_at?: string
+          granted_by?: string | null
+          granted_by_name?: string
+          id?: string
+          kids_session_id?: string
+          organization_id?: string
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_kids_consent_exception_child"
+            columns: ["child_person_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "kids_consent_exceptions_kids_session_id_fkey"
+            columns: ["kids_session_id"]
+            isOneToOne: false
+            referencedRelation: "kids_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kids_consent_policy: {
+        Row: {
+          created_at: string
+          enforce_from: string | null
+          mode: string
+          notice_text: string | null
+          organization_id: string
+          resign_grace_days: number
+          updated_at: string
+          updated_by: string | null
+          updated_by_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          enforce_from?: string | null
+          mode?: string
+          notice_text?: string | null
+          organization_id: string
+          resign_grace_days?: number
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          enforce_from?: string | null
+          mode?: string
+          notice_text?: string | null
+          organization_id?: string
+          resign_grace_days?: number
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_name?: string | null
+        }
+        Relationships: []
+      }
       kids_events: {
         Row: {
           auto_expire_minutes_after_end: number
@@ -1845,6 +2369,7 @@ export type Database = {
           event_type: string
           id: string
           is_active: boolean
+          late_pickup_grace_minutes: number
           name: string
           organization_id: string
           service_minutes: number
@@ -1864,6 +2389,7 @@ export type Database = {
           event_type?: string
           id?: string
           is_active?: boolean
+          late_pickup_grace_minutes?: number
           name: string
           organization_id: string
           service_minutes?: number
@@ -1883,6 +2409,7 @@ export type Database = {
           event_type?: string
           id?: string
           is_active?: boolean
+          late_pickup_grace_minutes?: number
           name?: string
           organization_id?: string
           service_minutes?: number
@@ -1890,6 +2417,265 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      kids_incident_notes: {
+        Row: {
+          author_id: string | null
+          author_name: string
+          body: string
+          created_at: string
+          id: string
+          incident_id: string
+          organization_id: string
+          visibility: string
+        }
+        Insert: {
+          author_id?: string | null
+          author_name: string
+          body: string
+          created_at?: string
+          id?: string
+          incident_id: string
+          organization_id: string
+          visibility?: string
+        }
+        Update: {
+          author_id?: string | null
+          author_name?: string
+          body?: string
+          created_at?: string
+          id?: string
+          incident_id?: string
+          organization_id?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kids_incident_notes_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "kids_incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kids_incidents: {
+        Row: {
+          admin_summary: string | null
+          check_in_id: string | null
+          child_person_id: string
+          created_at: string
+          decline_reason: string | null
+          external_report_made: boolean | null
+          external_report_note: string | null
+          external_report_reference: string | null
+          external_reported_at: string | null
+          id: string
+          kids_session_id: string | null
+          legal_hold: boolean
+          occurred_on: string
+          organization_id: string
+          parent_message: string | null
+          pdf_attempts: number
+          pdf_error: string | null
+          pdf_generated_at: string | null
+          pdf_sha256: string | null
+          pdf_storage_path: string | null
+          reported_at: string
+          reported_by: string | null
+          reported_by_name: string
+          reported_by_person_id: string | null
+          reported_narrative: string
+          room_id: string | null
+          sent_at: string | null
+          severity: string
+          signed_off_at: string | null
+          signed_off_by: string | null
+          signed_off_by_name: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_summary?: string | null
+          check_in_id?: string | null
+          child_person_id: string
+          created_at?: string
+          decline_reason?: string | null
+          external_report_made?: boolean | null
+          external_report_note?: string | null
+          external_report_reference?: string | null
+          external_reported_at?: string | null
+          id?: string
+          kids_session_id?: string | null
+          legal_hold?: boolean
+          occurred_on: string
+          organization_id: string
+          parent_message?: string | null
+          pdf_attempts?: number
+          pdf_error?: string | null
+          pdf_generated_at?: string | null
+          pdf_sha256?: string | null
+          pdf_storage_path?: string | null
+          reported_at?: string
+          reported_by?: string | null
+          reported_by_name: string
+          reported_by_person_id?: string | null
+          reported_narrative: string
+          room_id?: string | null
+          sent_at?: string | null
+          severity: string
+          signed_off_at?: string | null
+          signed_off_by?: string | null
+          signed_off_by_name?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_summary?: string | null
+          check_in_id?: string | null
+          child_person_id?: string
+          created_at?: string
+          decline_reason?: string | null
+          external_report_made?: boolean | null
+          external_report_note?: string | null
+          external_report_reference?: string | null
+          external_reported_at?: string | null
+          id?: string
+          kids_session_id?: string | null
+          legal_hold?: boolean
+          occurred_on?: string
+          organization_id?: string
+          parent_message?: string | null
+          pdf_attempts?: number
+          pdf_error?: string | null
+          pdf_generated_at?: string | null
+          pdf_sha256?: string | null
+          pdf_storage_path?: string | null
+          reported_at?: string
+          reported_by?: string | null
+          reported_by_name?: string
+          reported_by_person_id?: string | null
+          reported_narrative?: string
+          room_id?: string | null
+          sent_at?: string | null
+          severity?: string
+          signed_off_at?: string | null
+          signed_off_by?: string | null
+          signed_off_by_name?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_kids_incident_child"
+            columns: ["child_person_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "kids_incidents_check_in_id_fkey"
+            columns: ["check_in_id"]
+            isOneToOne: false
+            referencedRelation: "kids_check_ins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kids_incidents_kids_session_id_fkey"
+            columns: ["kids_session_id"]
+            isOneToOne: false
+            referencedRelation: "kids_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kids_late_pickups: {
+        Row: {
+          check_in_id: string | null
+          child_person_id: string
+          created_at: string
+          detected_at: string
+          dismissed_reason: string | null
+          id: string
+          kids_session_id: string | null
+          legal_hold: boolean
+          minutes_late: number | null
+          organization_id: string
+          parent_message: string | null
+          parent_notified_at: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewed_by_name: string | null
+          room_id: string | null
+          session_date: string | null
+          source: string
+          status: string
+        }
+        Insert: {
+          check_in_id?: string | null
+          child_person_id: string
+          created_at?: string
+          detected_at?: string
+          dismissed_reason?: string | null
+          id?: string
+          kids_session_id?: string | null
+          legal_hold?: boolean
+          minutes_late?: number | null
+          organization_id: string
+          parent_message?: string | null
+          parent_notified_at?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_by_name?: string | null
+          room_id?: string | null
+          session_date?: string | null
+          source: string
+          status?: string
+        }
+        Update: {
+          check_in_id?: string | null
+          child_person_id?: string
+          created_at?: string
+          detected_at?: string
+          dismissed_reason?: string | null
+          id?: string
+          kids_session_id?: string | null
+          legal_hold?: boolean
+          minutes_late?: number | null
+          organization_id?: string
+          parent_message?: string | null
+          parent_notified_at?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_by_name?: string | null
+          room_id?: string | null
+          session_date?: string | null
+          source?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_kids_late_pickup_child"
+            columns: ["child_person_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "kids_late_pickups_check_in_id_fkey"
+            columns: ["check_in_id"]
+            isOneToOne: false
+            referencedRelation: "kids_check_ins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kids_late_pickups_kids_session_id_fkey"
+            columns: ["kids_session_id"]
+            isOneToOne: false
+            referencedRelation: "kids_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       kids_leader_invites: {
         Row: {
@@ -2370,6 +3156,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          may_not_serve_with_children: boolean
           organization_id: string
           person_id: string
           training_completed_on: string | null
@@ -2383,6 +3170,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          may_not_serve_with_children?: boolean
           organization_id: string
           person_id: string
           training_completed_on?: string | null
@@ -2396,6 +3184,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          may_not_serve_with_children?: boolean
           organization_id?: string
           person_id?: string
           training_completed_on?: string | null
@@ -2653,12 +3442,16 @@ export type Database = {
       }
       notification_log: {
         Row: {
+          attachment_bucket: string | null
+          attachment_filename: string | null
+          attachment_path: string | null
           attempts: number
           body: string
           channel: string
           check_in_id: string | null
           child_person_id: string | null
           claimed_at: string | null
+          consent_signature_id: string | null
           created_at: string
           error: string | null
           id: string
@@ -2678,12 +3471,16 @@ export type Database = {
           subject: string | null
         }
         Insert: {
+          attachment_bucket?: string | null
+          attachment_filename?: string | null
+          attachment_path?: string | null
           attempts?: number
           body: string
           channel?: string
           check_in_id?: string | null
           child_person_id?: string | null
           claimed_at?: string | null
+          consent_signature_id?: string | null
           created_at?: string
           error?: string | null
           id?: string
@@ -2703,12 +3500,16 @@ export type Database = {
           subject?: string | null
         }
         Update: {
+          attachment_bucket?: string | null
+          attachment_filename?: string | null
+          attachment_path?: string | null
           attempts?: number
           body?: string
           channel?: string
           check_in_id?: string | null
           child_person_id?: string | null
           claimed_at?: string | null
+          consent_signature_id?: string | null
           created_at?: string
           error?: string | null
           id?: string
@@ -2740,6 +3541,13 @@ export type Database = {
             columns: ["child_person_id"]
             isOneToOne: false
             referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_log_consent_signature_id_fkey"
+            columns: ["consent_signature_id"]
+            isOneToOne: false
+            referencedRelation: "consent_signatures"
             referencedColumns: ["id"]
           },
           {
@@ -3174,6 +3982,54 @@ export type Database = {
           },
         ]
       }
+      person_sensitive_history: {
+        Row: {
+          allergies: string | null
+          allergy_severity: string | null
+          changed_by: string | null
+          changed_by_name: string
+          changed_by_role: string
+          created_at: string
+          id: string
+          medical_notes: string | null
+          medications: string | null
+          organization_id: string
+          person_id: string
+          special_needs: string | null
+          special_needs_flag: boolean | null
+        }
+        Insert: {
+          allergies?: string | null
+          allergy_severity?: string | null
+          changed_by?: string | null
+          changed_by_name: string
+          changed_by_role: string
+          created_at?: string
+          id?: string
+          medical_notes?: string | null
+          medications?: string | null
+          organization_id: string
+          person_id: string
+          special_needs?: string | null
+          special_needs_flag?: boolean | null
+        }
+        Update: {
+          allergies?: string | null
+          allergy_severity?: string | null
+          changed_by?: string | null
+          changed_by_name?: string
+          changed_by_role?: string
+          created_at?: string
+          id?: string
+          medical_notes?: string | null
+          medications?: string | null
+          organization_id?: string
+          person_id?: string
+          special_needs?: string | null
+          special_needs_flag?: boolean | null
+        }
+        Relationships: []
+      }
       person_service_interests: {
         Row: {
           created_at: string
@@ -3230,6 +4086,39 @@ export type Database = {
             referencedColumns: ["id", "organization_id"]
           },
         ]
+      }
+      record_retention: {
+        Row: {
+          basis: string
+          organization_id: string
+          record_type: string
+          retain_forever: boolean
+          retain_years: number
+          updated_at: string
+          updated_by: string | null
+          updated_by_name: string | null
+        }
+        Insert: {
+          basis: string
+          organization_id: string
+          record_type: string
+          retain_forever?: boolean
+          retain_years: number
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_name?: string | null
+        }
+        Update: {
+          basis?: string
+          organization_id?: string
+          record_type?: string
+          retain_forever?: boolean
+          retain_years?: number
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_name?: string | null
+        }
+        Relationships: []
       }
       relationship_types: {
         Row: {
@@ -3858,9 +4747,29 @@ export type Database = {
           household_id: string
         }[]
       }
-      assert_family_editor: {
-        Args: { _person_id: string; _related_person_id: string }
-        Returns: string
+      add_person_photo: {
+        Args: {
+          _make_primary?: boolean
+          _person_id: string
+          _storage_path: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          is_primary: boolean
+          organization_id: string
+          person_id: string
+          slot: number
+          storage_path: string
+          uploaded_by: string | null
+          uploaded_by_name: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "person_photos"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       add_person_to_household: {
         Args: {
@@ -3905,11 +4814,19 @@ export type Database = {
         Args: { _as_of?: string; _birth_month: number; _birth_year: number }
         Returns: number
       }
+      assert_family_editor: {
+        Args: { _person_id: string; _related_person_id: string }
+        Returns: string
+      }
       assert_giving_admin: {
         Args: { _organization_id: string }
         Returns: undefined
       }
       assert_giving_reader: {
+        Args: { _organization_id: string }
+        Returns: undefined
+      }
+      assert_kids_incident_admin: {
         Args: { _organization_id: string }
         Returns: undefined
       }
@@ -3979,6 +4896,7 @@ export type Database = {
         Args: { _assignee_person_id: string; _card_id: string; _note?: string }
         Returns: undefined
       }
+      auth_user_id_for_email: { Args: { _email: string }; Returns: string }
       authorize_pickup: {
         Args: { _child_person_id: string; _note?: string; _person_id: string }
         Returns: string
@@ -3991,14 +4909,24 @@ export type Database = {
           skipped: number
         }[]
       }
+      can_manage_photos_of: { Args: { _person_id: string }; Returns: boolean }
       can_manage_workflows: {
         Args: { _organization_id: string }
+        Returns: boolean
+      }
+      can_read_consent_pdf: {
+        Args: { _signature_id: string }
+        Returns: boolean
+      }
+      can_read_incident_pdf: {
+        Args: { _incident_id: string }
         Returns: boolean
       }
       can_read_workflows: {
         Args: { _organization_id: string }
         Returns: boolean
       }
+      can_view_photos_of: { Args: { _person_id: string }; Returns: boolean }
       check_in_children: {
         Args: {
           _assignment_reason?: string
@@ -4016,10 +4944,14 @@ export type Database = {
           check_in_id: string
           child_name: string
           child_person_id: string
+          consent_state: string
           guardian_phone: string
           has_restriction: boolean
           pickup_code: string
           pickup_token: string
+          refusal_code: string
+          refusal_message: string
+          refused: boolean
           room_id: string
           room_name: string
           tag_number: number
@@ -4056,6 +4988,17 @@ export type Database = {
           child_name: string
         }[]
       }
+      child_consent_state: {
+        Args: { _child_person_id: string; _for_household_id?: string }
+        Returns: {
+          document_version: number
+          medical_changed_at: string
+          resign_due_by: string
+          signature_id: string
+          signed_at: string
+          state: string
+        }[]
+      }
       child_has_active_restriction: {
         Args: { _child_person_id: string }
         Returns: boolean
@@ -4074,6 +5017,20 @@ export type Database = {
           phone: string
         }[]
       }
+      children_missing_placement: {
+        Args: { _organization_id: string }
+        Returns: {
+          child_name: string
+          has_birth_year: boolean
+          has_grade: boolean
+          household_id: string
+          household_name: string
+          parent_email: string
+          parent_names: string
+          parent_phone: string
+          person_id: string
+        }[]
+      }
       children_without_an_adult: {
         Args: { _organization_id: string }
         Returns: {
@@ -4087,19 +5044,48 @@ export type Database = {
           person_id: string
         }[]
       }
+      claim_attach_login: {
+        Args: { _auth_user_id: string; _person_id: string }
+        Returns: boolean
+      }
       claim_kids_leader_invites: {
         Args: { _email: string; _user_id: string }
         Returns: number
       }
+      claim_lookup: {
+        Args: {
+          _email?: string
+          _first_name?: string
+          _last_name?: string
+          _organization_id: string
+          _phone?: string
+        }
+        Returns: Database["church"]["CompositeTypes"]["claim_verdict"]
+        SetofOptions: {
+          from: "*"
+          to: "claim_verdict"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      claim_note_attempt: {
+        Args: { _action: string; _identifier: string; _ip: string }
+        Returns: boolean
+      }
+      claim_open_followup: { Args: { _person_id: string }; Returns: number }
       claim_queued_notifications: {
         Args: { _limit?: number }
         Returns: {
+          attachment_bucket: string | null
+          attachment_filename: string | null
+          attachment_path: string | null
           attempts: number
           body: string
           channel: string
           check_in_id: string | null
           child_person_id: string | null
           claimed_at: string | null
+          consent_signature_id: string | null
           created_at: string
           error: string | null
           id: string
@@ -4142,7 +5128,55 @@ export type Database = {
         Args: { _card_id: string; _note?: string; _outcome?: string }
         Returns: Json
       }
+      confirm_kids_purge: {
+        Args: {
+          _organization_id: string
+          _reason: string
+          _record_type: string
+        }
+        Returns: number
+      }
+      consent_document_digest: { Args: { _body: Json }; Returns: string }
+      consent_document_sha256: { Args: { _body: Json }; Returns: string }
+      consent_pdf_payload: { Args: { _signature_id: string }; Returns: Json }
+      consent_pdf_signed_url: {
+        Args: { _signature_id: string }
+        Returns: {
+          expires_in: number
+          storage_path: string
+        }[]
+      }
+      consent_pdfs_pending: {
+        Args: { _limit?: number }
+        Returns: {
+          at: string
+          household_id: string
+          id: string
+          kind: string
+          organization_id: string
+        }[]
+      }
+      current_consent_document: {
+        Args: { _code?: string; _organization_id: string; _surface?: string }
+        Returns: {
+          body: Json
+          body_sha256: string
+          code: string
+          document_id: string
+          effective_from: string
+          required_acknowledgments: string[]
+          title: string
+          version: number
+        }[]
+      }
       current_profile_name: { Args: never; Returns: string }
+      delete_person_photo: { Args: { _photo_id: string }; Returns: string }
+      delete_person_relationship: {
+        Args: { _relationship_id: string }
+        Returns: undefined
+      }
+      derive_allergy_label: { Args: { _allergies: string }; Returns: string }
+      dispatch_consent_pdf: { Args: never; Returns: undefined }
       dispatch_kids_notifications: { Args: never; Returns: undefined }
       end_my_shift: { Args: { _kids_session_id: string }; Returns: number }
       end_pickup_permission: {
@@ -4151,6 +5185,17 @@ export type Database = {
       }
       end_session_staff: { Args: { _staffing_id: string }; Returns: undefined }
       expire_stale_check_ins: { Args: never; Returns: number }
+      family_link_candidates: {
+        Args: { _person_id: string; _search?: string }
+        Returns: {
+          already_related: boolean
+          first_name: string
+          household_name: string
+          id: string
+          is_child: boolean
+          last_name: string
+        }[]
+      }
       find_duplicate_person: {
         Args: {
           _birth_month: number
@@ -4313,6 +5358,10 @@ export type Database = {
           total_cents: number
         }[]
       }
+      has_live_kids_shift_in: {
+        Args: { _organization_id: string }
+        Returns: boolean
+      }
       has_permission_in_org: {
         Args: {
           _organization_id: string
@@ -4337,8 +5386,17 @@ export type Database = {
           primary_phone: string
         }[]
       }
+      i_am_an_adult_of: { Args: { _household_id: string }; Returns: boolean }
       import_commit: { Args: { _batch_id: string }; Returns: Json }
       import_dry_run: { Args: { _batch_id: string }; Returns: Json }
+      incident_pdf_payload: { Args: { _incident_id: string }; Returns: Json }
+      incident_pdf_signed_url: {
+        Args: { _incident_id: string }
+        Returns: {
+          expires_in: number
+          storage_path: string
+        }[]
+      }
       insert_person_from_json: {
         Args: {
           _actor_name: string
@@ -4355,6 +5413,13 @@ export type Database = {
           _person_name?: string
         }
         Returns: boolean
+      }
+      is_kiosk_session: { Args: never; Returns: boolean }
+      join_group: { Args: { _group_id: string }; Returns: string }
+      join_ministry: { Args: { _ministry_id: string }; Returns: string }
+      kids_add_incident_note: {
+        Args: { _body: string; _incident_id: string }
+        Returns: string
       }
       kids_attendance_report: {
         Args: { _from: string; _organization_id: string; _to: string }
@@ -4377,13 +5442,34 @@ export type Database = {
         Args: { _batch_id: string }
         Returns: boolean
       }
+      kids_child_access_history: {
+        Args: { _child_person_id: string }
+        Returns: {
+          actor_name: string
+          record: string
+          viewed_at: string
+        }[]
+      }
+      kids_child_room_preferences: {
+        Args: {
+          _child_person_ids: string[]
+          _kids_session_id?: string
+          _shift_token?: string
+        }
+        Returns: {
+          carried_years: number
+          child_person_id: string
+          room_id: string
+          room_name: string
+          set_at: string
+          set_by_name: string
+        }[]
+      }
       kids_classroom_teacher_list: {
         Args: { _organization_id: string }
         Returns: {
-          background_check_status: string
           display_name: string
           id: string
-          is_eligible: boolean
           is_lead: boolean
           person_id: string
           phone: string
@@ -4396,29 +5482,80 @@ export type Database = {
         Args: { _kids_session_id: string; _room_id: string }
         Returns: undefined
       }
-      kids_expire_open_check_ins: {
-        Args: {
-          _organization_id: string
-          _kids_session_id?: string | null
-          _note?: string | null
-        }
+      kids_consent_coverage: {
+        Args: { _organization_id: string }
         Returns: {
-          expired_count: number
-          child_names: string[]
+          children_covered: number
+          children_no_household: number
+          children_total: number
+          children_uncovered: number
+          households_signed: number
+          households_total: number
+          signatures_unreviewed: number
         }[]
+      }
+      kids_consent_gate: {
+        Args: { _child_person_id: string; _kids_session_id?: string }
+        Returns: {
+          allow: boolean
+          enforcing: boolean
+          excepted: boolean
+          refusal_code: string
+          resign_due_by: string
+          state: string
+        }[]
+      }
+      kids_consent_needs_resigning: {
+        Args: { _organization_id: string }
+        Returns: {
+          child_name: string
+          child_person_id: string
+          days_left: number
+          household_id: string
+          is_overdue: boolean
+          medical_changed_at: string
+          resign_due_by: string
+          signature_id: string
+          signed_at: string
+        }[]
+      }
+      kids_consent_policy_for: {
+        Args: { _organization_id: string }
+        Returns: {
+          enforce_from: string
+          enforcing_now: boolean
+          mode: string
+          notice_text: string
+          resign_grace_days: number
+          updated_at: string
+          updated_by_name: string
+        }[]
+      }
+      kids_consent_resign_sweep: {
+        Args: never
+        Returns: {
+          overdue: number
+          reminded: number
+        }[]
+      }
+      kids_decline_incident: {
+        Args: { _incident_id: string; _reason: string }
+        Returns: boolean
+      }
+      kids_dismiss_late_pickup: {
+        Args: { _late_pickup_id: string; _reason: string }
+        Returns: boolean
       }
       kids_eligible_volunteers: {
         Args: { _organization_id: string }
         Returns: {
-          background_check_expires_on: string
-          background_check_status: string
           can_override: boolean
           display_name: string
           is_active: boolean
-          is_eligible: boolean
+          may_not_serve_with_children: boolean
+          on_kids_team: boolean
           person_id: string
           phone: string
-          training_completed_on: string
           volunteer_id: string
         }[]
       }
@@ -4427,12 +5564,96 @@ export type Database = {
         Returns: {
           action: string
           actor_name: string
+          category: string
           child_name: string
           occurred_at: string
           outcome: string
           reason: string
           room_name: string
           session_date: string
+          total_count: number
+        }[]
+      }
+      kids_expire_open_check_ins: {
+        Args: {
+          _kids_session_id?: string
+          _note?: string
+          _organization_id: string
+        }
+        Returns: {
+          child_names: string[]
+          expired_count: number
+        }[]
+      }
+      kids_grant_consent_exception: {
+        Args: {
+          _child_person_id: string
+          _kids_session_id: string
+          _reason: string
+        }
+        Returns: string
+      }
+      kids_incident_detail: {
+        Args: { _incident_id: string }
+        Returns: {
+          admin_summary: string
+          child_name: string
+          child_person_id: string
+          decline_reason: string
+          external_report_made: boolean
+          external_report_note: string
+          external_report_reference: string
+          external_reported_at: string
+          id: string
+          occurred_on: string
+          parent_message: string
+          reported_at: string
+          reported_by_name: string
+          reported_narrative: string
+          room_name: string
+          sent_at: string
+          severity: string
+          signed_off_at: string
+          signed_off_by_name: string
+          status: string
+        }[]
+      }
+      kids_incident_queue: {
+        Args: { _include_settled?: boolean; _organization_id: string }
+        Returns: {
+          age_hours: number
+          child_name: string
+          child_person_id: string
+          external_report_made: boolean
+          id: string
+          needs_reporting_answer: boolean
+          note_count: number
+          occurred_on: string
+          reported_at: string
+          reported_by_name: string
+          room_name: string
+          severity: string
+          signed_off_at: string
+          signed_off_by_name: string
+          status: string
+        }[]
+      }
+      kids_late_pickup_report: {
+        Args: { _from: string; _organization_id: string; _to: string }
+        Returns: {
+          child_name: string
+          child_person_id: string
+          detected_at: string
+          dismissed_reason: string
+          id: string
+          minutes_late: number
+          parent_notified_at: string
+          reviewed_by_name: string
+          room_name: string
+          session_date: string
+          source: string
+          status: string
+          times_in_range: number
         }[]
       }
       kids_leader_orgs: { Args: never; Returns: string[] }
@@ -4442,6 +5663,17 @@ export type Database = {
       }
       kids_leader_sees_all_rooms: {
         Args: { _organization_id: string }
+        Returns: boolean
+      }
+      kids_leaders_to_notify: {
+        Args: { _organization_id: string }
+        Returns: {
+          email: string
+          full_name: string
+        }[]
+      }
+      kids_lift_check_in_hold: {
+        Args: { _hold_id: string; _reason: string }
         Returns: boolean
       }
       kids_live_board: {
@@ -4468,6 +5700,54 @@ export type Database = {
           volunteer_count: number
         }[]
       }
+      kids_live_hold_for: {
+        Args: { _child_person_id: string; _kids_session_id: string }
+        Returns: {
+          child_person_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          leaders_notified_at: string | null
+          lifted_by: string | null
+          lifted_by_name: string | null
+          lifted_reason: string | null
+          organization_id: string
+          parent_notified_at: string | null
+          raised_at: string
+          raised_by: string | null
+          raised_by_name: string
+          reason: string
+          serving_kids_session_id: string | null
+          serving_session_date: string | null
+          serving_started_at: string | null
+          settled_at: string | null
+          source: string
+          source_late_pickup_id: string | null
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "kids_check_in_holds"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      kids_my_incidents: {
+        Args: never
+        Returns: {
+          child_name: string
+          decline_reason: string
+          id: string
+          note_count: number
+          occurred_on: string
+          reported_at: string
+          reported_narrative: string
+          room_name: string
+          severity: string
+          status: string
+        }[]
+      }
       kids_notification_log: {
         Args: { _from: string; _organization_id: string; _to: string }
         Returns: {
@@ -4482,6 +5762,23 @@ export type Database = {
           status: string
           subject: string
         }[]
+      }
+      kids_notify_expired: {
+        Args: {
+          _actor: string
+          _automatic: boolean
+          _names: string[]
+          _organization_id: string
+        }
+        Returns: number
+      }
+      kids_notify_incident_raised: {
+        Args: { _incident_id: string }
+        Returns: number
+      }
+      kids_notify_late_pickup: {
+        Args: { _late_pickup_id: string; _message?: string }
+        Returns: number
       }
       kids_open_room_in_session: {
         Args: {
@@ -4506,6 +5803,68 @@ export type Database = {
           was_created: boolean
         }[]
       }
+      kids_preferred_room_for_child: {
+        Args: {
+          _child_person_id: string
+          _kids_session_id: string
+          _organization_id: string
+        }
+        Returns: {
+          carried_years: number
+          room_id: string
+        }[]
+      }
+      kids_raise_check_in_hold: {
+        Args: {
+          _child_person_id: string
+          _reason: string
+          _source_late_pickup_id?: string
+        }
+        Returns: string
+      }
+      kids_raise_incident: {
+        Args: {
+          _check_in_id?: string
+          _child_person_id: string
+          _kids_session_id?: string
+          _narrative: string
+          _occurred_on: string
+          _room_id?: string
+          _severity: string
+        }
+        Returns: string
+      }
+      kids_record_external_report: {
+        Args: {
+          _incident_id: string
+          _made: boolean
+          _note?: string
+          _reference?: string
+        }
+        Returns: boolean
+      }
+      kids_record_late_pickup: {
+        Args: { _check_in_id: string; _source: string }
+        Returns: string
+      }
+      kids_records_due_for_purge: {
+        Args: { _organization_id: string }
+        Returns: {
+          basis: string
+          due_count: number
+          held_count: number
+          oldest: string
+          record_type: string
+          retain_forever: boolean
+          retain_years: number
+        }[]
+      }
+      kids_refusal_message: {
+        Args: { _code: string; _first_name: string }
+        Returns: string
+      }
+      kids_retention_sweep: { Args: never; Returns: number }
+      kids_review_incident: { Args: { _incident_id: string }; Returns: boolean }
       kids_room_roster: {
         Args: { _kids_session_id: string; _room_id?: string }
         Returns: {
@@ -4531,7 +5890,92 @@ export type Database = {
           tag_number: number
         }[]
       }
+      kids_send_incident_to_parent: {
+        Args: { _incident_id: string; _source?: string }
+        Returns: number
+      }
+      kids_sensitive_access_report: {
+        Args: {
+          _actor_auth_user_id?: string
+          _child_person_id?: string
+          _from: string
+          _organization_id: string
+          _record_type?: string
+          _to: string
+        }
+        Returns: {
+          actor_name: string
+          child_name: string
+          detail: Json
+          record: string
+          viewed_at: string
+        }[]
+      }
+      kids_sensitive_access_summary: {
+        Args: { _from: string; _organization_id: string; _to: string }
+        Returns: {
+          actor_auth_user_id: string
+          actor_name: string
+          children_seen: number
+          first_read: string
+          last_read: string
+          on_days: number
+          reads: number
+          record_types: string[]
+        }[]
+      }
+      kids_serve_hold: {
+        Args: {
+          _actor_name: string
+          _hold_id: string
+          _kids_session_id: string
+        }
+        Returns: boolean
+      }
       kids_session_tick: { Args: never; Returns: undefined }
+      kids_set_child_room_preference: {
+        Args: {
+          _child_person_id: string
+          _room_id?: string
+          _shift_token?: string
+        }
+        Returns: undefined
+      }
+      kids_set_incident_severity: {
+        Args: { _incident_id: string; _severity: string; _why?: string }
+        Returns: boolean
+      }
+      kids_set_legal_hold: {
+        Args: {
+          _hold: boolean
+          _reason?: string
+          _record_id: string
+          _record_type: string
+        }
+        Returns: undefined
+      }
+      kids_set_station_active: {
+        Args: { _is_active: boolean; _station_id: string }
+        Returns: undefined
+      }
+      kids_settle_holds: { Args: never; Returns: number }
+      kids_sign_off_incident: {
+        Args: { _admin_summary?: string; _incident_id: string }
+        Returns: boolean
+      }
+      kids_stations: {
+        Args: { _organization_id: string }
+        Returns: {
+          code: string
+          device_type: string
+          is_active: boolean
+          last_seen_at: string
+          location_note: string
+          name: string
+          seen_today: boolean
+          station_id: string
+        }[]
+      }
       kids_still_here: {
         Args: { _organization_id: string }
         Returns: {
@@ -4558,47 +6002,86 @@ export type Database = {
           rooms_closed: number
         }[]
       }
+      kiosk_active_station: {
+        Args: { _org: string; _station_id: string }
+        Returns: string
+      }
+      kiosk_find_household_by_phone: {
+        Args: { _kids_session_id: string; _phone: string; _station_id?: string }
+        Returns: {
+          already_checked_in: boolean
+          child_name: string
+          child_person_id: string
+          grade_name: string
+          household_id: string
+          household_name: string
+          photo_path: string
+        }[]
+      }
+      kiosk_register_station: {
+        Args: {
+          _code: string
+          _device_type?: string
+          _location_note?: string
+          _name: string
+        }
+        Returns: {
+          station_id: string
+          station_name: string
+        }[]
+      }
+      kiosk_session_bootstrap:
+        | {
+            Args: { _station_id?: string }
+            Returns: {
+              kids_session_id: string
+              open_room_count: number
+              session_date: string
+              session_label: string
+              station_known: boolean
+              station_name: string
+              status: string
+            }[]
+          }
+        | {
+            Args: { _station_id?: string; _today?: string }
+            Returns: {
+              kids_session_id: string
+              open_room_count: number
+              session_date: string
+              session_label: string
+              station_known: boolean
+              station_name: string
+              status: string
+            }[]
+          }
+      leave_group: { Args: { _membership_id: string }; Returns: undefined }
+      leave_ministry: { Args: { _assignment_id: string }; Returns: undefined }
       link_profile_to_person: {
         Args: { _person_id: string; _profile_id: string }
         Returns: undefined
       }
+      mask_email: { Args: { _email: string }; Returns: string }
+      may_edit_child_medical: {
+        Args: { _child_person_id: string }
+        Returns: boolean
+      }
       my_admin_orgs: { Args: never; Returns: string[] }
-      family_link_candidates: {
-        Args: { _person_id: string; _search?: string }
+      my_child_medical: {
+        Args: { _child_person_id: string }
         Returns: {
-          already_related: boolean
-          first_name: string
-          household_name: string
-          id: string
-          is_child: boolean
-          last_name: string
+          allergies: string
+          allergy_severity: string
+          child_name: string
+          child_person_id: string
+          has_record: boolean
+          medical_notes: string
+          medications: string
+          special_needs: string
+          special_needs_flag: boolean
+          updated_at: string
+          updated_by_name: string
         }[]
-      }
-      my_family: {
-        Args: never
-        Returns: {
-          editable: boolean
-          first_name: string
-          is_child: boolean
-          last_name: string
-          person_id: string
-          related_person_id: string
-          relationship_code: string
-          relationship_id: string
-          relationship_name: string
-        }[]
-      }
-      delete_person_relationship: {
-        Args: { _relationship_id: string }
-        Returns: undefined
-      }
-      set_person_relationship: {
-        Args: {
-          _person_id: string
-          _related_person_id: string
-          _relationship_type_id: string
-        }
-        Returns: string
       }
       my_children: {
         Args: never
@@ -4641,6 +6124,20 @@ export type Database = {
           staffing_id: string
         }[]
       }
+      my_family: {
+        Args: never
+        Returns: {
+          editable: boolean
+          first_name: string
+          is_child: boolean
+          last_name: string
+          person_id: string
+          related_person_id: string
+          relationship_code: string
+          relationship_id: string
+          relationship_name: string
+        }[]
+      }
       my_giving: {
         Args: { _year?: number }
         Returns: {
@@ -4661,31 +6158,6 @@ export type Database = {
           total_cents: number
         }[]
       }
-      add_person_photo: {
-        Args: { _make_primary?: boolean; _person_id: string; _storage_path: string }
-        Returns: Database["church"]["Tables"]["person_photos"]["Row"]
-      }
-      can_manage_photos_of: { Args: { _person_id: string }; Returns: boolean }
-      can_view_photos_of: { Args: { _person_id: string }; Returns: boolean }
-      delete_person_photo: { Args: { _photo_id: string }; Returns: string }
-      has_live_kids_shift_in: { Args: { _organization_id: string }; Returns: boolean }
-      person_photos_for: {
-        Args: { _person_ids: string[] }
-        Returns: {
-          is_primary: boolean
-          person_id: string
-          photo_id: string
-          slot: number
-          storage_path: string
-        }[]
-      }
-      set_primary_photo: { Args: { _photo_id: string }; Returns: undefined }
-      uuid_or_null: { Args: { _text: string }; Returns: string }
-      i_am_an_adult_of: { Args: { _household_id: string }; Returns: boolean }
-      join_group: { Args: { _group_id: string }; Returns: string }
-      join_ministry: { Args: { _ministry_id: string }; Returns: string }
-      leave_group: { Args: { _membership_id: string }; Returns: undefined }
-      leave_ministry: { Args: { _assignment_id: string }; Returns: undefined }
       my_group_options: {
         Args: { _organization_id: string }
         Returns: {
@@ -4698,6 +6170,20 @@ export type Database = {
           member_count: number
           name: string
           room_name: string
+        }[]
+      }
+      my_groups: {
+        Args: never
+        Returns: {
+          group_name: string
+          group_type: string
+          is_leadership_role: boolean
+          meeting_day: string
+          meeting_place: string
+          meeting_time: string
+          membership_id: string
+          organization_id: string
+          role_name: string
         }[]
       }
       my_household_detail: {
@@ -4715,37 +6201,7 @@ export type Database = {
           state: string
         }[]
       }
-      my_ministry_options: {
-        Args: { _organization_id: string }
-        Returns: {
-          already_serving: boolean
-          ministry_id: string
-          name: string
-        }[]
-      }
-      update_my_child: {
-        Args: { _child_id: string; _patch: Json }
-        Returns: Database["church"]["Tables"]["people"]["Row"]
-      }
-      update_my_household: {
-        Args: { _household_id: string; _patch: Json }
-        Returns: Database["church"]["Tables"]["households"]["Row"]
-      }
       my_household_ids: { Args: never; Returns: string[] }
-      my_groups: {
-        Args: never
-        Returns: {
-          group_name: string
-          group_type: string
-          is_leadership_role: boolean
-          meeting_day: string
-          meeting_place: string
-          meeting_time: string
-          membership_id: string
-          organization_id: string
-          role_name: string
-        }[]
-      }
       my_household_members: {
         Args: never
         Returns: {
@@ -4761,6 +6217,14 @@ export type Database = {
           phone: string
         }[]
       }
+      my_ministry_options: {
+        Args: { _organization_id: string }
+        Returns: {
+          already_serving: boolean
+          ministry_id: string
+          name: string
+        }[]
+      }
       my_orgs: { Args: never; Returns: string[] }
       my_orgs_with_any: {
         Args: {
@@ -4769,6 +6233,7 @@ export type Database = {
         Returns: string[]
       }
       my_person_ids: { Args: never; Returns: string[] }
+      my_person_in_org: { Args: { _organization_id: string }; Returns: string }
       my_portal_summary: { Args: { _organization_id: string }; Returns: Json }
       my_serving: {
         Args: never
@@ -4799,6 +6264,10 @@ export type Database = {
           workflow_id: string
           workflow_name: string
         }[]
+      }
+      non_leadership_role: {
+        Args: { _organization_id: string; _preferred_code: string }
+        Returns: string
       }
       normalize_pickup_code: { Args: { _raw: string }; Returns: string }
       notify_targets_for_child: {
@@ -4836,6 +6305,28 @@ export type Database = {
           user_id: string
         }[]
       }
+      person_field_diff: {
+        Args: {
+          _after: Database["church"]["Tables"]["people"]["Row"]
+          _before: Database["church"]["Tables"]["people"]["Row"]
+          _patch: Json
+        }
+        Returns: {
+          field: string
+          new_value: string
+          old_value: string
+        }[]
+      }
+      person_photos_for: {
+        Args: { _person_ids: string[] }
+        Returns: {
+          is_primary: boolean
+          person_id: string
+          photo_id: string
+          slot: number
+          storage_path: string
+        }[]
+      }
       pick_room_for_child: {
         Args: {
           _child_person_id: string
@@ -4859,8 +6350,27 @@ export type Database = {
           profile_id: string
         }[]
       }
+      publish_consent_document: {
+        Args: {
+          _body: Json
+          _code: string
+          _effective_from?: string
+          _organization_id: string
+          _required_acknowledgments?: string[]
+          _title: string
+        }
+        Returns: {
+          body_sha256: string
+          document_id: string
+          retired_version: number
+          version: number
+        }[]
+      }
       queue_child_notification: {
         Args: {
+          _attachment_bucket?: string
+          _attachment_filename?: string
+          _attachment_path?: string
           _body: string
           _channel?: string
           _check_in_id: string
@@ -4871,9 +6381,37 @@ export type Database = {
         }
         Returns: number
       }
+      queue_consent_notifications: {
+        Args: { _signature_id: string }
+        Returns: number
+      }
+      queue_missing_consent_notifications: { Args: never; Returns: number }
       queue_pickup_code_sms: {
         Args: { _batch_id: string; _code: string }
         Returns: number
+      }
+      record_consent_pdf: {
+        Args: {
+          _bytes: number
+          _error?: string
+          _sha256: string
+          _signature_id: string
+          _storage_path: string
+        }
+        Returns: undefined
+      }
+      record_consent_review: {
+        Args: { _signature_id: string }
+        Returns: undefined
+      }
+      record_incident_pdf: {
+        Args: {
+          _error?: string
+          _incident_id: string
+          _sha256: string
+          _storage_path: string
+        }
+        Returns: undefined
       }
       refresh_child_allergy_flags: {
         Args: { _person_id: string }
@@ -4895,6 +6433,21 @@ export type Database = {
           out_person_id: string
           out_spouse_person_id: string
         }[]
+      }
+      register_new_member: {
+        Args: {
+          _auth_user_id: string
+          _email: string
+          _first_name: string
+          _last_name: string
+          _organization_id: string
+          _phone: string
+        }
+        Returns: string
+      }
+      registering_themselves: {
+        Args: { _organization_id: string }
+        Returns: boolean
       }
       remove_classroom_teacher: { Args: { _id: string }; Returns: undefined }
       remove_workflow_card: {
@@ -4968,6 +6521,32 @@ export type Database = {
         Args: { _organization_id: string; _room_id: string }
         Returns: undefined
       }
+      revoke_kids_consent: {
+        Args: { _reason?: string; _signature_id: string }
+        Returns: undefined
+      }
+      school_year_of: { Args: { _d: string }; Returns: number }
+      screen_children_for_check_in: {
+        Args: {
+          _child_person_ids: string[]
+          _kids_session_id?: string
+          _shift_token?: string
+        }
+        Returns: {
+          allow: boolean
+          child_name: string
+          child_person_id: string
+          enforce_from: string
+          enforcing: boolean
+          excepted: boolean
+          household_id: string
+          notice_text: string
+          policy_mode: string
+          refusal_code: string
+          resign_due_by: string
+          state: string
+        }[]
+      }
       send_parent_message: {
         Args: { _check_in_id: string; _message: string; _shift_token?: string }
         Returns: {
@@ -4986,6 +6565,19 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_consent_resign_grace: {
+        Args: { _days: number; _organization_id: string }
+        Returns: undefined
+      }
+      set_kids_consent_mode: {
+        Args: {
+          _enforce_from?: string
+          _mode: string
+          _notice_text?: string
+          _organization_id: string
+        }
+        Returns: undefined
+      }
       set_module_grants: {
         Args: {
           _organization_id: string
@@ -4994,6 +6586,15 @@ export type Database = {
         }
         Returns: Database["church"]["Enums"]["module_permission"][]
       }
+      set_person_relationship: {
+        Args: {
+          _person_id: string
+          _related_person_id: string
+          _relationship_type_id: string
+        }
+        Returns: string
+      }
+      set_primary_photo: { Args: { _photo_id: string }; Returns: undefined }
       set_room_kids_config: {
         Args: {
           _capacity?: number
@@ -5029,6 +6630,31 @@ export type Database = {
         Args: { _pin: string; _volunteer_id: string }
         Returns: undefined
       }
+      sign_kids_consent: {
+        Args: {
+          _answers?: Json
+          _child_person_ids: string[]
+          _client_ip_reported?: string
+          _household_id: string
+          _organization_id: string
+          _per_child_answers?: Json
+          _secondary_printed_name?: string
+          _secondary_signer_person_id?: string
+          _signer_person_id: string
+          _signer_printed_name: string
+          _signer_relationship?: string
+          _source: string
+          _user_agent?: string
+          _witness_station_id?: string
+        }
+        Returns: {
+          children_named: number
+          document_sha256: string
+          document_version: number
+          signature_id: string
+          superseded_signature_id: string
+        }[]
+      }
       snooze_workflow_card: {
         Args: { _card_id: string; _note?: string; _until: string }
         Returns: undefined
@@ -5054,6 +6680,18 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      station_child_consent_prefill: {
+        Args: { _child_person_ids: string[]; _shift_token?: string }
+        Returns: {
+          allergies: string
+          allergy_severity: string
+          child_name: string
+          child_person_id: string
+          has_record: boolean
+          medications: string
+          special_needs: string
+        }[]
       }
       station_child_safety_card: {
         Args: { _check_in_id: string; _shift_token?: string }
@@ -5082,6 +6720,15 @@ export type Database = {
         Args: { _shift_token: string }
         Returns: undefined
       }
+      station_consent_signers: {
+        Args: { _child_person_id: string; _shift_token?: string }
+        Returns: {
+          full_name: string
+          has_email: boolean
+          household_id: string
+          person_id: string
+        }[]
+      }
       station_find_batch_for_reprint: {
         Args: {
           _kids_session_id?: string
@@ -5109,9 +6756,7 @@ export type Database = {
       station_list_volunteers: {
         Args: { _station_id: string }
         Returns: {
-          background_check_status: string
           display_name: string
-          is_eligible: boolean
           volunteer_id: string
         }[]
       }
@@ -5134,6 +6779,7 @@ export type Database = {
         Returns: {
           child_has_restriction: boolean
           display_name: string
+          dropped_off: boolean
           is_authorized: boolean
           is_guardian: boolean
           person_id: string
@@ -5198,6 +6844,22 @@ export type Database = {
           teachers: string
         }[]
       }
+      station_sign_consent: {
+        Args: {
+          _answers: Json
+          _child_person_ids: string[]
+          _household_id: string
+          _per_child_answers?: Json
+          _shift_token?: string
+          _signer_person_id: string
+          _signer_printed_name: string
+          _signer_relationship?: string
+        }
+        Returns: {
+          children_named: number
+          signature_id: string
+        }[]
+      }
       transfer_child: {
         Args: {
           _check_in_id: string
@@ -5214,6 +6876,72 @@ export type Database = {
           full_name: string
           profile_id: string
         }[]
+      }
+      update_child_medical: {
+        Args: {
+          _allergies?: string
+          _allergy_severity?: string
+          _child_person_id: string
+          _medical_notes?: string
+          _medications?: string
+          _no_known_conditions?: boolean
+          _special_needs?: string
+        }
+        Returns: {
+          allergy_label: string
+          changed: boolean
+          consent_now_stale: boolean
+          resign_due_by: string
+        }[]
+      }
+      update_my_child: {
+        Args: { _child_id: string; _patch: Json }
+        Returns: {
+          accepted_lord_is_approximate: boolean
+          accepted_lord_month: number | null
+          accepted_lord_year: number | null
+          amharic_name: string | null
+          birth_month: number | null
+          birth_year: number | null
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          deceased: boolean
+          email: string | null
+          first_name: string
+          gender: string | null
+          id: string
+          inactive_reason: string | null
+          is_active: boolean
+          is_child: boolean
+          last_name: string
+          marital_status: string | null
+          member_number: string | null
+          member_since: string | null
+          membership_status_id: string | null
+          merged_into_person_id: string | null
+          middle_name: string | null
+          notes: string | null
+          notify_by_email: boolean
+          notify_by_sms: boolean
+          organization_id: string
+          phone: string | null
+          phone_digits: string | null
+          photo_path: string | null
+          preferred_name: string | null
+          profile_id: string | null
+          school_grade_id: string | null
+          search_name: string | null
+          sms_consent_at: string | null
+          sms_opted_out_at: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "people"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       update_my_contact_details: {
         Args: { _email: string; _person_id: string; _phone: string }
@@ -5260,6 +6988,33 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "people"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      update_my_household: {
+        Args: { _household_id: string; _patch: Json }
+        Returns: {
+          address_line1: string | null
+          address_line2: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          organization_id: string
+          postal_code: string | null
+          primary_phone: string | null
+          state: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "households"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -5385,9 +7140,18 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      uuid_or_null: { Args: { _text: string }; Returns: string }
       wake_snoozed_workflow_cards: {
         Args: { _organization_id: string }
         Returns: number
+      }
+      withdraw_child_consent: {
+        Args: {
+          _child_person_id: string
+          _reason?: string
+          _signature_id: string
+        }
+        Returns: undefined
       }
       workflow_board: {
         Args: {
@@ -5464,6 +7228,12 @@ export type Database = {
         | "giving_viewer"
     }
     CompositeTypes: {
+      claim_verdict: {
+        outcome: string | null
+        person_id: string | null
+        auth_user_id: string | null
+        masked_email: string | null
+      }
       resolved_actor: {
         organization_id: string | null
         person_id: string | null
@@ -6235,12 +8005,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6264,11 +8034,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6289,11 +8059,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6314,11 +8084,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6331,11 +8101,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

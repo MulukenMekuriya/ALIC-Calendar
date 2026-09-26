@@ -1,0 +1,12 @@
+--- supabase/migrations/20260322210600_a_form_we_can_hand_back.sql	2026-09-25 15:55:24
++++ /dev/fd/11	2026-09-25 22:06:06
+@@ -317,7 +317,8 @@
+       WHERE cc.consent_signature_id = s.id AND cc.withdrawn_at IS NULL), '[]'::jsonb)
+   ) INTO _out
+   FROM church.consent_signatures s
+-  JOIN church.consent_documents d ON d.id = s.consent_document_id
++  JOIN church.consent_documents d ON d.organization_id = s.organization_id
++       AND d.code = s.document_code AND d.retired_at IS NULL
+   JOIN public.organizations o ON o.id = s.organization_id
+   LEFT JOIN auth.users au ON au.id = s.signer_auth_user_id
+   WHERE s.id = _signature_id;

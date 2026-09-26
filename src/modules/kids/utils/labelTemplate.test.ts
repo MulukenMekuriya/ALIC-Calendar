@@ -22,7 +22,10 @@ import {
   buildChildLabel,
   buildParentLabel,
   buildLabelDocument,
+  buildLabelMarkup,
   LABEL_CSS,
+  LABEL_PRINT_CSS,
+  LABEL_PRINT_ROOT_ID,
   LABEL_PAGE_MM,
   LABEL_CARD_MM,
 } from "./labelTemplate";
@@ -486,5 +489,82 @@ describe("landscape geometry", () => {
     // overhang can force the printer onto a second page.
     const pageRule = LABEL_CSS.slice(LABEL_CSS.indexOf("  .page {"));
     expect(pageRule.slice(0, pageRule.indexOf("}"))).toContain("overflow: hidden");
+  });
+});
+
+/**
+ * Printing from inside the station.
+ *
+ * The iPad printed four pages of the check-in screen to the label printer and
+ * no labels at all, because Safari prints the TOP window for iframe.print().
+ * The labels are now mounted into the station's own document instead, which
+ * makes that behaviour correct rather than fatal — and hands three new ways
+ * to get it wrong. These pin all three.
+ */
+describe("printing from inside the station", () => {
+  it("emits the same labels as the standalone document", () => {
+    // One source of truth. If these drift, the thing being tested above is not
+    // the thing that reaches the printer.
+    const markup = buildLabelMarkup([CHILD], PARENT);
+    expect(buildLabelDocument([CHILD], PARENT)).toContain(markup);
+    expect(markup.match(/class="page"/g)).toHaveLength(2);
+  });
+
+  it("hides every sibling of the label root, not just the app's mount point", () => {
+    // Radix mounts dialogs, toasts and the kiosk's sheets as direct children
+    // of body. Targeting #root alone would print a stray overlay across a
+    // child's name.
+    expect(LABEL_PRINT_CSS).toContain(
+      `body > *:not(#${LABEL_PRINT_ROOT_ID}) { display: none !important; }`
+    );
+  });
+
+  it("resets the root so the app's typography cannot reach the card", () => {
+    // index.css sets text-rendering: optimizeLegibility and -webkit-font-
+    // smoothing: antialiased on body. The label sets kerning, ligatures and
+    // smoothing OFF on purpose — at 300dpi on thermal stock they cost
+    // legibility. Inheriting the app's would soften every label quietly.
+    const root = LABEL_PRINT_CSS.slice(
+      LABEL_PRINT_CSS.indexOf(`#${LABEL_PRINT_ROOT_ID} {`)
+    );
+    const rule = root.slice(0, root.indexOf("}"));
+    expect(rule).toContain("all: initial");
+    // all: initial computes display: inline, and the node carries an inline
+    // display:none, so this has to be both restated and !important.
+    expect(rule).toContain("display: block !important");
+    expect(rule).toContain("font-kerning: none");
+    expect(rule).toContain("-webkit-font-smoothing: none");
+  });
+
+  it("keeps every rule but @page inside @media print", () => {
+    // A width: 62mm body that escaped the media query would be visible, and
+    // catastrophic, on the station itself. @page is the sole exception and is
+    // print-only by definition.
+    const outside = LABEL_PRINT_CSS.slice(0, LABEL_PRINT_CSS.indexOf("@media print {"));
+    expect(outside.replace(/@page \{[^}]*\}/, "").trim()).toBe("");
+    const opens = (LABEL_PRINT_CSS.match(/{/g) ?? []).length;
+    const closes = (LABEL_PRINT_CSS.match(/}/g) ?? []).length;
+    expect(opens).toBe(closes);
+  });
+
+  it("never lets the page rules leak onto the screen", () => {
+    // The specific catastrophe: `html, body { width: 62mm }` applying to the
+    // check-in station itself would squeeze the whole app into a strip.
+    const media = LABEL_PRINT_CSS.slice(LABEL_PRINT_CSS.indexOf("@media print {"));
+    expect(media).toContain(`width: ${LABEL_PAGE_MM.width}mm;`);
+    const outside = LABEL_PRINT_CSS.slice(0, LABEL_PRINT_CSS.indexOf("@media print {"));
+    expect(outside).not.toContain("html, body");
+  });
+
+  it("carries the same page box and card rules as the standalone document", () => {
+    // The two mounts share LABEL_RULES_CSS, and this is what proves it rather
+    // than assuming it.
+    expect(LABEL_PRINT_CSS).toContain(
+      `@page { size: ${LABEL_PAGE_MM.width}mm ${LABEL_PAGE_MM.length}mm; margin: 0; }`
+    );
+    expect(LABEL_PRINT_CSS).toContain(
+      `width: ${LABEL_PAGE_MM.width}mm; height: ${LABEL_PAGE_MM.length}mm;`
+    );
+    expect(LABEL_PRINT_CSS).toContain(`width: ${LABEL_CARD_MM.width}mm`);
   });
 });

@@ -1,0 +1,11 @@
+--- a/supabase/migrations/20260322310000_one_bootstrap_not_two.sql
++++ b/supabase/migrations/20260322310000_one_bootstrap_not_two.sql
+@@ -34,7 +34,7 @@
+ -- is the old behaviour - but the "an open session wins whatever its date"
+ -- clause still applies, so the common path is fixed even for a client that
+ -- has never heard of the parameter.
+
+-DROP FUNCTION IF EXISTS church.kiosk_session_bootstrap(UUID);
++DROP FUNCTION IF EXISTS church.kiosk_session_bootstrap(UUID, DATE);
+
+ NOTIFY pgrst, 'reload schema';

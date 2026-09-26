@@ -1,0 +1,46 @@
+--- supabase/migrations/20260322210100_a_signature_that_names_the_children.sql	2026-09-25 15:36:52
++++ /dev/fd/12	2026-09-25 22:05:53
+@@ -868,3 +868,43 @@
+ GRANT EXECUTE ON FUNCTION church.kids_consent_coverage(UUID) TO authenticated;
+ 
+ NOTIFY pgrst, 'reload schema';
++-- NEGATIVE CONTROL: put superseded_by_signature_id into the coverage
++-- predicate, the mistake the header exists to prevent. A child named on a
++-- superseded form should then wrongly lose coverage, and assertion 10c is
++-- the one that has to catch it.
++CREATE OR REPLACE FUNCTION church.child_consent_state(
++  _child_person_id UUID, _for_household_id UUID DEFAULT NULL)
++RETURNS TABLE (state TEXT, signature_id UUID, signed_at TIMESTAMPTZ, document_version INTEGER)
++LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = church, public, extensions
++AS $$
++DECLARE _covering RECORD; _has_home BOOLEAN;
++BEGIN
++  SELECT EXISTS (SELECT 1 FROM church.household_members hm
++    WHERE hm.person_id=_child_person_id AND hm.end_date IS NULL) INTO _has_home;
++  IF NOT _has_home THEN
++    RETURN QUERY SELECT 'no_household'::TEXT, NULL::UUID, NULL::TIMESTAMPTZ, NULL::INTEGER; RETURN;
++  END IF;
++  SELECT s.id, s.signed_at, s.document_version, s.household_id INTO _covering
++  FROM church.consent_children cc JOIN church.consent_signatures s ON s.id=cc.consent_signature_id
++  WHERE cc.child_person_id=_child_person_id AND cc.withdrawn_at IS NULL
++    AND s.revoked_at IS NULL AND s.superseded_by_signature_id IS NULL
++  ORDER BY s.signed_at DESC LIMIT 1;
++  IF _covering.id IS NOT NULL THEN
++    RETURN QUERY SELECT CASE WHEN _for_household_id IS NULL
++      OR _covering.household_id IS NOT DISTINCT FROM _for_household_id
++      THEN 'covered' ELSE 'covered_elsewhere' END,
++      _covering.id, _covering.signed_at, _covering.document_version; RETURN;
++  END IF;
++  IF EXISTS (SELECT 1 FROM church.household_members hm
++    JOIN church.consent_signatures s ON s.household_id=hm.household_id
++    WHERE hm.person_id=_child_person_id AND hm.end_date IS NULL AND s.revoked_at IS NULL) THEN
++    RETURN QUERY SELECT 'child_not_on_signature'::TEXT, NULL::UUID, NULL::TIMESTAMPTZ, NULL::INTEGER; RETURN;
++  END IF;
++  IF EXISTS (SELECT 1 FROM church.consent_children cc
++    JOIN church.consent_signatures s ON s.id=cc.consent_signature_id
++    WHERE cc.child_person_id=_child_person_id) THEN
++    RETURN QUERY SELECT 'revoked'::TEXT, NULL::UUID, NULL::TIMESTAMPTZ, NULL::INTEGER; RETURN;
++  END IF;
++  RETURN QUERY SELECT 'no_signature'::TEXT, NULL::UUID, NULL::TIMESTAMPTZ, NULL::INTEGER;
++END;
++$$;

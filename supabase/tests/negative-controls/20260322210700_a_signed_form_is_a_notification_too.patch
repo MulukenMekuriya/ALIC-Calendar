@@ -1,0 +1,15 @@
+--- supabase/migrations/20260322210700_a_signed_form_is_a_notification_too.sql	2026-09-25 16:08:43
++++ /dev/fd/12	2026-09-25 22:05:53
+@@ -280,8 +280,10 @@
+                    ELSE 'your children' END,
+          _body, _signature_id,
+          'kids-consent-forms', s.pdf_storage_path, _filename
+-  FROM church.people p
+-  WHERE p.id IN (s.signer_person_id, s.secondary_signer_person_id)
++  FROM church.household_members hm
++  JOIN church.people p ON p.id = hm.person_id
++  WHERE hm.household_id = s.household_id AND hm.end_date IS NULL
++    AND NOT p.is_child
+     AND p.is_active AND p.notify_by_email AND p.email IS NOT NULL;
+ 
+   GET DIAGNOSTICS _n = ROW_COUNT;

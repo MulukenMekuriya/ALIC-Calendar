@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322220000_the_room_you_chose_is_remembered.sql	2026-09-25 16:42:25
++++ /dev/fd/12	2026-09-25 22:05:54
+@@ -184,7 +184,7 @@
+ 
+   -- One rung per school year. 140 is Grade 12; past it the child has left
+   -- the ministry and the preference stops meaning anything.
+-  _target := pref.grade_sort_at_set + (10 * _elapsed);
++  _target := pref.grade_sort_at_set;
+   IF _target > 140 THEN RETURN; END IF;
+ 
+   SELECT ksr.room_id INTO _room
