@@ -14,6 +14,50 @@ export type Database = {
   }
   budget: {
     Tables: {
+      allocation_board_feedback: {
+        Row: {
+          board_member_id: string
+          board_member_name: string
+          comment: string | null
+          created_at: string
+          id: string
+          organization_id: string
+          recommended_amount: number | null
+          request_id: string
+          updated_at: string
+        }
+        Insert: {
+          board_member_id: string
+          board_member_name: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          organization_id: string
+          recommended_amount?: number | null
+          request_id: string
+          updated_at?: string
+        }
+        Update: {
+          board_member_id?: string
+          board_member_name?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string
+          recommended_amount?: number | null
+          request_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "allocation_board_feedback_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "allocation_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       allocation_period_amounts: {
         Row: {
           allocation_request_id: string
@@ -584,6 +628,7 @@ export type Database = {
       allocation_request_status:
         | "draft"
         | "pending"
+        | "board_review"
         | "approved"
         | "partially_approved"
         | "denied"
@@ -7983,7 +8028,13 @@ export type Database = {
       user_has_role: { Args: { role_name: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "contributor" | "treasury" | "finance" | "member"
+      app_role:
+        | "admin"
+        | "contributor"
+        | "treasury"
+        | "finance"
+        | "member"
+        | "board"
       event_status:
         | "draft"
         | "pending_review"
@@ -8121,6 +8172,7 @@ export const Constants = {
       allocation_request_status: [
         "draft",
         "pending",
+        "board_review",
         "approved",
         "partially_approved",
         "denied",
@@ -8162,7 +8214,14 @@ export const Constants = {
   },
   public: {
     Enums: {
-      app_role: ["admin", "contributor", "treasury", "finance", "member"],
+      app_role: [
+        "admin",
+        "contributor",
+        "treasury",
+        "finance",
+        "member",
+        "board",
+      ],
       event_status: [
         "draft",
         "pending_review",

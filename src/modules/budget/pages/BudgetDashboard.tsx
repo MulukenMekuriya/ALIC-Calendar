@@ -46,6 +46,7 @@ import {
   ChevronRight,
   BarChart3,
   ShieldAlert,
+  Users,
 } from "lucide-react";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useOrganization } from "@/shared/contexts/OrganizationContext";
@@ -65,12 +66,13 @@ import {
 } from "../components";
 import { AllocationRequestForm } from "../components/AllocationRequestForm";
 import { AllocationRequestList } from "../components/AllocationRequestList";
+import { BoardReviewPanel } from "../components/BoardReviewPanel";
 import { MonthlyBudgetSummary } from "../components/MonthlyBudgetSummary";
 import { MinistryFlagBadge } from "../components/MinistryFlagBadge";
 import { format, parseISO } from "date-fns";
 
 const BudgetDashboard = () => {
-  const { user, isAdmin, isTreasury, isFinance } = useAuth();
+  const { user, isAdmin, isTreasury, isFinance, isBoard } = useAuth();
   const { currentOrganization } = useOrganization();
   const { profile } = useUserProfile();
 
@@ -84,7 +86,12 @@ const BudgetDashboard = () => {
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(true);
 
   // Determine if user has elevated permissions (can see all data)
-  const hasFullAccess = isAdmin || isTreasury || isFinance;
+  // The Board is here to read the whole year — one ministry's request means
+  // nothing to it without the other twenty beside it — so it sees the
+  // organisation's figures like the rest of the office. What it does NOT get
+  // is any of the actions: userRole below resolves to "requester" for a board
+  // member, and approving is an admin/treasury/finance move.
+  const hasFullAccess = isAdmin || isTreasury || isFinance || isBoard;
   const isContributor = !hasFullAccess;
 
   // Fetch fiscal years
@@ -173,6 +180,10 @@ const BudgetDashboard = () => {
     expenses?.filter((e) => e.status !== "cancelled") || [];
   const activeAllocationRequests =
     allocationRequests?.filter((r) => r.status !== "cancelled") || [];
+
+  const boardReviewCount = activeAllocationRequests.filter(
+    (r) => r.status === "board_review",
+  ).length;
 
   // Get ministry name from user's profile (from DB)
   const userMinistryName =
@@ -365,7 +376,11 @@ const BudgetDashboard = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-3 w-full sm:w-auto sm:inline-flex h-auto gap-1 sm:gap-2 bg-muted/50 p-1 rounded-lg">
+          <TabsList
+            className={`grid ${
+              hasFullAccess ? "grid-cols-4" : "grid-cols-3"
+            } w-full sm:w-auto sm:inline-flex h-auto gap-1 sm:gap-2 bg-muted/50 p-1 rounded-lg`}
+          >
             <TabsTrigger
               value="overview"
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-2 sm:px-4 py-2 text-xs sm:text-sm"
@@ -414,6 +429,21 @@ const BudgetDashboard = () => {
                     </span>
                   )}
             </TabsTrigger>
+            {hasFullAccess && (
+              <TabsTrigger
+                value="board"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-2 sm:px-4 py-2 text-xs sm:text-sm"
+              >
+                <Users className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Board Review</span>
+                <span className="sm:hidden">Board</span>
+                {boardReviewCount > 0 && (
+                  <span className="ml-1 sm:ml-2 bg-muted text-muted-foreground rounded-full px-1.5 sm:px-2 text-[10px] sm:text-xs">
+                    {boardReviewCount}
+                  </span>
+                )}
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* Overview Tab - World Class Analytics */}
@@ -663,6 +693,17 @@ const BudgetDashboard = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {hasFullAccess && (
+            <TabsContent value="board" className="mt-6">
+              <BoardReviewPanel
+                year={
+                  fiscalYears?.find((fy) => fy.id === effectiveFiscalYearId)?.year
+                }
+                onRefresh={handleRefresh}
+              />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 

@@ -317,6 +317,9 @@ export type AllocationPeriodType = "annual" | "quarterly" | "monthly";
 export type AllocationRequestStatus =
   | "draft"
   | "pending"
+  // Sitting with the Board, not with the office. Without this, "pending" meant
+  // both at once and a request could be approved before the Board had seen it.
+  | "board_review"
   | "approved"
   | "partially_approved"
   | "denied"
@@ -412,6 +415,36 @@ export interface AllocationRequestWithRelations extends AllocationRequest {
     id: string;
     full_name: string;
   } | null;
+}
+
+/**
+ * One board member's answer on one request.
+ *
+ * A board is a room of people, so this is a row per member rather than a
+ * verdict on the request: each of them can come back and revise their own line
+ * without overwriting anybody else's. recommended_amount is nullable because
+ * "no change" and "cut this to $4,000" are different answers, and saying
+ * something in words should not require inventing a figure.
+ */
+export interface AllocationBoardFeedback {
+  id: string;
+  request_id: string;
+  organization_id: string;
+  board_member_id: string;
+  board_member_name: string;
+  recommended_amount: number | null;
+  comment: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AllocationBoardFeedbackInsert {
+  request_id: string;
+  organization_id: string;
+  board_member_id: string;
+  board_member_name: string;
+  recommended_amount?: number | null;
+  comment?: string | null;
 }
 
 export interface AllocationRequestHistory {
@@ -572,6 +605,14 @@ export const ALLOCATION_REQUEST_STATUS_CONFIG: Record<
     borderColor: "border-yellow-200",
     icon: "Clock",
     description: "Awaiting admin review",
+  },
+  board_review: {
+    label: "Board Review",
+    color: "text-purple-600",
+    bgColor: "bg-purple-50",
+    borderColor: "border-purple-200",
+    icon: "Users",
+    description: "With the Board, alongside every other ministry's request",
   },
   approved: {
     label: "Approved",

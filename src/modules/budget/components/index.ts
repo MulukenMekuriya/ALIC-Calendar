@@ -22,6 +22,7 @@ export { EnhancedReportExport } from "./EnhancedReportExport";
 // Allocation Request Components
 export { AllocationRequestForm } from "./AllocationRequestForm";
 export { AllocationRequestList } from "./AllocationRequestList";
+export { BoardReviewPanel } from "./BoardReviewPanel";
 export { AllocationRequestStatusBadge } from "./AllocationRequestStatusBadge";
 export { AllocationRequestDetailDialog } from "./AllocationRequestDetailDialog";
 export { AllocationReviewDialog } from "./AllocationReviewDialog";

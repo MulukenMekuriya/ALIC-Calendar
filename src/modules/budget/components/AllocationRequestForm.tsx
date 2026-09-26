@@ -250,6 +250,17 @@ export function AllocationRequestForm({
 
   const isEditing = !!request;
 
+  /**
+   * This request has already left the ministry's hands.
+   *
+   * The office edits a submitted request twice in the budget year — before it
+   * goes to the Board and again after the Board's feedback — and neither of
+   * those is a re-submission. Left as it was, the footer offered "Submit",
+   * which calls submitForReview and sets the status back to 'pending': one
+   * click would have pulled a request out of Board Review without saying so.
+   */
+  const isAlreadySubmitted = isEditing && !!request && request.status !== "draft";
+
   const form = useForm<AllocationRequestFormValues>({
     resolver: zodResolver(allocationRequestFormSchema),
     defaultValues: {
@@ -620,9 +631,11 @@ export function AllocationRequestForm({
         {/* Header */}
         <div className="flex-shrink-0 bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-5 text-white">
           <DialogTitle className="text-xl font-semibold">
-            {isEditing
-              ? "Edit Budget Request"
-              : "Budget Request"}
+            {isAlreadySubmitted
+              ? "Adjust Submitted Request"
+              : isEditing
+                ? "Edit Budget Request"
+                : "Budget Request"}
           </DialogTitle>
           <DialogDescription className="sr-only">
             {isEditing ? "Edit an existing budget request" : "Create a new budget request for your ministry"}
@@ -1165,33 +1178,51 @@ export function AllocationRequestForm({
                   >
                     Cancel
                   </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="flex-1"
-                    onClick={form.handleSubmit((v) => handleSave(v, false))}
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Save className="h-4 w-4 mr-2" />
-                    )}
-                    Save Draft
-                  </Button>
-                  <Button
-                    type="button"
-                    className="flex-1 bg-violet-600 hover:bg-violet-700"
-                    onClick={form.handleSubmit((v) => handleSave(v, true))}
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4 mr-2" />
-                    )}
-                    Submit
-                  </Button>
+                  {isAlreadySubmitted ? (
+                    <Button
+                      type="button"
+                      className="flex-1 bg-violet-600 hover:bg-violet-700"
+                      onClick={form.handleSubmit((v) => handleSave(v, false))}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-2" />
+                      )}
+                      Save changes
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="flex-1"
+                        onClick={form.handleSubmit((v) => handleSave(v, false))}
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4 mr-2" />
+                        )}
+                        Save Draft
+                      </Button>
+                      <Button
+                        type="button"
+                        className="flex-1 bg-violet-600 hover:bg-violet-700"
+                        onClick={form.handleSubmit((v) => handleSave(v, true))}
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4 mr-2" />
+                        )}
+                        Submit
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </form>

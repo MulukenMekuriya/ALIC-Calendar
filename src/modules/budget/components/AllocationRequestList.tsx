@@ -43,6 +43,7 @@ import {
   CheckCircle,
   XCircle,
   Undo2,
+  Users,
 } from "lucide-react";
 import { format } from "date-fns";
 import { AllocationRequestStatusBadge } from "./AllocationRequestStatusBadge";
@@ -50,6 +51,7 @@ import { AllocationRequestForm } from "./AllocationRequestForm";
 import { AllocationRequestDetailDialog } from "./AllocationRequestDetailDialog";
 import { AllocationReviewDialog, RecallAllocationDialog } from "./AllocationReviewDialog";
 import { useToast } from "@/shared/hooks/use-toast";
+import { errorMessage } from "@/shared/lib/errorMessage";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useSearch } from "@/shared/contexts/SearchContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -57,6 +59,7 @@ import {
   useDeleteAllocationRequest,
   useSubmitAllocationRequest,
   useCancelAllocationRequest,
+  useMoveToBoardReview,
 } from "../hooks";
 import type {
   AllocationRequestWithRelations,
@@ -104,6 +107,7 @@ export function AllocationRequestList({
   const deleteRequest = useDeleteAllocationRequest();
   const submitRequest = useSubmitAllocationRequest();
   const cancelRequest = useCancelAllocationRequest();
+  const moveToBoardReview = useMoveToBoardReview();
 
   // Filter requests (EXCLUDE cancelled requests completely)
   const filteredRequests = requests.filter((request) => {
@@ -125,6 +129,53 @@ export function AllocationRequestList({
     return matchesSearch && matchesStatus;
   });
 
+  const handleMoveToBoard = async (
+    request: AllocationRequestWithRelations,
+    direction: "to_board" | "back_to_office",
+  ) => {
+    if (!user) return;
+
+    try {
+      const moved = await moveToBoardReview.mutateAsync({
+        requestIds: [request.id],
+        direction,
+        actorId: user.id,
+        actorName: profile?.full_name || "Unknown",
+      });
+
+      // The update is guarded on the status it expects, so an empty result
+      // means somebody else moved this request while the menu was open.
+      if (moved.length === 0) {
+        toast({
+          title: "Nothing moved",
+          description: "This request is no longer at the step it was on. Refresh to see where it is.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title:
+          direction === "to_board"
+            ? "Sent to Board Review"
+            : "Returned to the office",
+        description:
+          direction === "to_board"
+            ? `${request.ministry?.name || "This ministry"}'s request is now with the Board.`
+            : `${request.ministry?.name || "This ministry"}'s request is back at office review.`,
+      });
+
+      onRefresh?.();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description:
+          errorMessage(error, "Failed to move the request"),
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDelete = async (request: AllocationRequestWithRelations) => {
     if (!confirm("Are you sure you want to delete this allocation request?"))
       return;
@@ -140,7 +191,7 @@ export function AllocationRequestList({
       toast({
         title: "Error",
         description:
-          error instanceof Error ? error.message : "Failed to delete request",
+          errorMessage(error, "Failed to delete request"),
         variant: "destructive",
       });
     }
@@ -164,7 +215,7 @@ export function AllocationRequestList({
       toast({
         title: "Error",
         description:
-          error instanceof Error ? error.message : "Failed to submit request",
+          errorMessage(error, "Failed to submit request"),
         variant: "destructive",
       });
     }
@@ -190,7 +241,7 @@ export function AllocationRequestList({
       toast({
         title: "Error",
         description:
-          error instanceof Error ? error.message : "Failed to cancel request",
+          errorMessage(error, "Failed to cancel request"),
         variant: "destructive",
       });
     }
@@ -199,9 +250,16 @@ export function AllocationRequestList({
   const isReviewer =
     userRole === "admin" || userRole === "treasury" || userRole === "finance";
 
+  // The office adjusts twice in the budget year: once before the Board sees
+  // the request, and again after the Board has given its feedback. Both happen
+  // to a request that has already been submitted, so 'draft' alone is not the
+  // test any more. Row-level security agrees: the UPDATE policy on
+  // allocation_requests has always allowed an org admin any status.
   const canEdit = (request: AllocationRequestWithRelations) =>
-    request.status === "draft" &&
-    (request.requester_id === user?.id || isReviewer);
+    (request.status === "draft" &&
+      (request.requester_id === user?.id || isReviewer)) ||
+    (userRole === "admin" &&
+      (request.status === "pending" || request.status === "board_review"));
 
   const canDelete = (request: AllocationRequestWithRelations) =>
     (request.status === "draft" &&
@@ -216,7 +274,15 @@ export function AllocationRequestList({
     (request.requester_id === user?.id || isReviewer);
 
   const canReview = (request: AllocationRequestWithRelations) =>
-    request.status === "pending" && isReviewer;
+    (request.status === "pending" || request.status === "board_review") &&
+    isReviewer;
+
+  // Only an admin moves a request between the office and the Board.
+  const canSendToBoard = (request: AllocationRequestWithRelations) =>
+    request.status === "pending" && userRole === "admin";
+
+  const canReturnFromBoard = (request: AllocationRequestWithRelations) =>
+    request.status === "board_review" && userRole === "admin";
 
   const canRecallApproval = (request: AllocationRequestWithRelations) =>
     (request.status === "approved" || request.status === "partially_approved") &&
@@ -349,6 +415,23 @@ export function AllocationRequestList({
                             <DropdownMenuItem onClick={() => handleSubmit(request)}>
                               <Send className="mr-2 h-4 w-4" />
                               Submit for Review
+                            </DropdownMenuItem>
+                          )}
+                          {canSendToBoard(request) && (
+                            <DropdownMenuItem
+                              onClick={() => handleMoveToBoard(request, "to_board")}
+                              className="text-purple-600"
+                            >
+                              <Users className="mr-2 h-4 w-4" />
+                              Send to Board Review
+                            </DropdownMenuItem>
+                          )}
+                          {canReturnFromBoard(request) && (
+                            <DropdownMenuItem
+                              onClick={() => handleMoveToBoard(request, "back_to_office")}
+                            >
+                              <Undo2 className="mr-2 h-4 w-4" />
+                              Return to Office Review
                             </DropdownMenuItem>
                           )}
                           {canReview(request) && (
@@ -531,6 +614,25 @@ export function AllocationRequestList({
                                 >
                                   <Send className="mr-2 h-4 w-4" />
                                   Submit for Review
+                                </DropdownMenuItem>
+                              )}
+
+                              {canSendToBoard(request) && (
+                                <DropdownMenuItem
+                                  onClick={() => handleMoveToBoard(request, "to_board")}
+                                  className="text-purple-600"
+                                >
+                                  <Users className="mr-2 h-4 w-4" />
+                                  Send to Board Review
+                                </DropdownMenuItem>
+                              )}
+
+                              {canReturnFromBoard(request) && (
+                                <DropdownMenuItem
+                                  onClick={() => handleMoveToBoard(request, "back_to_office")}
+                                >
+                                  <Undo2 className="mr-2 h-4 w-4" />
+                                  Return to Office Review
                                 </DropdownMenuItem>
                               )}
 
