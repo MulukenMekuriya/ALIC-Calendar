@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { kidsLeaderService } from "../services/kidsLeaderService";
+import { kidsStationService } from "../services/kidsStationService";
 
 export const kidsLeaderKeys = {
   all: ["church", "kids", "leader"] as const,
@@ -397,6 +398,56 @@ export function useExpireOpenCheckIns(organizationId: string | undefined) {
   return useMutation({
     mutationFn: (p: { note?: string }) =>
       kidsLeaderService.expireOpenCheckIns(organizationId!, p.note),
+    onSuccess: () => {
+      if (!organizationId) return;
+      queryClient.invalidateQueries({ queryKey: kidsLeaderKeys.board(organizationId) });
+      queryClient.invalidateQueries({ queryKey: [...kidsLeaderKeys.all, "roster"] });
+      queryClient.invalidateQueries({ queryKey: kidsLeaderKeys.stillHere(organizationId) });
+    },
+  });
+}
+
+/**
+ * What the audit trail is told when a lead releases a child from the board.
+ *
+ * check_out_children writes this verbatim into override_reason, and the row is
+ * recorded as an `override` rather than a `check_out`, so a week's review can
+ * separate "a parent presented the code" from "a lead decided". It is a fixed
+ * sentence rather than a free-text box because the whole point of this path is
+ * that it is one tap — a box nobody fills in truthfully is worse than a
+ * sentence that is always exactly true.
+ */
+export const BOARD_RELEASE_REASON =
+  "Released from the live board by a Kids Ministry lead without the pickup code";
+
+/**
+ * Release one child straight from the live board, with no pickup code.
+ *
+ * THE CODE IS NOT A SECURITY BOUNDARY HERE and never was — check_out_children
+ * has always had two branches, and an actor with can_override takes the one
+ * that skips the code entirely. kids_admin is the only role resolve_actor
+ * grants that to, which is the same line StillHerePanel draws with
+ * `kids.override`. This hook adds a button to a door that was already open to
+ * exactly these people.
+ *
+ * `collectedBy` is not optional. Without it the database writes 'unrecorded'
+ * into picked_up_by_name, and a log that says a child left but not with whom
+ * is the one thing this module exists to prevent.
+ *
+ * Does NOT toast, and does not treat an empty array as failure — zero rows
+ * means the database refused (a protective order naming the collector, a child
+ * already collected at another desk) and only the caller knows how loudly to
+ * say so.
+ */
+export function useReleaseFromBoard(organizationId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (p: { checkInId: string; collectedBy: string }) =>
+      kidsStationService.checkOut({
+        checkInIds: [p.checkInId],
+        pickedUpByName: p.collectedBy,
+        overrideReason: BOARD_RELEASE_REASON,
+      }),
     onSuccess: () => {
       if (!organizationId) return;
       queryClient.invalidateQueries({ queryKey: kidsLeaderKeys.board(organizationId) });
