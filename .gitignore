@@ -51,3 +51,10 @@ public/*.xlsx
 public/*.csv
 scripts/import-md-members-breeze-*.sql
 deno.lock
+
+# iCloud Drive conflict copies. This repo lives in iCloud, which duplicates
+# files as "name 2.sql", "name 3.md" and so on — silently, and sometimes hours
+# after the fact. A duplicated migration is applied twice by `db push`; 31
+# duplicated directories under node_modules/@types broke the typecheck
+# entirely on 26 September. Never commit one.
+* [0-9].*
