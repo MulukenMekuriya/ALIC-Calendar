@@ -22,6 +22,7 @@ import { cn } from "@/shared/lib/utils";
 import { RecurrenceSelector, RecurrenceConfig, recurrenceConfigToRRule, rruleToRecurrenceConfig } from "@/modules/calendar/components/RecurrenceSelector";
 import { RejectionReasonDialog } from "@/shared/components/RejectionReasonDialog";
 import { RecurringEventActionDialog, RecurringActionScope } from "@/shared/components/RecurringEventActionDialog";
+import { eventService } from "@/modules/calendar/services";
 
 interface EventDialogProps {
   open: boolean;
@@ -814,34 +815,24 @@ const EventDialog = ({ open, onOpenChange, eventId, initialDate, onSuccess, allE
 
     setLoading(true);
     try {
-      if (scope === "all") {
-        // Delete all events in the series
-        const parentId = event.parent_event_id || eventId;
+      const removed = await eventService.deleteScoped(
+        { id: eventId, parent_event_id: event.parent_event_id },
+        scope
+      );
 
-        // Delete all child events first
-        await supabase
-          .from("events")
-          .delete()
-          .eq("parent_event_id", parentId);
-
-        // Delete the parent event
-        await supabase
-          .from("events")
-          .delete()
-          .eq("id", parentId);
-
-        toast({ title: "All events in series deleted" });
-      } else {
-        // Delete only this event
-        const { error } = await supabase
-          .from("events")
-          .delete()
-          .eq("id", eventId);
-
-        if (error) throw error;
-
-        toast({ title: "Event deleted successfully" });
+      // A refusal by the row-level policies matches no rows instead of
+      // erroring, so a count of zero is the only sign the event is still there.
+      if (removed === 0) {
+        throw new Error(
+          scope === "all"
+            ? "This series could not be deleted. You may not have permission to remove it."
+            : "This event could not be deleted. You may not have permission to remove it."
+        );
       }
+
+      toast({
+        title: scope === "all" ? `All ${removed} events in series deleted` : "Event deleted successfully",
+      });
 
       onOpenChange(false);
       onSuccess();
