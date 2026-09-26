@@ -168,11 +168,17 @@ export default function KioskPage() {
     setBusy(true);
     setError(null);
     try {
+      // Belt and braces. The search returns one row per child now, but a
+      // duplicate id reaching check_in_children means the batch violates
+      // uq_kids_check_ins_one_active_per_session and the WHOLE family is
+      // refused - in front of a parent, in a lobby. Cheap to make impossible.
+      const childIds = [...new Set(selected)];
+
       const rows = await kidsStationService.checkIn({
         sessionId: boot.kids_session_id,
-        childIds: selected,
-        clientBatchKey: `kiosk:${boot.kids_session_id}:${selected.slice().sort().join(",")}`,
-        roomIds: selected.map(() => null),
+        childIds,
+        clientBatchKey: `kiosk:${boot.kids_session_id}:${childIds.slice().sort().join(",")}`,
+        roomIds: childIds.map(() => null),
       });
 
       const accepted = rows.filter((r) => !r.refused);
