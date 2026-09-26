@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322230000_a_kiosk_a_parent_can_use_alone.sql	2026-09-25 17:11:05
++++ /dev/fd/12	2026-09-25 22:05:54
+@@ -243,7 +243,7 @@
+     a.actor_name    := 'Check-in kiosk';
+     a.source        := 'kiosk';
+     a.can_check_in  := true;
+-    a.can_check_out := false;
++    a.can_check_out := true;
+     a.can_override  := false;
+     RETURN a;
+   END IF;

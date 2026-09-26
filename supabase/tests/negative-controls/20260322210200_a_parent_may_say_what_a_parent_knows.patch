@@ -1,0 +1,12 @@
+--- supabase/migrations/20260322210200_a_parent_may_say_what_a_parent_knows.sql	2026-09-25 15:42:18
++++ /dev/fd/12	2026-09-25 22:05:53
+@@ -556,8 +556,7 @@
+    WHERE cc.consent_signature_id = s.id
+      AND cc.child_person_id = _child_person_id
+      AND cc.withdrawn_at IS NULL
+-     AND s.revoked_at IS NULL
+-     AND cc.medical_changed_at IS NULL;
++     AND s.revoked_at IS NULL;
+ 
+   GET DIAGNOSTICS _rows = ROW_COUNT;
+   _stale := _rows > 0;

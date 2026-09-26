@@ -1,0 +1,13 @@
+--- supabase/migrations/20260322210800_the_desk_asks_before_it_checks_in.sql	2026-09-25 16:19:19
++++ /dev/fd/12	2026-09-25 22:05:54
+@@ -272,9 +272,7 @@
+ 
+   -- Enforcing means block AND the date has arrived. Everything else - off,
+   -- warn, block with a future date, no policy row at all - proceeds.
+-  _enforcing := coalesce(_pol.mode, 'warn') = 'block'
+-                AND _pol.enforce_from IS NOT NULL
+-                AND _pol.enforce_from <= current_date;
++  _enforcing := coalesce(_pol.mode, 'warn') = 'block';
+ 
+   SELECT * INTO _st FROM church.child_consent_state(_child_person_id);
+ 

@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322250000_who_read_what.sql	2026-09-25 17:40:23
++++ /dev/fd/12	2026-09-25 22:05:54
+@@ -141,7 +141,7 @@
+   -- Breadth first. One volunteer re-reading one child's card all morning is
+   -- a volunteer doing their job; one person reading across forty families is
+   -- a question.
+-  ORDER BY count(DISTINCT au.child_person_id) DESC, count(*) DESC;
++  ORDER BY count(*) DESC;
+ END;
+ $$;
+ 

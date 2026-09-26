@@ -1,0 +1,20 @@
+--- supabase/migrations/20260322280000_one_row_per_child.sql	2026-09-25 21:35:48
++++ /dev/fd/12	2026-09-25 22:05:54
+@@ -84,7 +84,7 @@
+   RETURN QUERY
+   WITH matched AS (
+     -- One row per CHILD, however many adults on the number lead to them.
+-    SELECT DISTINCT ON (p.id)
++    SELECT
+            h.id   AS hh_id,
+            h.name AS hh_name,
+            p.id   AS kid_id,
+@@ -107,7 +107,7 @@
+       AND p.is_child AND p.is_active AND p.merged_into_person_id IS NULL
+     -- Deterministic: the same parent always sees the same household named,
+     -- rather than whichever row the planner emitted first.
+-    ORDER BY p.id, h.name, h.id
++
+   )
+   SELECT m.hh_id, m.hh_name, m.kid_id, m.kid_name, m.kid_photo, m.kid_grade,
+          EXISTS (SELECT 1 FROM church.kids_check_ins ci

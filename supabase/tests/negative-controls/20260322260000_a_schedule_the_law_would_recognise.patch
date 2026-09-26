@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322260000_a_schedule_the_law_would_recognise.sql	2026-09-25 17:50:28
++++ /dev/fd/12	2026-09-25 22:05:54
+@@ -102,7 +102,7 @@
+ SELECT o.id, v.record_type, v.retain_years, v.forever, v.basis, 'ALIC Kids Ministry'
+ FROM public.organizations o
+ CROSS JOIN (VALUES
+-  ('safeguarding_report', 50, true,
++  ('safeguarding_report', 10, false,
+    'Never deleted. Maryland repealed both the statute of limitations and the '
+    'statute of repose for civil claims arising from child sexual abuse '
+    '(Child Victims Act 2023, upheld by the Supreme Court of Maryland in '

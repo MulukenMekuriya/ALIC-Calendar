@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322270000_the_kiosk_finds_the_open_session.sql	2026-09-25 21:24:34
++++ /dev/fd/12	2026-09-25 22:05:54
+@@ -75,7 +75,7 @@
+   WHERE ks.organization_id = a.organization_id
+     -- An open session, whatever the calendar says, OR one dated today
+     -- according to the tablet. Never "today according to UTC".
+-    AND (ks.status = 'open' OR ks.session_date = _local)
++    AND ks.session_date = current_date
+   ORDER BY (ks.status = 'open') DESC, ks.session_date DESC, ks.starts_at DESC
+   LIMIT 1;
+ END;
