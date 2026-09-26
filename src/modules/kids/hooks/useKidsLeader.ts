@@ -17,6 +17,7 @@ export const kidsLeaderKeys = {
     [...kidsLeaderKeys.all, "roster", sessionId, roomId ?? "all"] as const,
   attendance: (orgId: string, from: string, to: string) =>
     [...kidsLeaderKeys.all, "attendance", orgId, from, to] as const,
+  retention: (orgId: string) => [...kidsLeaderKeys.all, "retention", orgId] as const,
   accessSummary: (orgId: string, from: string, to: string) =>
     [...kidsLeaderKeys.all, "access-summary", orgId, from, to] as const,
   accessDetail: (orgId: string, from: string, to: string, actor: string) =>
@@ -553,5 +554,24 @@ export function useAccessDetail(
     enabled: !!orgId && !!actorAuthUserId,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
+  });
+}
+
+export function useRecordsDue(orgId: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: kidsLeaderKeys.retention(orgId ?? "none"),
+    queryFn: () => kidsLeaderService.recordsDue(orgId!),
+    enabled: !!orgId && enabled,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useConfirmPurge() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: kidsLeaderService.confirmPurge,
+    onSuccess: (_n, vars) => {
+      qc.invalidateQueries({ queryKey: kidsLeaderKeys.retention(vars.organizationId) });
+    },
   });
 }
