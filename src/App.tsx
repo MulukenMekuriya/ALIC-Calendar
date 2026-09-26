@@ -70,6 +70,16 @@ const queryClient = new QueryClient({
   },
 });
 
+/**
+ * Watches for a newer build from inside the router, so it knows which screen
+ * it is on: an unattended station reloads itself when nothing is happening, a
+ * desk is offered the choice. See buildVersion.ts for why this exists at all.
+ */
+function StaleBuildWatch() {
+  const { pathname } = useLocation();
+  return <UpdateAvailableBanner pathname={pathname} />;
+}
+
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
   useEffect(() => {
@@ -79,6 +89,7 @@ function ScrollToTop() {
   return null;
 }
 
+import { UpdateAvailableBanner } from "@/shared/components/UpdateAvailableBanner";
 import { usePasswordChangeRequired } from "@/shared/hooks/usePasswordChangeRequired";
 import { ForcePasswordChange } from "@/shared/components/ForcePasswordChange";
 
@@ -263,6 +274,7 @@ const App = () => (
           <OrganizationProvider>
             <SearchProvider>
               <ScrollToTop />
+              <StaleBuildWatch />
               <Suspense fallback={<PageLoader message="Loading…" />}>
               <Routes>
                 {/* Public routes */}

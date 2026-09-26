@@ -74,6 +74,7 @@ function attemptId(): string {
   );
 }
 import { reduce, initialContext, showsFamilyData, type HouseholdMatch } from "../utils/checkInMachine";
+import { useAppBusy } from "@/shared/hooks/useBuildWatcher";
 import { formatSessionDate, formatClockTime } from "../utils/sessionDate";
 import type {
   HouseholdAdultRow,
@@ -108,6 +109,7 @@ export default function CheckInStationPage() {
   const orgId = currentOrganization?.id;
 
   const [ctx, dispatch] = useReducer(reduce, initialContext);
+
   const [session, setSession] = useState<KidsSession | null>(null);
   const [results, setResults] = useState<HouseholdSearchRow[]>([]);
   /**
@@ -120,6 +122,11 @@ export default function CheckInStationPage() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [starting, setStarting] = useState(false);
+  // A family on the screen, a search running, or a session being opened. The
+  // build watcher will not reload the station under any of it — this is the
+  // device the label printer is attached to, and a reload mid-check-in loses
+  // the tag that was about to print.
+  useAppBusy(showsFamilyData(ctx.state) || busy || starting);
   const [startError, setStartError] = useState<string | null>(null);
   const [printNote, setPrintNote] = useState<string | null>(null);
   const [online, setOnline] = useState(navigator.onLine);
