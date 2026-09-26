@@ -24,6 +24,9 @@ import {
 } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
+import { Label } from "@/shared/components/ui/label";
+import { Alert, AlertDescription } from "@/shared/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,12 +44,19 @@ import {
   ShieldAlert,
   CheckCircle2,
   Eraser,
+  UserCheck,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useCapabilities } from "@/shared/hooks/useCapabilities";
-import { useStillHere, useExpireOpenCheckIns } from "../hooks/useKidsLeader";
+import {
+  useStillHere,
+  useExpireOpenCheckIns,
+  useReleaseFromBoard,
+} from "../hooks/useKidsLeader";
+import type { StillHereRow } from "../services/kidsLeaderService";
+import { errorMessage, isDbError } from "../services/rpcError";
 
 /** Past this, a child has been waiting long enough to chase. */
 const LONG_STAY_MINUTES = 150;
@@ -66,8 +76,15 @@ export function StillHerePanel({
   const expire = useExpireOpenCheckIns(organizationId);
   // kids.override is held by kids_admin and nobody below it, which is the same
   // line the RPC draws. A team lead clearing the branch-wide board is the thing
-  // 20260321001100 argued against.
-  const canClearBoard = can("kids.override");
+  // 20260321001100 argued against — and releasing a child without the pickup
+  // code is the same authority, so both buttons hang off the same capability.
+  const canOverride = can("kids.override");
+
+  // The child a lead is releasing without a code, and who they say is taking
+  // them. Held here rather than on the row so only one dialog can ever be open.
+  const [releasing, setReleasing] = useState<StillHereRow | null>(null);
+  const [collectedBy, setCollectedBy] = useState("");
+  const release = useReleaseFromBoard(organizationId);
 
   const children = data ?? [];
   // A child whose service has ENDED is the real alarm — everyone else has gone
@@ -124,7 +141,7 @@ export function StillHerePanel({
           running, a child on this list is in a classroom being looked after,
           and "clear the board" is never the right answer to that.
         */}
-        {canClearBoard && afterHours.length > 0 && (
+        {canOverride && afterHours.length > 0 && (
           <Button
             variant="outline"
             size="sm"
@@ -197,11 +214,143 @@ export function StillHerePanel({
                   No number
                 </span>
               )}
+
+              {/*
+                A lead can release a child from here without the pickup code.
+                The label is hidden on a narrow screen rather than the button:
+                on a phone this row is already four items wide, and the icon is
+                the one thing that must survive.
+              */}
+              {canOverride && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => {
+                    setReleasing(c);
+                    setCollectedBy(c.guardian_name ?? "");
+                  }}
+                >
+                  <UserCheck className="h-4 w-4" />
+                  <span className="hidden sm:inline">Check out</span>
+                </Button>
+              )}
             </div>
           );
         })}
       </CardContent>
     </Card>
+
+    {/*
+      Releasing a child without the pickup code.
+
+      ONE TAP, BUT NOT A SILENT ONE. The code is skipped because a lead does
+      not need it — check_out_children has always had an override branch and
+      kids_admin has always been able to take it. What the code was carrying
+      besides authority is a NAME: the parent holding the slip is the parent
+      who gets the child. So the one thing this dialog insists on is who is
+      taking them, pre-filled from the guardian on the row so that in the
+      ordinary case it really is a single tap.
+
+      Every denial the database can return here is silent — it returns zero
+      rows rather than raising, so that a desk cannot be used to probe for
+      valid codes. That makes an empty result the dangerous case, not the
+      boring one, and it is shouted at rather than shrugged off.
+    */}
+    <AlertDialog
+      open={releasing !== null}
+      onOpenChange={(open) => {
+        if (!open) setReleasing(null);
+      }}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            Check out {releasing?.child_name}?
+          </AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-2">
+              <p>
+                No pick-up code will be checked. This is recorded as an{" "}
+                <strong>override</strong> against your name, and it counts as a
+                collection — if the service ended long ago it is still logged
+                as a late one.
+              </p>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        {releasing?.has_restriction && (
+          <Alert variant="destructive">
+            <ShieldAlert className="h-4 w-4" />
+            <AlertDescription>
+              This child has a <strong>protective order</strong> on file. If the
+              person collecting them is not on the approved list, releasing them
+              here is recorded as a restricted-pickup override. The order itself
+              still holds: the database will refuse outright if the name below
+              is the person it names.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <div className="space-y-2">
+          <Label htmlFor="collected-by">Collected by</Label>
+          <Input
+            id="collected-by"
+            value={collectedBy}
+            placeholder="Who is taking them"
+            onChange={(e) => setCollectedBy(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Written into the child's record. Change it if someone other than
+            the guardian is collecting.
+          </p>
+        </div>
+
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            disabled={release.isPending || collectedBy.trim().length === 0}
+            onClick={async (e) => {
+              // The dialog stays open unless the child actually left, so a
+              // refusal cannot be dismissed by the same tap that caused it.
+              e.preventDefault();
+              const row = releasing;
+              if (!row) return;
+              const name = collectedBy.trim();
+              try {
+                const out = await release.mutateAsync({
+                  checkInId: row.check_in_id,
+                  collectedBy: name,
+                });
+                if (out.length === 0) {
+                  toast.error("Nothing was released", {
+                    description:
+                      "Do NOT hand the child over. The pick-up may be restricted, or another desk has already collected them.",
+                  });
+                  return;
+                }
+                toast.success(`${row.child_name} checked out`, {
+                  description: `Recorded as collected by ${name}, without a code, against your name.`,
+                });
+                setReleasing(null);
+              } catch (err) {
+                toast.error("Could not check them out", {
+                  description: isDbError(err, "override_requires_admin")
+                    ? "Your login cannot release a child without the code."
+                    : isDbError(err, "not_permitted_to_check_out")
+                      ? "Your login cannot release children at all."
+                      : errorMessage(err),
+                });
+              }
+            }}
+          >
+            {release.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            Check out
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
 
     {/*
       The wording is the safeguard. "Check them out" is what a leader will
