@@ -218,7 +218,18 @@ const GUTTER_MM = 2;
  * a volunteer sees A4 sheets coming out, not a subtly rescaled tag with an
  * allergy bar that no longer reads at arm's length.
  */
-export const LABEL_CSS = `
+/**
+ * The page and the typography — everything that talks about the SHEET rather
+ * than the card.
+ *
+ * Split out from the element rules below because the two are mounted
+ * differently. In a standalone document these apply to `body`. Printed from
+ * inside the app they cannot: `body` there is the check-in station, and the
+ * app's own base layer has already set `text-rendering: optimizeLegibility`
+ * and `-webkit-font-smoothing: antialiased` on it — the exact two things the
+ * label turns off on purpose. See LABEL_PRINT_CSS.
+ */
+const LABEL_FRAME_CSS = `
   @page { size: ${LABEL_PAGE_MM.width}mm ${LABEL_PAGE_MM.length}mm; margin: 0; }
 
   html, body {
@@ -246,7 +257,18 @@ export const LABEL_CSS = `
     font-kerning: none; font-variant-ligatures: none;
     -webkit-font-smoothing: none;
   }
+`;
 
+/**
+ * The card itself. Every selector here is a class the label markup owns, and
+ * none of them is used anywhere else in the app — checked, and it is what
+ * lets these rules be dropped into the station's own document unprefixed.
+ *
+ * Even if that stopped being true, it would not print: everything outside the
+ * label root is `display: none` while printing, and a hidden element's styles
+ * never reach paper.
+ */
+const LABEL_RULES_CSS = `
   /* One DK-1202 die-cut. Fixed size, because the die-cut is, and clipping —
      see the overhang note above. */
   .page {
@@ -451,6 +473,98 @@ export const LABEL_CSS = `
   .who { text-align: center; font-size: 8pt; margin-top: 1mm; line-height: 1.25; }
   .who .hh { font-weight: 700; }
 `;
+
+/** The standalone label document's stylesheet. Unchanged in every respect. */
+export const LABEL_CSS = LABEL_FRAME_CSS + LABEL_RULES_CSS;
+
+/**
+ * The id of the node the labels are mounted into when printing from inside
+ * the station, rather than from a document of their own.
+ */
+export const LABEL_PRINT_ROOT_ID = "kids-label-root";
+
+/**
+ * The same label, printed from the station's OWN document.
+ *
+ * WHY THIS EXISTS. Printing used to happen from a hidden iframe:
+ * `iframe.contentWindow.print()`. On Chrome that prints the frame. On iOS
+ * Safari it prints the TOP window, so an iPad sent four pages of the check-in
+ * screen to the label printer — the "All done" panel, the pickup code and a
+ * Done button — and no label at all. labelPrintService warned about exactly
+ * this in a comment months before it happened.
+ *
+ * There is no way to make Safari print the frame. So the frame goes: the
+ * labels are mounted into the station's own document and the top window is
+ * printed, which is the one thing every engine agrees on. Chrome is
+ * unaffected — it still reads @page and lays out a 62 x 100mm page box, and
+ * --kiosk-printing still intercepts window.print() and emits silently.
+ *
+ * THREE THINGS THIS HAS TO GET RIGHT, and they are the whole of the risk:
+ *
+ * 1. EVERYTHING ELSE IS HIDDEN. `body > *` rather than `#root`, because Radix
+ *    mounts dialogs, toasts and the kiosk's own sheets as direct children of
+ *    body — targeting the app's mount point alone would print a stray
+ *    overlay across a child's name.
+ *
+ * 2. THE ROOT IS RESET, NOT TRUSTED. `all: initial` is the only reliable way
+ *    to stop the station's base layer reaching the card. index.css sets
+ *    `text-rendering: optimizeLegibility` and `-webkit-font-smoothing:
+ *    antialiased` on body; this label deliberately sets kerning, ligatures
+ *    and smoothing OFF, because at 300dpi on thermal stock they cost
+ *    legibility. Inheriting the app's would quietly soften every label.
+ *    `all: initial` computes `display: inline`, so display is restored
+ *    immediately after — and the typography that lived on `body` in the
+ *    standalone document is re-declared here, because the reset would
+ *    otherwise eat that too.
+ *
+ * 3. EVERY RULE IS INSIDE @media print. These must not touch the station on
+ *    screen — a `width: 62mm` body would be visible and catastrophic. The one
+ *    exception is @page, which is left at the top level: it is spec-valid
+ *    inside a media query and Chrome honours it there, but top level is the
+ *    form every engine has always accepted, and this stylesheet only exists
+ *    in the document while a print is actually in flight, so it can affect
+ *    nothing else.
+ */
+export const LABEL_PRINT_CSS = `
+@page { size: ${LABEL_PAGE_MM.width}mm ${LABEL_PAGE_MM.length}mm; margin: 0; }
+
+@media print {
+  html, body {
+    margin: 0; padding: 0; background: #fff;
+    /* Same reasoning as the standalone document: Safari ignores @page and
+       scales the layout onto whatever paper the sheet is set to, so the
+       widest thing in the document has to BE the label. */
+    width: ${LABEL_PAGE_MM.width}mm;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+
+  /* The station, and anything portalled beside it, does not print. */
+  body > *:not(#${LABEL_PRINT_ROOT_ID}) { display: none !important; }
+
+  #${LABEL_PRINT_ROOT_ID} {
+    all: initial;
+    /* !important because the node carries an inline display:none so it never
+       shows on screen, and an inline style outranks everything but this. */
+    display: block !important;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: #000;
+    font-kerning: none; font-variant-ligatures: none;
+    -webkit-font-smoothing: none;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+${LABEL_RULES_CSS}}
+`;
+
+/**
+ * The labels alone — one .page per child, then the parent's slip — with no
+ * document around them. Shared by both mounts so neither can drift.
+ */
+export function buildLabelMarkup(
+  children: ChildLabelData[],
+  parent: ParentLabelData
+): string {
+  return [...children.map(buildChildLabel), buildParentLabel(parent)].join("\n");
+}
 
 /**
  * Long names shrink instead of running off the edge.
@@ -674,8 +788,7 @@ export function buildLabelDocument(
   children: ChildLabelData[],
   parent: ParentLabelData
 ): string {
-  const body = [...children.map(buildChildLabel), buildParentLabel(parent)].join("\n");
   return `<!doctype html><html><head><meta charset="utf-8">
 <title>Kids labels</title><style>${LABEL_CSS}</style></head>
-<body>${body}</body></html>`;
+<body>${buildLabelMarkup(children, parent)}</body></html>`;
 }
