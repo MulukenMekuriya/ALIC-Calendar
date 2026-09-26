@@ -11,7 +11,7 @@ interface CreateUserRequest {
   password: string;
   full_name: string;
   ministry_name?: string;
-  role: "admin" | "contributor";
+  role: "admin" | "contributor" | "treasury" | "finance" | "member" | "board";
   organization_id: string;
 }
 
@@ -197,15 +197,28 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Add user to organization with specified role
+    // Add user to organization with specified role.
+    //
+    // UPSERT, not INSERT, and the difference is a bug that was reported as
+    // "the role does not save". public.handle_new_user fires on the auth.users
+    // insert above — email_confirm: true means the row arrives confirmed — and
+    // writes (user, VA branch, 'member'). For an admin working in VA that row
+    // already occupies (user_id, organization_id), so the INSERT here hit the
+    // unique constraint, this function returned 500, and the account was left
+    // sitting at 'member': exactly the role the admin had just chosen not to
+    // give. On conflict the chosen role now wins, which is the only sensible
+    // reading of an admin filling in this form.
     const { error: orgMemberError } = await supabaseAdmin
       .from("user_organizations")
-      .insert([{
-        user_id: userId,
-        organization_id: organization_id,
-        role: role,
-        is_primary: true,
-      }]);
+      .upsert(
+        [{
+          user_id: userId,
+          organization_id: organization_id,
+          role: role,
+          is_primary: true,
+        }],
+        { onConflict: "user_id,organization_id" }
+      );
 
     if (orgMemberError) {
       console.error("Organization membership error:", orgMemberError);

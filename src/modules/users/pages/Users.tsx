@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/shared/components/layout/DashboardLayout";
@@ -13,6 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/shared/hooks/use-toast";
 import { UserPlus, Shield, UserCog, Pencil, Trash2 } from "lucide-react";
 import { useOrganization } from "@/shared/contexts/OrganizationContext";
+import { errorMessage } from "@/shared/lib/errorMessage";
+import { useAuth } from "@/shared/contexts/AuthContext";
+import { Checkbox } from "@/shared/components/ui/checkbox";
+import { EVERYONE, STAFF_ONLY, filterRoster } from "../utils/roster";
 
 /**
  * Every public.app_role tier, most privileged first.
@@ -32,6 +36,12 @@ const APP_ROLES = [
     value: "admin",
     label: "Admin",
     description: "Everything in this branch, including children's medical data.",
+  },
+  {
+    value: "board",
+    label: "Board",
+    description:
+      "Reads the year's budget requests together and says what the Board thinks. Does not approve.",
   },
   {
     value: "treasury",
@@ -59,13 +69,6 @@ const APP_ROLES = [
 const roleLabel = (role?: string | null) =>
   APP_ROLES.find((r) => r.value === role)?.label ?? "Member";
 
-/**
- * Reads the tier straight off the row.
- *
- * The two badges this replaces asked `some(r => r.role === 'admin')` and
- * printed "Contributor" for everything else, so treasury, finance and member
- * all displayed as Contributor.
- */
 const RoleBadge = ({
   role,
   className,
@@ -82,9 +85,92 @@ const RoleBadge = ({
 const Users = () => {
   const { toast } = useToast();
   const { currentOrganization } = useOrganization();
+  const { user: actingUser } = useAuth();
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
   const [newUser, setNewUser] = useState({ email: "", password: "", full_name: "", ministry_name: "", role: "member" });
+  // 589 of the 625 people in MD hold 'member' — the whole Breeze import. This
+  // screen is for giving somebody a job, so it opens on the people who have
+  // one, and the rest are a filter away rather than 589 rows away.
+  const [roleFilter, setRoleFilter] = useState<string>(STAFF_ONLY);
+  const [search, setSearch] = useState("");
+  // The Board reads MD and VA as one budget, so the tier is meant to be held
+  // in both branches. Held in one, a board member is shown half the year with
+  // nothing to say that half is missing.
+  const [applyToBothBranches, setApplyToBothBranches] = useState(true);
+
+  /**
+   * The branches this admin may write a membership into.
+   *
+   * Not "all branches": the policies added in 20260322330000 allow an admin to
+   * write memberships in the branches they administer and nowhere else, so
+   * offering more than this would produce a silent half-failure.
+   */
+  const { data: myAdminOrganizations } = useQuery({
+    queryKey: ["my-admin-organizations", actingUser?.id],
+    queryFn: async () => {
+      if (!actingUser?.id) return [];
+
+      const { data, error } = await supabase
+        .from("user_organizations")
+        .select("organization_id, organizations:organization_id (id, name)")
+        .eq("user_id", actingUser.id)
+        .eq("role", "admin");
+
+      if (error) throw error;
+
+      return (data || []).map((row) => ({
+        id: row.organization_id,
+        name:
+          (row.organizations as { name?: string } | null)?.name ?? "Another branch",
+      }));
+    },
+    enabled: !!actingUser?.id,
+  });
+
+  const otherBranches = (myAdminOrganizations || []).filter(
+    (org) => org.id !== currentOrganization?.id,
+  );
+
+  /**
+   * Give somebody the same tier in the other branches this admin runs.
+   *
+   * Returns the branch names it managed, so the caller can say what happened
+   * rather than implying more than was done.
+   */
+  const spreadsAcrossBranches = (role: string) =>
+    role === "board" && applyToBothBranches && otherBranches.length > 0;
+
+  const grantInOtherBranches = async (
+    userId: string,
+    email: string,
+    role: string,
+  ) => {
+    if (!spreadsAcrossBranches(role)) return [];
+
+    const { data, error } = await supabase
+      .from("user_organizations")
+      .upsert(
+        otherBranches.map((org) => ({
+          user_id: userId,
+          organization_id: org.id,
+          role: role as (typeof APP_ROLES)[number]["value"],
+          is_primary: false,
+          // NOT NULL, and the trigger that fills it only fires when the column
+          // is absent from the statement. Sending what we already know is
+          // cheaper than relying on that.
+          email,
+        })),
+        { onConflict: "user_id,organization_id" },
+      )
+      .select("organization_id");
+
+    if (error) throw error;
+
+    return otherBranches
+      .filter((org) => (data || []).some((row) => row.organization_id === org.id))
+      .map((org) => org.name);
+  };
   const [editingUser, setEditingUser] = useState<{ id: string; email: string; full_name: string; phone_number?: string; ministry_name?: string; role: string } | null>(null);
 
   const { data: users, refetch: refetchUsers, error: usersError } = useQuery({
@@ -134,6 +220,12 @@ const Users = () => {
   });
 
 
+  const visibleUsers = useMemo(
+    () => filterRoster(users, roleFilter, search),
+    [users, roleFilter, search],
+  );
+  const hiddenCount = (users?.length || 0) - visibleUsers.length;
+
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -166,14 +258,23 @@ const Users = () => {
         throw new Error(data.error);
       }
 
-      toast({ title: "User created successfully" });
+      const alsoIn = data?.user?.id
+        ? await grantInOtherBranches(data.user.id, newUser.email, newUser.role)
+        : [];
+
+      toast({
+        title: "User created",
+        description: `${newUser.full_name} is ${roleLabel(newUser.role)} in ${currentOrganization.name}${
+          alsoIn.length > 0 ? ` and ${alsoIn.join(", ")}` : ""
+        }.`,
+      });
       setIsAddUserOpen(false);
       setNewUser({ email: "", password: "", full_name: "", ministry_name: "", role: "member" });
       refetchUsers();
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred",
+        description: errorMessage(error),
         variant: "destructive",
       });
     }
@@ -196,23 +297,46 @@ const Users = () => {
 
       if (profileError) throw profileError;
 
-      // Update role in user_organizations table
-      const { error: roleError } = await supabase
+      // Update role in user_organizations table.
+      //
+      // .select() is the point of this call, not decoration. Row-level
+      // security refuses by matching no rows rather than by erroring, and
+      // until 20260322330000 there was no admin policy here at all: every
+      // role change ran, changed nothing, and was reported as a success.
+      const { data: roleRows, error: roleError } = await supabase
         .from("user_organizations")
         .update({ role: editingUser.role as (typeof APP_ROLES)[number]["value"] })
         .eq("user_id", editingUser.id)
-        .eq("organization_id", currentOrganization.id);
+        .eq("organization_id", currentOrganization.id)
+        .select("user_id");
 
       if (roleError) throw roleError;
 
-      toast({ title: "User updated successfully" });
+      if (!roleRows || roleRows.length === 0) {
+        throw new Error(
+          "The role was not changed. You may not have permission to set roles in this branch.",
+        );
+      }
+
+      const alsoIn = await grantInOtherBranches(
+        editingUser.id,
+        editingUser.email,
+        editingUser.role,
+      );
+
+      toast({
+        title: "User updated",
+        description: `${editingUser.full_name} is now ${roleLabel(editingUser.role)} in ${
+          currentOrganization.name
+        }${alsoIn.length > 0 ? ` and ${alsoIn.join(", ")}` : ""}.`,
+      });
       setIsEditUserOpen(false);
       setEditingUser(null);
       refetchUsers();
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred",
+        description: errorMessage(error),
         variant: "destructive",
       });
     }
@@ -248,10 +372,36 @@ const Users = () => {
       console.error("Delete user error:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred",
+        description: errorMessage(error),
         variant: "destructive",
       });
     }
+  };
+
+  /**
+   * Offered for the Board tier only, and only when there is another branch
+   * this admin can write to. The Board reads both branches as one budget;
+   * every other tier belongs to the branch it was set in.
+   */
+  const BothBranchesToggle = ({ role }: { role: string }) => {
+    if (role !== "board" || otherBranches.length === 0) return null;
+
+    return (
+      <label className="flex items-start gap-2 rounded-md border bg-muted/40 p-3 cursor-pointer">
+        <Checkbox
+          checked={applyToBothBranches}
+          onCheckedChange={(checked) => setApplyToBothBranches(checked === true)}
+          className="mt-0.5"
+        />
+        <span className="text-sm">
+          Also in {otherBranches.map((org) => org.name).join(", ")}
+          <span className="block text-xs text-muted-foreground">
+            The Board reviews both branches as one budget. Without this they
+            would see only {currentOrganization?.name}.
+          </span>
+        </span>
+      </label>
+    );
   };
 
   const openEditDialog = (user: {
@@ -289,7 +439,8 @@ const Users = () => {
             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-6">
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                 <UserCog className="h-4 w-4 sm:h-5 sm:w-5" />
-                Users ({users?.length || 0})
+                Users ({visibleUsers.length}
+                {hiddenCount > 0 && ` of ${users?.length || 0}`})
               </CardTitle>
               <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
                 <DialogTrigger asChild>
@@ -358,6 +509,7 @@ const Users = () => {
                           ))}
                         </SelectContent>
                       </Select>
+                      <BothBranchesToggle role={newUser.role} />
                     </div>
                     <Button type="submit" className="w-full">Create User</Button>
                   </form>
@@ -422,6 +574,7 @@ const Users = () => {
                           ))}
                         </SelectContent>
                       </Select>
+                      <BothBranchesToggle role={editingUser?.role || "contributor"} />
                     </div>
                     <Button type="submit" className="w-full">Update User</Button>
                   </form>
@@ -429,20 +582,46 @@ const Users = () => {
               </Dialog>
             </CardHeader>
             <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                <Input
+                  placeholder="Search name, email or ministry"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="sm:max-w-xs"
+                />
+                <Select value={roleFilter} onValueChange={setRoleFilter}>
+                  <SelectTrigger className="sm:w-[190px]" aria-label="Filter by role">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={STAFF_ONLY}>Everyone but members</SelectItem>
+                    <SelectItem value={EVERYONE}>Everyone</SelectItem>
+                    {APP_ROLES.map((r) => (
+                      <SelectItem key={r.value} value={r.value}>
+                        {r.label} only
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               {usersError && (
                 <div className="text-sm text-destructive mb-4">
-                  Error loading users: {usersError instanceof Error ? usersError.message : "Unknown error"}
+                  Error loading users: {errorMessage(usersError, "Unknown error")}
                 </div>
               )}
-              {!users || users.length === 0 ? (
+              {visibleUsers.length === 0 ? (
                 <div className="text-center py-6 sm:py-8 text-sm sm:text-base text-muted-foreground">
-                  {usersError ? "Failed to load users." : "No users found. Add users using the 'Add User' button above."}
+                  {usersError
+                    ? "Failed to load users."
+                    : hiddenCount > 0
+                      ? `Nobody here matches. ${hiddenCount} ${hiddenCount === 1 ? "person is" : "people are"} filtered out \u2014 switch to Everyone to include members.`
+                      : "No users found. Add users using the 'Add User' button above."}
                 </div>
               ) : (
                 <>
                   {/* Mobile Card View */}
                   <div className="md:hidden space-y-3">
-                    {users.map((user) => (
+                    {visibleUsers.map((user) => (
                       <div key={user.id} className="border rounded-lg p-3 space-y-3 bg-card">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
@@ -498,7 +677,7 @@ const Users = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {users.map((user) => (
+                        {visibleUsers.map((user) => (
                           <TableRow key={user.id}>
                             <TableCell className="font-medium">{user.full_name}</TableCell>
                             <TableCell>{user.email}</TableCell>
