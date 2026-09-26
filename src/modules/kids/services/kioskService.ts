@@ -45,8 +45,20 @@ export const kioskService = {
    * 8:55 on a Sunday, which is the thing somebody actually wants.
    */
   async bootstrap(stationId: string | null): Promise<KioskBootstrap | null> {
+    // The tablet's OWN date, not the database's. current_date in Postgres is
+    // UTC, so at 9pm Eastern on a Sunday it is already Monday there and a
+    // session dated Sunday matched nothing - which told a parent standing at
+    // the tablet to go and find a volunteer.
+    const now = new Date();
+    const today = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, "0"),
+      String(now.getDate()).padStart(2, "0"),
+    ].join("-");
+
     const { data, error } = await church().rpc("kiosk_session_bootstrap", {
       _station_id: stationId,
+      _today: today,
     });
     throwRpc(error);
     return (data as unknown as KioskBootstrap[] | null)?.[0] ?? null;

@@ -136,6 +136,8 @@ const ProtectedRoute = ({
   fallbackTo?: string;
 }) => {
   const { user, loading, isAdmin, isStaff } = useAuth();
+  const { isKiosk, loading: kioskLoading } = useIsKiosk();
+  const location = useLocation();
   const {
     loading: orgLoading,
     currentOrganization,
@@ -150,12 +152,34 @@ const ProtectedRoute = ({
 
   // Only block on capability loading for routes that actually gate on them,
   // so existing routes keep their current timing.
-  if (loading || orgLoading || (requireAny && capabilitiesLoading)) {
+  if (loading || orgLoading || kioskLoading || (requireAny && capabilitiesLoading)) {
     return <PageLoader message="Authenticating..." />;
   }
 
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  /*
+   * A KIOSK BELONGS ON ONE SCREEN AND NOWHERE ELSE.
+   *
+   * Here rather than on individual routes, because the problem is not that
+   * the kiosk can reach /checkin — it is that it can reach EVERYTHING that
+   * only requires a login. The lobby account is 'member' tier with no
+   * capability, so every staffOnly route bounced it to /my and it sat in the
+   * member portal with a sidebar, which is exactly the "nowhere to wander"
+   * property the kiosk is supposed to have.
+   *
+   * One check, before adminOnly, staffOnly and requireAny, so no route can be
+   * added later that forgets about it.
+   *
+   * This is routing, not security. The database already refuses a kiosk
+   * everything that matters — it reads one profile row out of 678 and zero
+   * people — so what this fixes is a tablet showing a parent the wrong
+   * screen, not a leak.
+   */
+  if (isKiosk && location.pathname !== "/kiosk") {
+    return <Navigate to="/kiosk" replace />;
   }
 
   // Before ANY other check, including the organization ones below.
@@ -415,11 +439,9 @@ const App = () => (
                 <Route
                   path="/checkin"
                   element={
-                    <KioskRedirect to="/kiosk">
-                      <ProtectedRoute requireAny={["kids.checkin", "kids.write"]}>
-                        <CheckInStationPage />
-                      </ProtectedRoute>
-                    </KioskRedirect>
+                    <ProtectedRoute requireAny={["kids.checkin", "kids.write"]}>
+                      <CheckInStationPage />
+                    </ProtectedRoute>
                   }
                 />
 
