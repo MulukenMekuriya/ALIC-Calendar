@@ -5,12 +5,25 @@
 | Step | Gate? | Meaning |
 |---|---|---|
 | Install (`npm ci`) | **Yes** | package.json and the lockfile disagree, or a dependency conflicts |
-| Typecheck | No | 40 known pre-existing errors in `budget/` and `calendar/` |
+| Typecheck | **Yes, on the delta** | A type error that is not in the baseline |
 | Tests | **Yes** | Something that used to work has stopped |
 | Build | **Yes** | The deploy to alic.org would fail |
 | `npm audit` | No | Known advisories exist today |
 
 A red ✗ on the gates means **do not deploy**.
+
+## The typecheck baseline
+
+`npm run typecheck` reports 40 errors, all in `budget/` and `calendar/` and
+all older than this workflow. `scripts/typecheck-gate.sh` compares against
+`scripts/typecheck-baseline.txt` and fails only on something new, so the
+check is useful from day one instead of permanently red.
+
+Fixed some? `./scripts/typecheck-gate.sh --update` and say so in the commit.
+
+Note it runs the project's own `npm run typecheck` (`tsconfig.app.json`).
+Plain `npx tsc --noEmit` resolves the root tsconfig, checks nothing, and
+reports a reassuring zero.
 
 ## What this does NOT cover
 

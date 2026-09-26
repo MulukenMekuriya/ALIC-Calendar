@@ -213,9 +213,24 @@ export default function KioskPage() {
           childCount: accepted.length,
           pickupCode: accepted[0].pickup_code,
           qrSvg: qr,
+          // Both required, and both were missing. buildParentLabel renders
+          // them on the slip the parent walks away with; esc(undefined) is
+          // "", so it printed a blank line rather than failing, and the one
+          // piece of paper that says WHICH service a child was left at said
+          // nothing at all. The child labels had them the whole time.
+          serviceLabel: boot.session_label ?? "",
+          sessionDate: formatSessionDate(boot.session_date),
         },
       );
-      if (!result.ok) setPrintFailed(true);
+      // `submitted`, not `ok` — there is no `ok`. This read `!result.ok`,
+      // which is `!undefined`, which is always true, so every parent who
+      // checked a child in was told the printer had failed and to find a
+      // volunteer. On the one screen whose entire purpose is that they do not
+      // have to. The staffed desk has always read `submitted`.
+      //
+      // `submitted` means the job reached the OS spooler, not that paper came
+      // out — which is why the code stays on screen either way.
+      if (!result.submitted) setPrintFailed(true);
     } catch (err) {
       setError(errorMessage(err));
     } finally {

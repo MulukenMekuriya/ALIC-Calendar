@@ -55,13 +55,20 @@ jobs:
       - name: Install
         run: npm ci
 
-      # Not a gate. There are 40 pre-existing errors in budget/ and calendar/
-      # that predate this workflow, so failing on them would mean a red build
-      # from day one and a team that learns to ignore the colour. It runs so
-      # the output is there to read, and `|| true` is the honest way to say
-      # "this is information, not a verdict" rather than pretending it passed.
-      - name: Typecheck (informational)
-        run: npx tsc --noEmit || true
+      # A GATE, but on the delta rather than the total.
+      #
+      # `npm run typecheck` reports 40 errors, all in budget/ and calendar/
+      # and all older than this workflow. Failing on those means red from day
+      # one and a team that stops reading the colour, so the gate compares
+      # against scripts/typecheck-baseline.txt and fails only on a NEW error.
+      #
+      # This step was almost `npx tsc --noEmit || true`. That command reports
+      # zero errors on this repo — it resolves the root tsconfig, which checks
+      # nothing — so the workflow would have printed a reassuring 0 while 81
+      # real errors sat in tsconfig.app.json, two of them bugs on the kiosk.
+      # Run the project's own script.
+      - name: Typecheck (no new errors)
+        run: ./scripts/typecheck-gate.sh
 
       # THE GATE. 547 tests, including the ones that pin the behaviour of the
       # check-in machine, the consent states, the ten-digit kiosk rule and the

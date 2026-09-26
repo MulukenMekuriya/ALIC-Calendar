@@ -512,7 +512,7 @@ export const kidsLeaderService = {
 
   /** A teacher's own reports. Gated on auth.uid() server-side, not on a role. */
   async myIncidents(): Promise<MyIncidentRow[]> {
-    const { data, error } = await church().rpc("kids_my_incidents", {});
+    const { data, error } = await church().rpc("kids_my_incidents");
     throwRpc(error);
     return (data ?? []) as unknown as MyIncidentRow[];
   },
