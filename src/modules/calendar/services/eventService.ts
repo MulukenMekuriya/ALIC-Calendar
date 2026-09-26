@@ -5,6 +5,62 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { EventFormData, EventWithRelations, EventFilters, EventStatus } from "../types";
 
+/**
+ * Hand a series over to its next occurrence, so the row that currently holds
+ * the series together can be deleted without the cascade taking the rest.
+ *
+ * Does nothing for an event that has no occurrences hanging off it, which is
+ * every standalone event.
+ */
+const promoteNextOccurrence = async (eventId: string): Promise<void> => {
+  const { data: children, error } = await supabase
+    .from("events")
+    .select("id")
+    .eq("parent_event_id", eventId)
+    .order("starts_at", { ascending: true });
+
+  if (error) throw error;
+  if (!children || children.length === 0) return;
+
+  const [heir, ...rest] = children;
+
+  // The series' rule lives on the row being deleted; the heir inherits it.
+  const { data: outgoing } = await supabase
+    .from("events")
+    .select("recurrence_rule, recurrence_end_date")
+    .eq("id", eventId)
+    .single();
+
+  const { data: promoted, error: promoteError } = await supabase
+    .from("events")
+    .update({
+      parent_event_id: null,
+      recurrence_rule: outgoing?.recurrence_rule ?? null,
+      recurrence_end_date: outgoing?.recurrence_end_date ?? null,
+    })
+    .eq("id", heir.id)
+    .select("id");
+
+  if (promoteError) throw promoteError;
+
+  // A refusal here is silent, and going ahead would cascade the whole series
+  // away. Stop while everything is still intact.
+  if (!promoted || promoted.length === 0) {
+    throw new Error(
+      "This event holds a recurring series together and could not be handed over, so nothing was deleted."
+    );
+  }
+
+  if (rest.length > 0) {
+    const { error: repointError } = await supabase
+      .from("events")
+      .update({ parent_event_id: heir.id })
+      .in("id", rest.map((child) => child.id));
+
+    if (repointError) throw repointError;
+  }
+};
+
 export const eventService = {
   /**
    * List events for an organization with optional filters
@@ -152,6 +208,64 @@ export const eventService = {
   async delete(eventId: string): Promise<void> {
     const { error } = await supabase.from("events").delete().eq("id", eventId);
     if (error) throw error;
+  },
+
+  /**
+   * Delete one event, or every event in its recurring series.
+   *
+   * The trap is the first occurrence of a series. Every later occurrence points
+   * at it through parent_event_id ON DELETE CASCADE, so deleting it "on its
+   * own" silently takes the whole year of occurrences with it. Before that row
+   * goes, the next occurrence is promoted in its place and the rest are
+   * re-pointed at the promotion, so "only this event" means only this event.
+   *
+   * Returns how many events were actually removed. The row-level policies
+   * refuse by matching nothing rather than by erroring, so 0 is how a refusal
+   * arrives and the caller has to say so.
+   */
+  async deleteScoped(
+    event: { id: string; parent_event_id?: string | null },
+    scope: "single" | "all"
+  ): Promise<number> {
+    if (scope === "all") {
+      const seriesId = event.parent_event_id || event.id;
+
+      // Children first. The cascade would take them anyway, but deleting them
+      // by hand is what makes the returned count honest.
+      const { data: children, error: childError } = await supabase
+        .from("events")
+        .delete()
+        .eq("parent_event_id", seriesId)
+        .select("id");
+
+      if (childError) throw childError;
+
+      const { data: series, error } = await supabase
+        .from("events")
+        .delete()
+        .eq("id", seriesId)
+        .select("id");
+
+      if (error) throw error;
+
+      return (children?.length || 0) + (series?.length || 0);
+    }
+
+    // A later occurrence has nothing hanging off it and can just go; the row
+    // that holds the series together has to hand over first.
+    if (!event.parent_event_id) {
+      await promoteNextOccurrence(event.id);
+    }
+
+    const { data, error } = await supabase
+      .from("events")
+      .delete()
+      .eq("id", event.id)
+      .select("id");
+
+    if (error) throw error;
+
+    return data?.length || 0;
   },
 
   /**

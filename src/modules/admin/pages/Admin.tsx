@@ -6,7 +6,24 @@ import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
-import { Check, X, Eye, User, Download } from "lucide-react";
+import { Check, X, Eye, User, Download, Trash2, CalendarDays } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/shared/components/ui/alert-dialog";
 import { useToast } from "@/shared/hooks/use-toast";
 import EventDialog from "@/modules/calendar/components/EventDialog";
 import { ExportDialog } from "@/modules/calendar/components";
@@ -16,6 +33,8 @@ import { formatDistance, format } from "date-fns";
 import { useOrganization } from "@/shared/contexts/OrganizationContext";
 import { useSearch } from "@/shared/contexts/SearchContext";
 import { useAuth } from "@/shared/contexts/AuthContext";
+import { eventService } from "@/modules/calendar/services";
+import { ALL_YEARS, filterEventsByYear, yearsInEvents } from "../utils/eventYear";
 
 // Helper function to filter events based on search query
 const filterEvents = <T extends {
@@ -45,6 +64,18 @@ const filterEvents = <T extends {
   });
 };
 
+const DeleteEventButton = ({ onClick }: { onClick: () => void }) => (
+  <Button
+    variant="outline"
+    size="sm"
+    className="text-xs sm:text-sm text-destructive hover:text-destructive hover:bg-destructive/10"
+    onClick={onClick}
+  >
+    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+    Delete
+  </Button>
+);
+
 const Admin = () => {
   const { toast } = useToast();
   const { currentOrganization } = useOrganization();
@@ -58,6 +89,11 @@ const Admin = () => {
   const [rejectionLoading, setRejectionLoading] = useState(false);
   const [recurringRejectDialogOpen, setRecurringRejectDialogOpen] = useState(false);
   const [pendingRejectionReason, setPendingRejectionReason] = useState<string>("");
+  const [yearFilter, setYearFilter] = useState<string>(ALL_YEARS);
+  const [eventToDelete, setEventToDelete] = useState<{ id: string; title: string; is_recurring?: boolean; parent_event_id?: string | null } | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [recurringDeleteDialogOpen, setRecurringDeleteDialogOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const { data: pendingEvents, refetch: refetchPending } = useQuery({
     queryKey: ["pending-events", currentOrganization?.id, user?.id, isAdmin],
@@ -239,25 +275,37 @@ const Admin = () => {
     enabled: !!currentOrganization?.id,
   });
 
-  // Filter events based on search query
+  // The years the picker offers, drawn from the board itself.
+  const availableYears = useMemo(
+    () => yearsInEvents([pendingEvents, approvedEvents, publishedEvents, rejectedEvents]),
+    [pendingEvents, approvedEvents, publishedEvents, rejectedEvents]
+  );
+
+  // Filter events based on search query and the selected year
   const filteredPendingEvents = useMemo(
-    () => filterEvents(pendingEvents, searchQuery),
-    [pendingEvents, searchQuery]
+    () => filterEventsByYear(filterEvents(pendingEvents, searchQuery), yearFilter),
+    [pendingEvents, searchQuery, yearFilter]
   );
 
   const filteredApprovedEvents = useMemo(
-    () => filterEvents(approvedEvents, searchQuery),
-    [approvedEvents, searchQuery]
+    () => filterEventsByYear(filterEvents(approvedEvents, searchQuery), yearFilter),
+    [approvedEvents, searchQuery, yearFilter]
   );
 
   const filteredPublishedEvents = useMemo(
-    () => filterEvents(publishedEvents, searchQuery),
-    [publishedEvents, searchQuery]
+    () => filterEventsByYear(filterEvents(publishedEvents, searchQuery), yearFilter),
+    [publishedEvents, searchQuery, yearFilter]
   );
 
   const filteredRejectedEvents = useMemo(
-    () => filterEvents(rejectedEvents, searchQuery),
-    [rejectedEvents, searchQuery]
+    () => filterEventsByYear(filterEvents(rejectedEvents, searchQuery), yearFilter),
+    [rejectedEvents, searchQuery, yearFilter]
+  );
+
+  // Exports follow the year on screen, so a 2027 review exports the 2027 calendar.
+  const exportableEvents = useMemo(
+    () => filterEventsByYear([...(approvedEvents || []), ...(publishedEvents || [])], yearFilter),
+    [approvedEvents, publishedEvents, yearFilter]
   );
 
   const handleStatusChange = async (eventId: string, status: "approved" | "published" | "pending_review", isUnpublishing?: boolean) => {
@@ -613,6 +661,68 @@ const Admin = () => {
     }
   };
 
+  // A cancelled event has no status left to move it to, so it is removed from
+  // the board outright. Admins may remove any event; a requester may remove
+  // their own, which is what the row-level policies already allow.
+  const canDelete = (event: { created_by?: string | null }) =>
+    isAdmin || (!!user?.id && event.created_by === user.id);
+
+  const handleOpenDeleteDialog = (event: { id: string; title: string; is_recurring?: boolean; parent_event_id?: string | null }) => {
+    setEventToDelete({
+      id: event.id,
+      title: event.title,
+      is_recurring: event.is_recurring,
+      parent_event_id: event.parent_event_id,
+    });
+
+    // A recurring event asks first whether this one or the whole series goes.
+    if (event.is_recurring) {
+      setRecurringDeleteDialogOpen(true);
+    } else {
+      setDeleteDialogOpen(true);
+    }
+  };
+
+  const executeDelete = async (scope: RecurringActionScope) => {
+    if (!eventToDelete) return;
+
+    setDeleteLoading(true);
+    try {
+      const removed = await eventService.deleteScoped(eventToDelete, scope);
+
+      // The policies refuse by matching nothing rather than by erroring, so a
+      // count of zero is the only sign that the event is still there.
+      if (removed === 0) {
+        throw new Error(
+          scope === "all"
+            ? "This series could not be deleted. You may not have permission to remove it."
+            : "This event could not be deleted. You may not have permission to remove it."
+        );
+      }
+
+      toast({
+        title: scope === "all" ? `All ${removed} events in series deleted` : "Event deleted",
+      });
+
+      setDeleteDialogOpen(false);
+      setRecurringDeleteDialogOpen(false);
+      setEventToDelete(null);
+
+      refetchPending();
+      refetchApproved();
+      refetchPublished();
+      refetchRejected();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   const handleViewEvent = (eventId: string) => {
     setSelectedEventId(eventId);
     setIsEventDialogOpen(true);
@@ -636,15 +746,34 @@ const Admin = () => {
               {isAdmin ? "Review and manage event submissions" : "Track the status of your event requests"}
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsExportDialogOpen(true)}
-            className="gap-2 self-start"
-          >
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
+          <div className="flex items-center gap-2 self-start">
+            <Select value={yearFilter} onValueChange={setYearFilter}>
+              <SelectTrigger
+                className="h-9 w-[150px] [&>span]:flex-1 [&>span]:text-left"
+                aria-label="Filter by year"
+              >
+                <CalendarDays className="h-4 w-4 mr-2 flex-shrink-0 text-muted-foreground" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_YEARS}>All years</SelectItem>
+                {availableYears.map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsExportDialogOpen(true)}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+          </div>
         </div>
 
         <Tabs defaultValue="pending" className="space-y-4">
@@ -744,6 +873,9 @@ const Admin = () => {
                         <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                         <span className="hidden xs:inline">View </span>Details
                       </Button>
+                      {canDelete(event) && (
+                        <DeleteEventButton onClick={() => handleOpenDeleteDialog(event)} />
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -822,6 +954,9 @@ const Admin = () => {
                         <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                         <span className="hidden xs:inline">View </span>Details
                       </Button>
+                      {canDelete(event) && (
+                        <DeleteEventButton onClick={() => handleOpenDeleteDialog(event)} />
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -901,6 +1036,9 @@ const Admin = () => {
                         <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                         <span className="hidden xs:inline">View </span>Details
                       </Button>
+                      {canDelete(event) && (
+                        <DeleteEventButton onClick={() => handleOpenDeleteDialog(event)} />
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -981,6 +1119,9 @@ const Admin = () => {
                         <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                         <span className="hidden xs:inline">View </span>Details
                       </Button>
+                      {canDelete(event) && (
+                        <DeleteEventButton onClick={() => handleOpenDeleteDialog(event)} />
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -1010,6 +1151,49 @@ const Admin = () => {
           loading={rejectionLoading}
         />
 
+        <AlertDialog
+          open={deleteDialogOpen}
+          onOpenChange={(open) => {
+            setDeleteDialogOpen(open);
+            if (!open) setEventToDelete(null);
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete this event?</AlertDialogTitle>
+              <AlertDialogDescription>
+                "{eventToDelete?.title}" will be removed from the calendar and from this
+                board. This cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => {
+                  e.preventDefault();
+                  executeDelete("single");
+                }}
+                disabled={deleteLoading}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleteLoading ? "Deleting..." : "Delete"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <RecurringEventActionDialog
+          open={recurringDeleteDialogOpen}
+          onOpenChange={(open) => {
+            setRecurringDeleteDialogOpen(open);
+            if (!open) setEventToDelete(null);
+          }}
+          onConfirm={executeDelete}
+          actionType="delete"
+          eventTitle={eventToDelete?.title || ""}
+          loading={deleteLoading}
+        />
+
         <RecurringEventActionDialog
           open={recurringRejectDialogOpen}
           onOpenChange={setRecurringRejectDialogOpen}
@@ -1022,15 +1206,20 @@ const Admin = () => {
         <ExportDialog
           open={isExportDialogOpen}
           onOpenChange={setIsExportDialogOpen}
-          events={[
-            ...(approvedEvents || []),
-            ...(publishedEvents || []),
-          ]}
+          events={exportableEvents}
           organizationName={currentOrganization?.name || "Calendar"}
           organizationSlug={currentOrganization?.slug}
           timezone={currentOrganization?.timezone}
           userId={user?.id}
           isAdmin={isAdmin}
+          dateRange={
+            yearFilter === ALL_YEARS
+              ? undefined
+              : {
+                  start: new Date(Number(yearFilter), 0, 1),
+                  end: new Date(Number(yearFilter), 11, 31),
+                }
+          }
         />
       </div>
     </DashboardLayout>
