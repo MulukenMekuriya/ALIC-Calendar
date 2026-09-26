@@ -193,7 +193,7 @@ export function ConsentSheet({
       toast({
         title: "Thank you — that is on file",
         description: nobodyCanBeEmailed
-          ? "We have no email address for this family, so no copy could be sent. The office can print one."
+          ? "We have no email address for this family, so no copy could be sent. Please take one before they leave."
           : "A copy has been emailed to the person who signed.",
       });
       onResolved("signed");
@@ -417,10 +417,27 @@ export function ConsentSheet({
               </div>
 
               {nobodyCanBeEmailed && (
-                <p className="text-xs text-muted-foreground">
-                  We have no email address for this family, so we cannot send a copy. The
-                  church office can print one whenever you ask.
-                </p>
+                /*
+                 * TEN OF 216 HOUSEHOLDS HAVE NO ADULT EMAIL ADDRESS. They
+                 * would sign a legal consent and receive nothing at all —
+                 * there is no attachment to send and no office reissue, since
+                 * the ministry decided the emailed PDF is the whole of it.
+                 *
+                 * So this asks BEFORE they sign rather than apologising
+                 * after, and it says plainly what happens if they go ahead
+                 * without one. Amber and specific, not a grey footnote: this
+                 * is the one moment the address can still be captured.
+                 */
+                <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs dark:border-amber-800 dark:bg-amber-950/40">
+                  <p className="font-medium">
+                    We have no email address for this family
+                  </p>
+                  <p className="text-muted-foreground mt-1">
+                    If they sign now, they will not get a copy of the form and we
+                    cannot send it later. Ask for an email address and add it to their
+                    record first, or let them know they will not be receiving a copy.
+                  </p>
+                </div>
               )}
 
               {missing.length > 0 && (

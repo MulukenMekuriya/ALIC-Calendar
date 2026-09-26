@@ -46,6 +46,7 @@ import { LatePickupsPanel } from "./LatePickupsPanel";
 import { ConsentCoverageCard } from "./ConsentCoverageCard";
 import { ConsentRuleCard } from "./ConsentRuleCard";
 import { AccessLogPanel } from "./AccessLogPanel";
+import { RetentionPanel } from "./RetentionPanel";
 import { useConsentPolicy } from "../hooks/useConsent";
 import { useCapabilities } from "@/shared/hooks/useCapabilities";
 import type {
@@ -385,7 +386,7 @@ export function KidsReportsTab({
               act, and a read-only reporting role is not a safeguarding one.
               The server refuses it too; this just avoids offering a tab that
               would error. */}
-          {canWrite && <TabsTrigger value="access">Who read what</TabsTrigger>}
+          {canWrite && <TabsTrigger value="access">Records</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="attendance" className="pt-4">
@@ -648,8 +649,12 @@ export function KidsReportsTab({
           * back to September and read 0% as the current position.
           */}
         {canWrite && (
-          <TabsContent value="access" className="pt-4">
+          <TabsContent value="access" className="pt-4 space-y-4">
             <AccessLogPanel organizationId={organizationId} from={from} to={to} />
+            {/* Retention sits with the access log rather than with the
+                attendance reports: both answer "what does the church hold,
+                and who has touched it", and neither is about a Sunday. */}
+            <RetentionPanel organizationId={organizationId} canPurge={canWrite} />
           </TabsContent>
         )}
 

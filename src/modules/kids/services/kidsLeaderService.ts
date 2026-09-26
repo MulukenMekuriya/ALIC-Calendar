@@ -800,7 +800,52 @@ export const kidsLeaderService = {
     throwRpc(error);
     return (data ?? []) as unknown as AccessDetailRow[];
   },
+  /**
+   * What the retention schedule says is past its date.
+   *
+   * REPORTS ONLY. The function is declared STABLE server-side, so Postgres
+   * itself forbids it from deleting anything.
+   */
+  async recordsDue(organizationId: string): Promise<RetentionRow[]> {
+    const { data, error } = await church().rpc("kids_records_due_for_purge", {
+      _organization_id: organizationId,
+    });
+    throwRpc(error);
+    return (data ?? []) as unknown as RetentionRow[];
+  },
+
+  /**
+   * The only call in the module that deletes children's records.
+   *
+   * kids_admin only, reason required, one record type at a time, and it
+   * writes an audit row that outlives the records it removed.
+   */
+  async confirmPurge(v: {
+    organizationId: string;
+    recordType: string;
+    reason: string;
+  }): Promise<number> {
+    const { data, error } = await church().rpc("confirm_kids_purge", {
+      _organization_id: v.organizationId,
+      _record_type: v.recordType,
+      _reason: v.reason,
+    });
+    throwRpc(error);
+    return (data as unknown as number) ?? 0;
+  },
 };
+
+/** One class of record, and where it stands against the schedule. */
+export interface RetentionRow {
+  record_type: string;
+  retain_years: number;
+  basis: string;
+  due_count: number;
+  held_count: number;
+  oldest: string | null;
+  /** Never due. True for safeguarding reports. */
+  retain_forever: boolean;
+}
 
 /** One person's sensitive reads over a date range. */
 export interface AccessSummaryRow {
