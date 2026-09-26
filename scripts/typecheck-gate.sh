@@ -34,12 +34,37 @@ cd "$(dirname "$0")/.."
 
 BASELINE="scripts/typecheck-baseline.txt"
 CURRENT="$(mktemp)"
-trap 'rm -f "$CURRENT"' EXIT
+RAW="$(mktemp)"
+trap 'rm -f "$CURRENT" "$RAW"' EXIT
 
-npm run --silent typecheck 2>&1 \
-  | grep -oE '^[^(]+\([0-9]+,[0-9]+\): error TS[0-9]+' \
+npm run --silent typecheck 2>&1 > "$RAW" 2>&1
+
+# Errors that name a file, folded to file|code and counted.
+grep -oE '^[^(]+\([0-9]+,[0-9]+\): error TS[0-9]+' "$RAW" \
   | sed -E 's/\([0-9]+,[0-9]+\): error /|/' \
   | sort | uniq -c | awk '{print $2" "$1}' | sort > "$CURRENT"
+
+# EVERY error line, including the ones that name no file.
+#
+# This check exists because the gate lied. A broken install produced 31
+# `error TS2688: Cannot find type definition file for ...` lines — config-level
+# errors with no file prefix — and the gate, which only ever looked at
+# file-attributed errors, reported "improved: 40 -> 0". A typecheck that
+# cannot run at all is not a clean typecheck, and reporting it as one is the
+# worst thing a gate can do.
+all=$(grep -cE 'error TS[0-9]+' "$RAW")
+attributed=$(awk '{s+=$2} END {print s+0}' "$CURRENT")
+if [ "$all" -ne "$attributed" ]; then
+  echo "The typecheck did not run properly: $((all - attributed)) error(s) name no file."
+  echo
+  grep -E 'error TS[0-9]+' "$RAW" | grep -vE '^[^(]+\([0-9]+,[0-9]+\):' | head -5 | sed 's/^/  /'
+  echo
+  echo "These are usually config or install problems, not code. If this repo"
+  echo "lives in iCloud Drive, check for duplicated directories:"
+  echo "  find node_modules -maxdepth 2 -name '* [0-9]' | head"
+  echo "  rm -rf node_modules && npm ci"
+  exit 1
+fi
 
 total() { awk '{s+=$2} END {print s+0}' "$1"; }
 
