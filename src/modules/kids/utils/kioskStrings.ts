@@ -35,9 +35,30 @@ export const kioskStrings = {
   checkIn: (n: number) => `Check in ${n} ${n === 1 ? "child" : "children"}`,
   noneSelected: "Tap at least one child",
 
+  /**
+   * Choosing a classroom.
+   *
+   * The word is "classroom", never "room" — a parent reads "room" as a
+   * building, and the printed label says classroom too.
+   */
+  classroomIs: (name: string) => `Classroom: ${name}`,
+  classroomByGrade: "Classroom: chosen by their grade",
+  changeClassroom: "Change classroom",
+  chooseClassroomFor: (name: string) => `Which classroom for ${name}?`,
+  chooseClassroomHelp:
+    "Most families can leave this as it is. Change it to keep brothers and sisters together, or if the class below is not the right one.",
+  usual: "Usual classroom",
+  useUsual: "Use their usual classroom",
+  roomFull: "Full",
+  noRooms:
+    "The classrooms are not open yet. Please see a Kids Ministry volunteer.",
+  chosenClassroom: "Chosen",
+
   /** The result. */
   allDone: "All done",
   yourCode: "Your pick-up code",
+  /** Where each child went, on the last screen, so a parent can walk them there. */
+  takeThemTo: "Take them to",
   keepCode: "You will need this code to collect them",
   printing: "Printing your labels…",
   startAgain: "Done",
@@ -50,6 +71,18 @@ export const kioskStrings = {
   needTenDigits: "Please enter all ten digits of your mobile number.",
   noSession:
     "Check-in is not open just now. Please see a Kids Ministry volunteer.",
+
+  /**
+   * A full or closed classroom, which a parent can now actually hit because a
+   * parent can now actually choose one. Both name the way out — tap Change
+   * classroom — because on this screen there is nobody else to name.
+   */
+  classroomFull:
+    "That classroom is full now. Tap “Change classroom” to pick another one, or see a Kids Ministry volunteer who can make room.",
+  classroomClosed:
+    "That classroom has just closed. Tap “Change classroom” to pick another one.",
+  noClassroom:
+    "No classroom is open for your children yet. Please see a Kids Ministry volunteer.",
 
   /**
    * Offline. A self-service device that cannot reach the database has nothing

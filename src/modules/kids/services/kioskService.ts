@@ -1,5 +1,5 @@
 /**
- * The lobby kiosk's only three doors into the database.
+ * The lobby kiosk's only four doors into the database.
  *
  * THE KIOSK READS NOTHING DIRECTLY, and that is an invariant rather than a
  * habit. It holds no module grant — deliberately, because any grant lifts the
@@ -35,6 +35,35 @@ export interface KioskChild {
   photo_path: string | null;
   grade_name: string | null;
   already_checked_in: boolean;
+  /**
+   * Where this child goes if the parent touches nothing — the same answer
+   * church.pick_room_for_child() will reach at check-in.
+   *
+   * A DISPLAY VALUE, NOT AN INSTRUCTION. The kiosk sends a room id back only
+   * for a child whose parent actually chose one; otherwise it still sends
+   * null, so placement keeps balancing two rooms that share a grade instead of
+   * piling a morning's families into whichever was emptiest at 9:02.
+   *
+   * Null when no classroom is open yet. The child is still listed — that is
+   * what the LEFT JOIN in the RPC is for.
+   */
+  suggested_room_id: string | null;
+  suggested_room_name: string | null;
+}
+
+/**
+ * One classroom a parent may choose between.
+ *
+ * NOT StationRoom. That carries the live headcount and the first names of the
+ * room's standing teachers, which is a reasonable thing for a volunteer behind
+ * a desk to see and an unreasonable thing to put on an unattended screen in a
+ * lobby. `is_full` is the whole of what the choice needs.
+ */
+export interface KioskRoom {
+  room_id: string;
+  room_name: string;
+  grade_name: string | null;
+  is_full: boolean;
 }
 
 export const kioskService = {
@@ -83,6 +112,25 @@ export const kioskService = {
     });
     throwRpc(error);
     return (data ?? []) as unknown as KioskChild[];
+  },
+
+  /**
+   * The classrooms a parent may choose between.
+   *
+   * Reconciles the session's rooms first, exactly as the staffed desk does, so
+   * a session whose rooms were never attached does not show a parent an empty
+   * list and then refuse them.
+   */
+  async sessionRooms(
+    kidsSessionId: string,
+    stationId: string | null,
+  ): Promise<KioskRoom[]> {
+    const { data, error } = await church().rpc("kiosk_session_rooms", {
+      _kids_session_id: kidsSessionId,
+      _station_id: stationId,
+    });
+    throwRpc(error);
+    return (data ?? []) as unknown as KioskRoom[];
   },
 
   /** Registers this device once, on first setup. */

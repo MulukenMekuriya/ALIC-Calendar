@@ -6016,6 +6016,8 @@ export type Database = {
           household_id: string
           household_name: string
           photo_path: string
+          suggested_room_id: string
+          suggested_room_name: string
         }[]
       }
       kiosk_register_station: {
@@ -6055,6 +6057,15 @@ export type Database = {
               status: string
             }[]
           }
+      kiosk_session_rooms: {
+        Args: { _kids_session_id: string; _station_id?: string }
+        Returns: {
+          grade_name: string
+          is_full: boolean
+          room_id: string
+          room_name: string
+        }[]
+      }
       leave_group: { Args: { _membership_id: string }; Returns: undefined }
       leave_ministry: { Args: { _assignment_id: string }; Returns: undefined }
       link_profile_to_person: {

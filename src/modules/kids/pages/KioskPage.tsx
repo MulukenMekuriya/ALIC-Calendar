@@ -13,6 +13,14 @@
  * pick-up override. The database agrees — resolve_actor gives a kiosk
  * can_check_out = false, so check_out_children refuses it outright.
  *
+ * A PARENT MAY CHOOSE THE CLASSROOM, and that is not an exception to the line
+ * above. Choosing between the rooms that are open for their own child is what
+ * they would ask a volunteer for anyway — siblings together, or a grade that is
+ * wrong or missing on file, which it is for 415 of 534 children. Overriding a
+ * FULL room is the staff power, and the kiosk does not have it: a full
+ * classroom is shown as full and cannot be tapped, because can_override is
+ * false in the database and no copy on this screen can talk it into being true.
+ *
  * AND NO SIDEBAR. Rendered outside DashboardLayout deliberately: a parent
  * holding a lobby tablet must not be able to navigate into the church's
  * admin. That is a child-safety property, not a layout preference.
@@ -34,7 +42,12 @@ import { useAppBusy } from "@/shared/hooks/useBuildWatcher";
 import { Button } from "@/shared/components/ui/button";
 import { Loader2, Delete, WifiOff } from "lucide-react";
 import { getLogoSrc } from "@/shared/constants/branding";
-import { kioskService, type KioskBootstrap, type KioskChild } from "../services/kioskService";
+import {
+  kioskService,
+  type KioskBootstrap,
+  type KioskChild,
+  type KioskRoom,
+} from "../services/kioskService";
 import { kidsStationService } from "../services/kidsStationService";
 import { kioskStrings as S } from "../utils/kioskStrings";
 import { STATION_STORAGE_KEY } from "../types";
@@ -48,12 +61,19 @@ import {
   formatPhone,
 } from "../utils/kioskPhone";
 
-type Step = "idle" | "phone" | "children" | "done";
+type Step = "idle" | "phone" | "children" | "room" | "done";
 
 /** The code stays up long enough to be written down. */
 const DONE_RESET_MS = 30_000;
 /** A family who walks away mid-flow must not leave their children on screen. */
 const IDLE_WIPE_MS = 45_000;
+/**
+ * Longer for the classroom list, because that screen is READING rather than
+ * typing: eleven room names, and the parent most likely to need it is the one
+ * least likely to get through them in forty-five seconds. Still short enough
+ * that a family who walked away does not leave their children's names up.
+ */
+const ROOM_WIPE_MS = 90_000;
 
 export default function KioskPage() {
   const [step, setStep] = useState<Step>("idle");
@@ -67,6 +87,22 @@ export default function KioskPage() {
   const [digits, setDigits] = useState("");
   const [children, setChildren] = useState<KioskChild[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
+  const [rooms, setRooms] = useState<KioskRoom[]>([]);
+  /**
+   * Only the children whose parent actually chose, and the name is kept beside
+   * the id so the tile can say it without a lookup that can miss.
+   *
+   * EMPTY IS THE COMMON CASE, and it means "place them the way you would have
+   * anyway" — a null goes to the database, not the suggestion, so two rooms
+   * sharing a grade keep self-balancing over a morning.
+   */
+  const [roomChoice, setRoomChoice] = useState<
+    Record<string, { id: string; name: string }>
+  >({});
+  /** The child whose classroom is being chosen, on the room screen. */
+  const [placing, setPlacing] = useState<KioskChild | null>(null);
+  /** Where each child actually ended up, for the last screen. */
+  const [placed, setPlaced] = useState<{ name: string; room: string | null }[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [code, setCode] = useState<string | null>(null);
@@ -104,6 +140,30 @@ export default function KioskPage() {
     return () => window.clearInterval(t);
   }, [loadBoot]);
 
+  // The classrooms, as soon as a session is open and again with every
+  // bootstrap, so "Full" is not ten minutes stale. It also reconciles the
+  // session's rooms — the same thing the staffed desk does when it lists them —
+  // which is what stops a parent being offered an empty list and then refused.
+  //
+  // A FAILURE HERE IS NOT FATAL: rooms stays empty, the chooser is not
+  // rendered, and the kiosk behaves exactly as it did before it could choose.
+  useEffect(() => {
+    if (!boot || boot.status !== "open") {
+      setRooms([]);
+      return;
+    }
+    let cancelled = false;
+    void kioskService
+      .sessionRooms(boot.kids_session_id, stationId)
+      .then((r) => {
+        if (!cancelled) setRooms(r);
+      })
+      .catch((err) => console.error("kiosk classroom list failed", err));
+    return () => {
+      cancelled = true;
+    };
+  }, [boot, stationId]);
+
   useEffect(() => {
     const up = () => setOnline(true);
     const down = () => setOnline(false);
@@ -121,6 +181,9 @@ export default function KioskPage() {
     setDigits("");
     setChildren([]);
     setSelected([]);
+    setRoomChoice({});
+    setPlacing(null);
+    setPlaced([]);
     setError(null);
     setCode(null);
     setPrintFailed(false);
@@ -132,7 +195,12 @@ export default function KioskPage() {
     // children, and the pick-up code must never be left up for a stranger.
     if (idleTimer.current) window.clearTimeout(idleTimer.current);
     if (step === "idle") return;
-    const ms = step === "done" ? DONE_RESET_MS : IDLE_WIPE_MS;
+    const ms =
+      step === "done"
+        ? DONE_RESET_MS
+        : step === "room"
+          ? ROOM_WIPE_MS
+          : IDLE_WIPE_MS;
     idleTimer.current = window.setTimeout(wipe, ms);
     return () => {
       if (idleTimer.current) window.clearTimeout(idleTimer.current);
@@ -158,6 +226,10 @@ export default function KioskPage() {
       }
       setChildren(rows);
       setSelected(rows.filter((r) => !r.already_checked_in).map((r) => r.child_person_id));
+      // Cleared here as well as in wipe(). These are keyed by child id, and a
+      // choice left over from a previous search must not be able to travel
+      // into a different family's batch.
+      setRoomChoice({});
       setStep("children");
     } catch (err) {
       if (isDbError(err, "too_many_attempts")) setError(S.tooManyTries);
@@ -167,6 +239,53 @@ export default function KioskPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  /**
+   * Open the classroom list for one child, refreshing it on the way in so
+   * "Full" is what the room is now rather than what it was at 9:02.
+   *
+   * Fire-and-forget by design: if the refresh fails the list already on screen
+   * is what the parent sees, which is better than a spinner they cannot clear.
+   */
+  function openRoomPicker(c: KioskChild) {
+    setPlacing(c);
+    setError(null);
+    setStep("room");
+    if (!boot) return;
+    void kioskService
+      .sessionRooms(boot.kids_session_id, stationId)
+      .then(setRooms)
+      .catch((err) => console.error("kiosk classroom refresh failed", err));
+  }
+
+  function chooseRoom(child: KioskChild, room: KioskRoom) {
+    setRoomChoice((prev) => ({
+      ...prev,
+      [child.child_person_id]: { id: room.room_id, name: room.room_name },
+    }));
+    // Deliberately NOT remembered for next Sunday. The desk's
+    // kids_set_child_room_preference records a volunteer's considered decision
+    // and then carries it up a grade every school year by itself; a tap in a
+    // lobby is a different kind of act and must not become a standing
+    // placement behind the family's back.
+    setPlacing(null);
+    setStep("children");
+  }
+
+  function clearRoom(child: KioskChild) {
+    setRoomChoice((prev) => {
+      const next = { ...prev };
+      delete next[child.child_person_id];
+      return next;
+    });
+    setPlacing(null);
+    setStep("children");
+  }
+
+  /** What the tile says: the parent's choice, else where they would go anyway. */
+  function roomLabelFor(c: KioskChild): string | null {
+    return roomChoice[c.child_person_id]?.name ?? c.suggested_room_name;
   }
 
   async function checkIn() {
@@ -184,7 +303,12 @@ export default function KioskPage() {
         sessionId: boot.kids_session_id,
         childIds,
         clientBatchKey: `kiosk:${boot.kids_session_id}:${childIds.slice().sort().join(",")}`,
-        roomIds: childIds.map(() => null),
+        // POSITIONAL against childIds, and mapped over that same array so the
+        // two cannot drift — a misaligned pair here would put one sibling in
+        // another's classroom silently, which is the worst thing this screen
+        // could do. A null means "decide by grade", which is what every child
+        // sent before this screen could choose, and what most still send.
+        roomIds: childIds.map((id) => roomChoice[id]?.id ?? null),
       });
 
       const accepted = rows.filter((r) => !r.refused);
@@ -196,6 +320,17 @@ export default function KioskPage() {
       }
 
       setCode(accepted[0].pickup_code);
+      // From the database's rows, never from what the screen chose: the room a
+      // child is actually in is the one the batch recorded, and the last screen
+      // is a parent's directions to it.
+      //
+      // ACCEPTED ONLY, and that is not the whole story: a PARTLY refused batch
+      // still shows this screen and says nothing about the child who was
+      // refused. Pre-existing — the branch above only speaks when EVERY child
+      // was refused — and left alone here because a refusal needs its own words
+      // rather than an omission from a list of classrooms. It starts to matter
+      // when consent begins blocking on 1 November.
+      setPlaced(accepted.map((r) => ({ name: r.child_name, room: r.room_name })));
       setStep("done");
 
       // Print only AFTER the database has committed. A printed label with no
@@ -238,7 +373,19 @@ export default function KioskPage() {
       // out — which is why the code stays on screen either way.
       if (!result.submitted) setPrintFailed(true);
     } catch (err) {
-      setError(errorMessage(err));
+      // A CLASSROOM REFUSAL IS A RAISE, NOT A ROW. check_in_one_child raises
+      // room_at_capacity and room_not_open, which rolls the whole batch back —
+      // so nothing was written, the family is exactly where they were, and the
+      // right next move is a different classroom rather than "try again".
+      //
+      // Reachable before this screen existed too: pick_room_for_child does not
+      // consider capacity, so a full grade room raised room_at_capacity and the
+      // kiosk printed the raw identifier at a parent. Now there is something
+      // they can do about it, so the message says what.
+      if (isDbError(err, "room_at_capacity")) setError(S.classroomFull);
+      else if (isDbError(err, "room_not_open")) setError(S.classroomClosed);
+      else if (isDbError(err, "no_open_classroom")) setError(S.noClassroom);
+      else setError(errorMessage(err));
     } finally {
       setBusy(false);
     }
@@ -379,36 +526,69 @@ export default function KioskPage() {
           <div className="grid gap-3 sm:grid-cols-2">
             {children.map((c) => {
               const on = selected.includes(c.child_person_id);
+              const room = roomLabelFor(c);
               return (
-                <button
+                /* A DIV WRAPPING TWO BUTTONS, not one button containing
+                   another. Nesting them is invalid HTML and a screen reader
+                   announces neither, which on a public device is the whole
+                   accessibility promise of this page broken for the sake of a
+                   tidier tile. The border moves out here so the two still read
+                   as one card. */
+                <div
                   key={c.child_person_id}
-                  type="button"
-                  aria-pressed={on}
-                  disabled={c.already_checked_in}
-                  onClick={() =>
-                    setSelected((p) =>
-                      p.includes(c.child_person_id)
-                        ? p.filter((x) => x !== c.child_person_id)
-                        : [...p, c.child_person_id],
-                    )
-                  }
-                  className={`min-h-[5.5rem] rounded-xl border-2 p-4 text-left text-xl transition
+                  className={`rounded-xl border-2 transition
                     ${on ? "border-primary bg-primary/10" : "border-muted"}
                     ${c.already_checked_in ? "opacity-60" : ""}`}
                 >
-                  <span className="font-semibold">{c.child_name}</span>
-                  {/* Words, never colour alone: the tick and the badge both
-                      say what they mean for a parent who cannot tell the
-                      border colours apart. */}
-                  <span className="block text-base text-muted-foreground mt-1">
-                    {c.already_checked_in
-                      ? S.alreadyIn
-                      : on
-                        ? "Checking in"
-                        : "Not checking in"}
-                    {c.grade_name ? ` · ${c.grade_name}` : ""}
-                  </span>
-                </button>
+                  <button
+                    type="button"
+                    aria-pressed={on}
+                    disabled={c.already_checked_in}
+                    onClick={() =>
+                      setSelected((p) =>
+                        p.includes(c.child_person_id)
+                          ? p.filter((x) => x !== c.child_person_id)
+                          : [...p, c.child_person_id],
+                      )
+                    }
+                    className="w-full min-h-[5.5rem] p-4 text-left text-xl"
+                  >
+                    <span className="font-semibold">{c.child_name}</span>
+                    {/* Words, never colour alone: the tick and the badge both
+                        say what they mean for a parent who cannot tell the
+                        border colours apart. */}
+                    <span className="block text-base text-muted-foreground mt-1">
+                      {c.already_checked_in
+                        ? S.alreadyIn
+                        : on
+                          ? "Checking in"
+                          : "Not checking in"}
+                      {c.grade_name ? ` · ${c.grade_name}` : ""}
+                    </span>
+                  </button>
+
+                  {/* Only for a child who is actually coming in, and only when
+                      there are classrooms to choose between. If the room list
+                      failed or nothing is open, this is simply absent and the
+                      screen behaves as it did before it could choose. */}
+                  {on && !c.already_checked_in && rooms.length > 0 && (
+                    <div className="border-t px-4 py-3">
+                      <p className="text-base">
+                        {room ? S.classroomIs(room) : S.classroomByGrade}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => openRoomPicker(c)}
+                        // 44px floor and full width: this is a real control on
+                        // a tablet, not a link squeezed under a name.
+                        className="mt-2 min-h-[44px] w-full rounded-lg border-2 px-3 py-2
+                          text-base font-semibold active:bg-muted"
+                      >
+                        {S.changeClassroom}
+                      </button>
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -435,6 +615,87 @@ export default function KioskPage() {
         </div>
       )}
 
+      {step === "room" && placing && (
+        <div className="w-full max-w-2xl">
+          <h1 className="text-3xl font-bold mb-1">
+            {S.chooseClassroomFor(placing.child_name)}
+          </h1>
+          <p className="text-lg text-muted-foreground mb-6">
+            {S.chooseClassroomHelp}
+          </p>
+
+          {rooms.length === 0 ? (
+            /* Nothing to choose from. The kiosk says the one thing it can and
+               stops, rather than showing an empty list. */
+            <p role="alert" className="text-xl">
+              {S.noRooms}
+            </p>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {rooms.map((r) => {
+                const chosen =
+                  roomChoice[placing.child_person_id]?.id === r.room_id;
+                const usual = r.room_id === placing.suggested_room_id;
+                return (
+                  <button
+                    key={r.room_id}
+                    type="button"
+                    aria-pressed={chosen}
+                    // A full classroom cannot be tapped, because a kiosk cannot
+                    // override capacity — can_override is false in the
+                    // database, so offering it would be a lie the parent only
+                    // discovers after committing their whole family.
+                    disabled={r.is_full}
+                    onClick={() => chooseRoom(placing, r)}
+                    className={`min-h-[5.5rem] rounded-xl border-2 p-4 text-left text-xl transition
+                      ${chosen ? "border-primary bg-primary/10" : "border-muted"}
+                      ${r.is_full ? "opacity-60" : "active:bg-muted"}`}
+                  >
+                    <span className="font-semibold">{r.room_name}</span>
+                    {/* Every state spelled out in words. "Full" and "Chosen"
+                        cannot be carried by a border colour on a device a
+                        parent may be reading at arm's length. */}
+                    <span className="block text-base text-muted-foreground mt-1">
+                      {[
+                        r.grade_name,
+                        usual ? S.usual : null,
+                        r.is_full ? S.roomFull : null,
+                        chosen ? S.chosenClassroom : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Undoing a choice has to be as easy as making one. Shown only when
+              there is something to undo and somewhere to go back to. */}
+          {roomChoice[placing.child_person_id] && placing.suggested_room_name && (
+            <Button
+              variant="outline"
+              className="w-full h-16 text-lg mt-5"
+              onClick={() => clearRoom(placing)}
+            >
+              {S.useUsual}
+            </Button>
+          )}
+
+          <Button
+            variant="ghost"
+            className="w-full h-12 mt-2"
+            onClick={() => {
+              setPlacing(null);
+              setStep("children");
+            }}
+          >
+            {S.back}
+          </Button>
+        </div>
+      )}
+
       {step === "done" && code && (
         <div className="text-center w-full max-w-xl">
           <h1 className="text-4xl font-bold mb-2">{S.allDone}</h1>
@@ -454,6 +715,24 @@ export default function KioskPage() {
           <div className="text-6xl font-bold tracking-[0.2em] tabular-nums my-4">
             {code}
           </div>
+
+          {/* AFTER the code, which is the credential, but on screen at all —
+              the label says the classroom and so should the screen, because a
+              parent whose label did not print still has to know where to walk.
+              Room names come from the batch the database wrote. */}
+          {placed.length > 0 && (
+            <div className="mx-auto max-w-sm text-left mt-2">
+              <p className="text-lg text-muted-foreground mb-1">{S.takeThemTo}</p>
+              <ul>
+                {placed.map((pl, i) => (
+                  <li key={`${pl.name}-${i}`} className="text-xl py-0.5">
+                    <span className="font-semibold">{pl.name}</span>
+                    {pl.room ? ` — ${pl.room}` : ""}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <Button
             size="lg"
