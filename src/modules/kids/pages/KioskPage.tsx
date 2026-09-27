@@ -30,6 +30,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAppBusy } from "@/shared/hooks/useBuildWatcher";
 import { Button } from "@/shared/components/ui/button";
 import { Loader2, Delete, WifiOff } from "lucide-react";
 import { getLogoSrc } from "@/shared/constants/branding";
@@ -56,6 +57,11 @@ const IDLE_WIPE_MS = 45_000;
 
 export default function KioskPage() {
   const [step, setStep] = useState<Step>("idle");
+
+  // Anything but the idle screen has a family on it — a phone number, a list
+  // of children, or a pick-up code somebody is waiting to be given. The build
+  // watcher will not reload under any of that.
+  useAppBusy(step !== "idle");
   const [boot, setBoot] = useState<KioskBootstrap | null>(null);
   const [stationId, setStationId] = useState<string | null>(null);
   const [digits, setDigits] = useState("");
