@@ -28,6 +28,32 @@
  * tablet's own picker the job of being large, scrollable and reachable, which
  * is the part a custom list gets wrong first.
  *
+ * TWO OF THE DESK'S DIALOGS, AND NO OTHERS. A family who has never been here,
+ * and a parent who has lost the slip, are the two reasons a volunteer gets
+ * called over to a kiosk that is otherwise doing its job — so the desk's own
+ * VisitorFamilyDialog and ReprintLabelDialog are offered from the welcome
+ * screen, unchanged. Same form, same functions, same audit rows; the parent
+ * types what a volunteer would have typed for them. They sit under Start as a
+ * pair of quieter buttons rather than beside it, so the one thing most
+ * families came to do keeps the whole screen's weight, and the exceptions are
+ * found by the families who need them without being mistaken for the rule.
+ *
+ * TWO THINGS THE DESK NEVER HAD TO THINK ABOUT. The dialogs are MOUNTED ONLY
+ * WHILE OPEN, so a half-typed family is gone from memory the moment the form
+ * closes, rather than waiting behind a shut dialog for the next parent to
+ * reopen it. And an open dialog counts as a family on screen: the inactivity
+ * wipe runs under it and closes it, exactly as it clears a list of children.
+ *
+ * A TRADE-OFF, STATED RATHER THAN HIDDEN. ReprintLabelDialog finds a family
+ * by name or phone from three characters — the desk's idiom, and wider than
+ * the ten-digit rule the kiosk's own search keeps. What it can show is a
+ * household name, a masked phone and the first names of children still in a
+ * room; what it can do is rotate that family's code. The control that
+ * actually releases a child is the teacher at the door matching the adult
+ * against the approved list, and that is untouched. If the ministry wants
+ * the lobby held to the ten-digit rule here too, that is a phone-only door
+ * in the database, not a change to this screen.
+ *
  * AND NO SIDEBAR. Rendered outside DashboardLayout deliberately: a parent
  * holding a lobby tablet must not be able to navigate into the church's
  * admin. That is a child-safety property, not a layout preference.
@@ -44,10 +70,10 @@
  * and result states are announced through a live region for a screen reader.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAppBusy } from "@/shared/hooks/useBuildWatcher";
 import { Button } from "@/shared/components/ui/button";
-import { Loader2, Delete, WifiOff } from "lucide-react";
+import { Loader2, Delete, WifiOff, UserPlus, Printer } from "lucide-react";
 import { getLogoSrc } from "@/shared/constants/branding";
 import {
   kioskService,
@@ -56,8 +82,14 @@ import {
   type KioskRoom,
 } from "../services/kioskService";
 import { kidsStationService } from "../services/kidsStationService";
+import { VisitorFamilyDialog } from "../components/VisitorFamilyDialog";
+import { ReprintLabelDialog } from "../components/ReprintLabelDialog";
 import { kioskStrings as S } from "../utils/kioskStrings";
-import { STATION_STORAGE_KEY } from "../types";
+import {
+  STATION_STORAGE_KEY,
+  type ReprintedLabelRow,
+  type VisitorFamilyRow,
+} from "../types";
 import { errorMessage, isDbError } from "../services/rpcError";
 import { printLabels, renderQrSvg } from "../services/labelPrintService";
 import { formatSessionDate, formatClockTime } from "../utils/sessionDate";
@@ -77,11 +109,6 @@ const IDLE_WIPE_MS = 45_000;
 
 export default function KioskPage() {
   const [step, setStep] = useState<Step>("idle");
-
-  // Anything but the idle screen has a family on it — a phone number, a list
-  // of children, or a pick-up code somebody is waiting to be given. The build
-  // watcher will not reload under any of that.
-  useAppBusy(step !== "idle");
   const [boot, setBoot] = useState<KioskBootstrap | null>(null);
   const [stationId, setStationId] = useState<string | null>(null);
   const [digits, setDigits] = useState("");
@@ -105,7 +132,24 @@ export default function KioskPage() {
   const [online, setOnline] = useState(
     typeof navigator === "undefined" ? true : navigator.onLine,
   );
-  const idleTimer = useRef<number | null>(null);
+  /**
+   * The desk's two dialogs, mounted only while open — see the file header.
+   * Opened from the welcome screen, and the visitor one again from the
+   * keypad's "not found", which is the moment a visiting family discovers
+   * they are one.
+   */
+  const [addingVisitor, setAddingVisitor] = useState(false);
+  const [reprinting, setReprinting] = useState(false);
+  /** The last screen serves a fresh check-in and a replaced slip alike. */
+  const [doneKind, setDoneKind] = useState<"checkin" | "reprint">("checkin");
+
+  // Anything but the idle screen has a family on it — a phone number, a list
+  // of children, or a pick-up code somebody is waiting to be given — and so
+  // does an open dialog, where a parent is typing their family's names. The
+  // build watcher will not reload under any of that, and the inactivity wipe
+  // below runs under all of it.
+  const engaged = step !== "idle" || addingVisitor || reprinting;
+  useAppBusy(engaged);
 
   // --- the device ----------------------------------------------------------
   useEffect(() => {
@@ -182,20 +226,39 @@ export default function KioskPage() {
     setError(null);
     setCode(null);
     setPrintFailed(false);
+    setDoneKind("checkin");
+    // Closing them UNMOUNTS them, which is what empties a half-typed form.
+    setAddingVisitor(false);
+    setReprinting(false);
   }, []);
 
   useEffect(() => {
-    // Every screen except the idle one is wiped after inactivity. On a shared
+    // Everything except the idle screen is wiped after inactivity. On a shared
     // lobby device the next parent must never see the previous family's
     // children, and the pick-up code must never be left up for a stranger.
-    if (idleTimer.current) window.clearTimeout(idleTimer.current);
-    if (step === "idle") return;
+    //
+    // INACTIVITY MEANS NO TOUCH, not "no change of screen". This used to
+    // re-arm only when the step, the digits or the list of children changed,
+    // so a parent choosing classrooms for three children — or, now, typing a
+    // visiting family into a form — was wiped mid-task at 45 seconds for the
+    // crime of being careful. Any press or key re-arms it; the clock only
+    // runs while nobody is there.
+    if (!engaged) return;
     const ms = step === "done" ? DONE_RESET_MS : IDLE_WIPE_MS;
-    idleTimer.current = window.setTimeout(wipe, ms);
-    return () => {
-      if (idleTimer.current) window.clearTimeout(idleTimer.current);
+    let t = window.setTimeout(wipe, ms);
+    const touched = () => {
+      window.clearTimeout(t);
+      t = window.setTimeout(wipe, ms);
     };
-  }, [step, digits, children, wipe]);
+    // Native listeners on window, so a dialog rendered into a portal counts.
+    window.addEventListener("pointerdown", touched);
+    window.addEventListener("keydown", touched);
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener("pointerdown", touched);
+      window.removeEventListener("keydown", touched);
+    };
+  }, [engaged, step, wipe]);
 
   // --- actions -------------------------------------------------------------
   const sessionOpen = boot?.status === "open";
@@ -253,6 +316,110 @@ export default function KioskPage() {
     });
   }
 
+  /**
+   * One family's labels — the child tags and the parent slip — for a fresh
+   * check-in and for a replaced slip alike. A reprint goes through exactly the
+   * path a check-in does, so the two cannot drift on what a label says.
+   */
+  async function printSlip(
+    rows: {
+      child_name: string;
+      room_name: string | null;
+      tag_number: number;
+      allergy_label: string | null;
+      guardian_phone?: string | null;
+      pickup_code: string;
+      pickup_token: string;
+    }[],
+    householdName: string,
+  ) {
+    if (rows.length === 0) return;
+    const serviceLabel = boot?.session_label ?? "";
+    const sessionDate = boot ? formatSessionDate(boot.session_date) : "";
+    const qr = await renderQrSvg(rows[0].pickup_token);
+    const result = await printLabels(
+      rows.map((r) => ({
+        childName: r.child_name,
+        roomName: r.room_name,
+        tagNumber: r.tag_number,
+        allergyLabel: r.allergy_label,
+        pickupCode: rows[0].pickup_code,
+        serviceLabel,
+        sessionDate,
+        // At check-in this is the check-in time; on a reprint, the reprint's.
+        checkInTime: formatClockTime(),
+        guardianName: null,
+        guardianPhone: r.guardian_phone ?? null,
+      })),
+      {
+        householdName,
+        childCount: rows.length,
+        pickupCode: rows[0].pickup_code,
+        qrSvg: qr,
+        // Both required, and both were once missing. buildParentLabel renders
+        // them on the slip the parent walks away with; esc(undefined) is "",
+        // so it printed a blank line rather than failing, and the one piece
+        // of paper that says WHICH service a child was left at said nothing
+        // at all. The child labels had them the whole time.
+        serviceLabel,
+        sessionDate,
+      },
+    );
+    // `submitted`, not `ok` — there is no `ok`. This read `!result.ok`,
+    // which is `!undefined`, which is always true, so every parent who
+    // checked a child in was told the printer had failed and to find a
+    // volunteer. On the one screen whose entire purpose is that they do not
+    // have to. The staffed desk has always read `submitted`.
+    //
+    // `submitted` means the job reached the OS spooler, not that paper came
+    // out — which is why the code stays on screen either way.
+    if (!result.submitted) setPrintFailed(true);
+  }
+
+  /**
+   * A visiting family has just been registered — by the parent, on the same
+   * form a volunteer uses at the desk. They are in the directory now, so the
+   * rest of the morning is the ordinary path: their children are listed as
+   * any family's are, all of them selected, and the next tap checks them in.
+   * Nothing downstream knows they are new.
+   */
+  function visitorRegistered(rows: VisitorFamilyRow[]) {
+    setAddingVisitor(false);
+    if (rows.length === 0) return;
+    setChildren(
+      rows.map((r) => ({
+        household_id: r.household_id,
+        household_name: r.household_name,
+        child_person_id: r.child_person_id,
+        child_name: r.child_display_name,
+        photo_path: null,
+        // The form may have stored a grade from the birth year, but this row
+        // does not carry its name, and placement reads the record anyway.
+        grade_name: null,
+        already_checked_in: false,
+      })),
+    );
+    setSelected(rows.map((r) => r.child_person_id));
+    setRoomChoice({});
+    setError(null);
+    setStep("children");
+  }
+
+  /**
+   * A lost slip has been replaced. The rows carry the ROTATED code, so the old
+   * slip is already dead; what the parent needs now is the new code on paper
+   * and on screen, and the classroom to walk to — which is the done screen.
+   */
+  async function slipReprinted(rows: ReprintedLabelRow[]) {
+    setReprinting(false);
+    if (rows.length === 0) return;
+    setCode(rows[0].pickup_code);
+    setPlaced(rows.map((r) => ({ name: r.child_name, room: r.room_name })));
+    setDoneKind("reprint");
+    setStep("done");
+    await printSlip(rows, rows[0].household_name);
+  }
+
   async function checkIn() {
     if (!boot || selected.length === 0) return;
     setBusy(true);
@@ -296,47 +463,12 @@ export default function KioskPage() {
       // rather than an omission from a list of classrooms. It starts to matter
       // when consent begins blocking on 1 November.
       setPlaced(accepted.map((r) => ({ name: r.child_name, room: r.room_name })));
+      setDoneKind("checkin");
       setStep("done");
 
       // Print only AFTER the database has committed. A printed label with no
       // row behind it is the worst possible outcome.
-      const qr = await renderQrSvg(accepted[0].pickup_token);
-      const result = await printLabels(
-        accepted.map((r) => ({
-          childName: r.child_name,
-          roomName: r.room_name,
-          tagNumber: r.tag_number,
-          allergyLabel: r.allergy_label,
-          pickupCode: accepted[0].pickup_code,
-          serviceLabel: boot.session_label ?? "",
-          sessionDate: formatSessionDate(boot.session_date),
-          checkInTime: formatClockTime(),
-          guardianName: null,
-          guardianPhone: r.guardian_phone ?? null,
-        })),
-        {
-          householdName: children[0]?.household_name ?? "",
-          childCount: accepted.length,
-          pickupCode: accepted[0].pickup_code,
-          qrSvg: qr,
-          // Both required, and both were missing. buildParentLabel renders
-          // them on the slip the parent walks away with; esc(undefined) is
-          // "", so it printed a blank line rather than failing, and the one
-          // piece of paper that says WHICH service a child was left at said
-          // nothing at all. The child labels had them the whole time.
-          serviceLabel: boot.session_label ?? "",
-          sessionDate: formatSessionDate(boot.session_date),
-        },
-      );
-      // `submitted`, not `ok` — there is no `ok`. This read `!result.ok`,
-      // which is `!undefined`, which is always true, so every parent who
-      // checked a child in was told the printer had failed and to find a
-      // volunteer. On the one screen whose entire purpose is that they do not
-      // have to. The staffed desk has always read `submitted`.
-      //
-      // `submitted` means the job reached the OS spooler, not that paper came
-      // out — which is why the code stays on screen either way.
-      if (!result.submitted) setPrintFailed(true);
+      await printSlip(accepted, children[0]?.household_name ?? "");
     } catch (err) {
       // A CLASSROOM REFUSAL IS A RAISE, NOT A ROW. check_in_one_child raises
       // room_at_capacity and room_not_open, which rolls the whole batch back —
@@ -359,9 +491,12 @@ export default function KioskPage() {
   const announce = useMemo(() => {
     if (busy) return S.searching;
     if (error) return error;
-    if (step === "done" && code) return `${S.allDone}. ${S.yourCode} ${code}`;
+    if (step === "done" && code) {
+      const title = doneKind === "reprint" ? S.newSlipTitle : S.allDone;
+      return `${title}. ${S.yourCode} ${code}`;
+    }
     return "";
-  }, [busy, error, step, code]);
+  }, [busy, error, step, code, doneKind]);
 
   // --- the screens ---------------------------------------------------------
 
@@ -418,6 +553,41 @@ export default function KioskPage() {
               {S.noSession}
             </p>
           )}
+
+          {/* THE TWO EXCEPTIONS, UNDER THE RULE. The same two dialogs the
+              staffed desk keeps in its button row, in a parent's words. They
+              sit below Start rather than beside it, outlined rather than
+              filled and a size down, so the one thing most families came to
+              do keeps the whole screen's weight — and far enough below it
+              that a thumb aimed at Start cannot land here. Still 56px tall:
+              these are the families who are already flustered.
+
+              "Lost your slip?" is never closed by the session, because a slip
+              goes missing at pick-up, which is exactly when the service has
+              already ended. "First time here?" follows Start: registering is
+              only the first half of checking in. */}
+          <div className="mt-12 flex flex-wrap justify-center gap-4">
+            <Button
+              variant="outline"
+              size="lg"
+              className="h-14 px-8 text-lg [&_svg]:size-5"
+              disabled={!sessionOpen}
+              onClick={() => setAddingVisitor(true)}
+            >
+              <UserPlus aria-hidden />
+              {S.visiting}
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              className="h-14 px-8 text-lg [&_svg]:size-5"
+              onClick={() => setReprinting(true)}
+            >
+              <Printer aria-hidden />
+              {S.lostSlip}
+            </Button>
+          </div>
+
           {boot?.station_name && (
             <p className="mt-10 text-sm text-muted-foreground">{boot.station_name}</p>
           )}
@@ -465,6 +635,23 @@ export default function KioskPage() {
             >
               {error}
             </p>
+          )}
+
+          {/* The dead end the desk closed the same way: a number that matches
+              nobody is how a visiting family finds out they are one. Offered
+              right here, with the number they just typed carried into the
+              form, rather than sending them back to the welcome screen to
+              find the same button. Only for a miss — not for a rate limit or
+              a revoked device, where "register again" is the wrong answer. */}
+          {error === S.notFound && (
+            <Button
+              variant="outline"
+              className="w-full h-14 text-lg mt-3 [&_svg]:size-5"
+              onClick={() => setAddingVisitor(true)}
+            >
+              <UserPlus aria-hidden />
+              {S.visiting}
+            </Button>
           )}
 
           <Button
@@ -628,9 +815,18 @@ export default function KioskPage() {
 
       {step === "done" && code && (
         <div className="text-center w-full max-w-xl">
-          <h1 className="text-4xl font-bold mb-2">{S.allDone}</h1>
+          <h1 className="text-4xl font-bold mb-2">
+            {doneKind === "reprint" ? S.newSlipTitle : S.allDone}
+          </h1>
+          {/* A replaced slip says so in words: the old one stopped working
+              the moment this screen appeared, and a parent who finds it in
+              the car later must not hand it to anyone. */}
           <p className="text-xl text-muted-foreground mb-6">
-            {printFailed ? S.printFailedBody : S.keepCode}
+            {printFailed
+              ? S.printFailedBody
+              : doneKind === "reprint"
+                ? S.newSlipBody
+                : S.keepCode}
           </p>
 
           {printFailed && (
@@ -672,6 +868,36 @@ export default function KioskPage() {
             {S.startAgain}
           </Button>
         </div>
+      )}
+
+      {/* MOUNTED ONLY WHILE OPEN, both of them. Each dialog keeps what was
+          typed in its own state and clears it only when IT closes itself;
+          closed from out here — by the wipe, or by going offline — it would
+          keep the previous family's names behind a shut door for the next
+          parent to reopen. Unmounting is what empties it. */}
+      {addingVisitor && (
+        <VisitorFamilyDialog
+          open
+          onOpenChange={(o) => {
+            if (!o) setAddingVisitor(false);
+          }}
+          // The number they just typed, when it is a whole one, so the family
+          // is not asked for it twice.
+          initialQuery={isSearchable(digits) ? formatPhone(digits) : undefined}
+          onRegistered={visitorRegistered}
+        />
+      )}
+      {reprinting && (
+        <ReprintLabelDialog
+          open
+          onOpenChange={(o) => {
+            if (!o) setReprinting(false);
+          }}
+          // This service when there is one; null is "any live batch", which
+          // is the desk's own behaviour between sessions.
+          sessionId={boot?.kids_session_id ?? null}
+          onReprinted={(rows) => void slipReprinted(rows)}
+        />
       )}
     </Shell>
   );

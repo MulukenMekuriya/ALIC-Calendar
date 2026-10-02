@@ -107,9 +107,22 @@ export const kioskStrings = {
   deviceUnknownBody:
     "Please see a Kids Ministry leader. Check-in will work again once it is registered.",
 
-  /** Secondary actions. */
-  lostSlip: "Lost your slip?",
+  /**
+   * The desk's two dialogs, in a parent's words. The desk's buttons say
+   * "Visiting family" and "Lost slip" to a volunteer; a parent reads the
+   * question they were already asking themselves.
+   */
   visiting: "First time here?",
+  lostSlip: "Lost your slip?",
+
+  /**
+   * A lost slip, replaced. The old one stopped working the moment this
+   * printed — said in words, so a slip found in the car later is not handed
+   * to anyone.
+   */
+  newSlipTitle: "Here is your new slip",
+  newSlipBody:
+    "Your old slip no longer works. You will need this code to collect them.",
 } as const;
 
 export type KioskStrings = typeof kioskStrings;

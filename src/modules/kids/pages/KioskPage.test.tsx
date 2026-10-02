@@ -16,12 +16,17 @@
  * nothing must still send an array of nulls. That is what keeps this change
  * confined to the families who choose, and it is what stops a morning's
  * children piling into whichever room was emptiest when the kiosk booted.
+ *
+ * THE SECOND GROUP is the welcome screen's two secondary actions, which are
+ * the desk's own dialogs. The dialogs are stood in for: what they do inside is
+ * theirs and tested nowhere near here; what the kiosk does with what they hand
+ * back — a registered family, a rotated code — is what these check.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 // No global setup file in this repo, so the matchers are registered here.
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const bootstrap = vi.fn();
@@ -48,6 +53,83 @@ vi.mock("../services/labelPrintService", () => ({
 }));
 
 vi.mock("@/shared/constants/branding", () => ({ getLogoSrc: () => "/logo.png" }));
+
+// Stand-ins for the desk's dialogs. Ids are literals here because vi.mock is
+// hoisted above every const in this file.
+vi.mock("../components/VisitorFamilyDialog", () => ({
+  VisitorFamilyDialog: (p: {
+    open: boolean;
+    initialQuery?: string;
+    onOpenChange: (open: boolean) => void;
+    onRegistered: (rows: unknown[]) => void;
+  }) =>
+    p.open ? (
+      <div role="dialog" aria-label="Visiting family">
+        <span data-testid="visitor-initial-query">{p.initialQuery ?? ""}</span>
+        <button
+          type="button"
+          onClick={() =>
+            p.onRegistered([
+              {
+                household_id: "h9",
+                household_name: "Tesfaye",
+                guardian_person_id: "g9",
+                child_person_id: "bbbbbbbb-0000-0000-0000-000000000001",
+                child_display_name: "Lydia T.",
+              },
+              {
+                household_id: "h9",
+                household_name: "Tesfaye",
+                guardian_person_id: "g9",
+                child_person_id: "bbbbbbbb-0000-0000-0000-000000000002",
+                child_display_name: "Noah T.",
+              },
+            ])
+          }
+        >
+          Register and check in
+        </button>
+        <button type="button" onClick={() => p.onOpenChange(false)}>
+          Cancel
+        </button>
+      </div>
+    ) : null,
+}));
+
+vi.mock("../components/ReprintLabelDialog", () => ({
+  ReprintLabelDialog: (p: {
+    open: boolean;
+    sessionId: string | null;
+    onOpenChange: (open: boolean) => void;
+    onReprinted: (rows: unknown[]) => void;
+  }) =>
+    p.open ? (
+      <div role="dialog" aria-label="Reprint a pickup slip">
+        <span data-testid="reprint-session">{p.sessionId ?? "any"}</span>
+        <button
+          type="button"
+          onClick={() =>
+            p.onReprinted([
+              {
+                batch_id: "b7",
+                pickup_code: "N3W1",
+                pickup_token: "tok2",
+                household_name: "Bekele",
+                check_in_id: "c1",
+                child_name: "Abel Bekele",
+                room_name: "Shine 4th Grade",
+                tag_number: 11,
+                allergy_label: null,
+                guardian_phone: null,
+              },
+            ])
+          }
+        >
+          Print a new slip
+        </button>
+      </div>
+    ) : null,
+}));
 
 import KioskPage from "./KioskPage";
 
@@ -289,5 +371,138 @@ describe("the kiosk classroom picker", () => {
     await user.click(screen.getByRole("button", { name: /check in 2 children/i }));
     await screen.findByRole("heading", { name: /all done/i });
     expect(roomIdsFromLastCheckIn()).toEqual({ [ABEL]: null, [SARA]: null });
+  });
+});
+
+const LYDIA = "bbbbbbbb-0000-0000-0000-000000000001";
+const NOAH = "bbbbbbbb-0000-0000-0000-000000000002";
+
+describe("the welcome screen's two secondary actions", () => {
+  it("offers a visiting family and a lost slip under Start", async () => {
+    render(<KioskPage />);
+    expect(await screen.findByRole("button", { name: /^start$/i })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /first time here/i })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /lost your slip/i })).toBeEnabled();
+  });
+
+  it("keeps Lost your slip? open when check-in is closed, and nothing else", async () => {
+    // A slip goes missing at pick-up, which is after the service has ended.
+    bootstrap.mockResolvedValue({
+      kids_session_id: SESSION,
+      session_label: "Second Service",
+      session_date: "2026-09-27",
+      status: "closed",
+      station_name: "Lobby tablet",
+      station_known: true,
+      open_room_count: 0,
+    });
+    render(<KioskPage />);
+    await screen.findByText(/check-in is not open/i);
+    expect(screen.getByRole("button", { name: /^start$/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /first time here/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /lost your slip/i })).toBeEnabled();
+  });
+
+  it("checks a newly registered family in like any other", async () => {
+    const user = userEvent.setup();
+    render(<KioskPage />);
+    await user.click(await screen.findByRole("button", { name: /first time here/i }));
+    await user.click(screen.getByRole("button", { name: /register and check in/i }));
+
+    // Straight onto the children screen, with the form gone and every child
+    // selected: the next tap is the check-in.
+    await screen.findByRole("heading", { name: /who is here this morning/i });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByText("Lydia T.")).toBeInTheDocument();
+    expect(screen.getByText("Noah T.")).toBeInTheDocument();
+    expect(screen.getAllByText("Checking in")).toHaveLength(2);
+
+    await user.click(screen.getByRole("button", { name: /check in 2 children/i }));
+    await screen.findByRole("heading", { name: /all done/i });
+    // Their ids, positionally, with no room chosen — nothing downstream knows
+    // they are new.
+    expect(roomIdsFromLastCheckIn()).toEqual({ [LYDIA]: null, [NOAH]: null });
+    await waitFor(() => expect(printLabels).toHaveBeenCalledTimes(1));
+    expect(printLabels.mock.calls[0][1]).toMatchObject({ householdName: "Tesfaye" });
+  });
+
+  it("offers the visitor form when a number matches nobody, with the number carried in", async () => {
+    findByPhone.mockResolvedValueOnce([]);
+    const user = userEvent.setup();
+    render(<KioskPage />);
+    await user.click(await screen.findByRole("button", { name: /^start$/i }));
+    for (const d of "3015550147") {
+      await user.click(screen.getByRole("button", { name: d }));
+    }
+    await user.click(screen.getByRole("button", { name: /find my children/i }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent(/could not find that number/i),
+    );
+    await user.click(screen.getByRole("button", { name: /first time here/i }));
+    expect(screen.getByRole("dialog", { name: /visiting family/i })).toBeInTheDocument();
+    expect(screen.getByTestId("visitor-initial-query")).toHaveTextContent("(301) 555-0147");
+  });
+
+  it("does not offer the visitor form for a rate limit", async () => {
+    // "Register again" is the wrong answer to a question the database refused
+    // to hear.
+    findByPhone.mockRejectedValueOnce(new Error("too_many_attempts"));
+    const user = userEvent.setup();
+    render(<KioskPage />);
+    await user.click(await screen.findByRole("button", { name: /^start$/i }));
+    for (const d of "3015550147") {
+      await user.click(screen.getByRole("button", { name: d }));
+    }
+    await user.click(screen.getByRole("button", { name: /find my children/i }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent(/see a kids ministry volunteer/i),
+    );
+    expect(screen.queryByRole("button", { name: /first time here/i })).not.toBeInTheDocument();
+  });
+
+  it("replaces a lost slip and shows the new code with the classroom", async () => {
+    const user = userEvent.setup();
+    render(<KioskPage />);
+    await user.click(await screen.findByRole("button", { name: /lost your slip/i }));
+    // Scoped to this service, as the desk scopes it.
+    expect(screen.getByTestId("reprint-session")).toHaveTextContent(SESSION);
+    await user.click(screen.getByRole("button", { name: /print a new slip/i }));
+
+    await screen.findByRole("heading", { name: /here is your new slip/i });
+    expect(screen.getByText("N3W1")).toBeInTheDocument();
+    expect(screen.getByText(/old slip no longer works/i)).toBeInTheDocument();
+    expect(screen.getByText("Abel Bekele").closest("li")).toHaveTextContent("Shine 4th Grade");
+
+    // Printed through the same path as a check-in, with the ROTATED code.
+    await waitFor(() => expect(printLabels).toHaveBeenCalledTimes(1));
+    const [childLabels, parentSlip] = printLabels.mock.calls[0];
+    expect(parentSlip).toMatchObject({
+      householdName: "Bekele",
+      pickupCode: "N3W1",
+      serviceLabel: "Second Service",
+    });
+    expect(childLabels[0]).toMatchObject({ childName: "Abel Bekele", pickupCode: "N3W1" });
+    expect(checkIn).not.toHaveBeenCalled();
+  });
+
+  it("wipes an open form when nobody touches the screen", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      render(<KioskPage />);
+      await user.click(await screen.findByRole("button", { name: /first time here/i }));
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(46_000);
+      });
+      // Gone, and UNMOUNTED — the next parent does not reopen this family.
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: /welcome/i })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
