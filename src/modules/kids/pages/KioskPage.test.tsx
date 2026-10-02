@@ -165,10 +165,11 @@ describe("the kiosk classroom picker", () => {
     const user = userEvent.setup();
     await reachChildren(user);
 
-    // The suggestion is on screen before anything is committed, so a parent can
-    // see it is right and simply not touch it.
-    expect(screen.getByText("Classroom: Shine 4th Grade")).toBeInTheDocument();
-    expect(screen.getByText("Classroom: Joy 1st Grade")).toBeInTheDocument();
+    // The suggestion is the selected option before anything is committed, so a
+    // parent can read where their child is going and simply not touch it.
+    const [abel, sara] = screen.getAllByRole("combobox");
+    expect(abel).toHaveDisplayValue("Shine 4th Grade (usual)");
+    expect(sara).toHaveDisplayValue("Joy 1st Grade (usual)");
 
     await user.click(screen.getByRole("button", { name: /check in 2 children/i }));
     await screen.findByRole("heading", { name: /all done/i });
@@ -180,14 +181,13 @@ describe("the kiosk classroom picker", () => {
     const user = userEvent.setup();
     await reachChildren(user);
 
-    // Abel's tile is the first, so its own "Change classroom" is the first too.
-    await user.click(screen.getAllByRole("button", { name: /change classroom/i })[0]);
-    await screen.findByRole("heading", { name: /which classroom for abel bekele/i });
-    await user.click(screen.getByRole("button", { name: /joy 1st grade/i }));
+    // Abel's tile is the first, so his dropdown is the first.
+    const [abel, sara] = screen.getAllByRole("combobox");
+    await user.selectOptions(abel, JOY);
 
-    // Back on the children screen, saying where he is now going.
-    await screen.findByRole("heading", { name: /who is here this morning/i });
-    expect(screen.getAllByText("Classroom: Joy 1st Grade")).toHaveLength(2);
+    expect(abel).toHaveDisplayValue("Joy 1st Grade");
+    // Sara's is untouched and still showing her own default.
+    expect(sara).toHaveDisplayValue("Joy 1st Grade (usual)");
 
     await user.click(screen.getByRole("button", { name: /check in 2 children/i }));
     await screen.findByRole("heading", { name: /all done/i });
@@ -200,27 +200,30 @@ describe("the kiosk classroom picker", () => {
   it("will not let a parent choose a full classroom", async () => {
     const user = userEvent.setup();
     await reachChildren(user);
-    await user.click(screen.getAllByRole("button", { name: /change classroom/i })[0]);
 
-    const full = await screen.findByRole("button", { name: /redeemed 6th grade/i });
+    const full = screen.getAllByRole("option", { name: /redeemed 6th grade/i })[0];
     expect(full).toBeDisabled();
-    // In words, not only by a border colour and a disabled attribute.
+    // In words, not only greyed out: a disabled option carries no other signal.
     expect(full).toHaveTextContent(/full/i);
+
+    // And selecting it does nothing — the dropdown keeps the child's own
+    // classroom rather than quietly accepting a room that will refuse the
+    // whole family at the last moment.
+    const [abel] = screen.getAllByRole("combobox");
+    await user.selectOptions(abel, REDEEMED);
+    expect(abel).toHaveDisplayValue("Shine 4th Grade (usual)");
   });
 
   it("lets a parent undo a choice back to the usual classroom", async () => {
     const user = userEvent.setup();
     await reachChildren(user);
 
-    await user.click(screen.getAllByRole("button", { name: /change classroom/i })[0]);
-    await user.click(await screen.findByRole("button", { name: /joy 1st grade/i }));
+    const [abel] = screen.getAllByRole("combobox");
+    await user.selectOptions(abel, JOY);
+    // Back to the first option, which is the undo: "" sends a null again.
+    await user.selectOptions(abel, "");
+    expect(abel).toHaveDisplayValue("Shine 4th Grade (usual)");
 
-    await user.click(screen.getAllByRole("button", { name: /change classroom/i })[0]);
-    await user.click(
-      await screen.findByRole("button", { name: /use their usual classroom/i }),
-    );
-
-    await screen.findByRole("heading", { name: /who is here this morning/i });
     await user.click(screen.getByRole("button", { name: /check in 2 children/i }));
     await screen.findByRole("heading", { name: /all done/i });
 
@@ -230,8 +233,8 @@ describe("the kiosk classroom picker", () => {
   it("explains a full classroom instead of printing the database's word for it", async () => {
     const user = userEvent.setup();
     await reachChildren(user);
-    await user.click(screen.getAllByRole("button", { name: /change classroom/i })[0]);
-    await user.click(await screen.findByRole("button", { name: /joy 1st grade/i }));
+    const [abel] = screen.getAllByRole("combobox");
+    await user.selectOptions(abel, JOY);
 
     // check_in_one_child RAISES on a full room, which rolls the whole batch
     // back — so this is an exception, not a refused row.
@@ -250,7 +253,7 @@ describe("the kiosk classroom picker", () => {
     expect(
       screen.getByRole("heading", { name: /who is here this morning/i }),
     ).toBeInTheDocument();
-    expect(screen.getAllByText("Classroom: Joy 1st Grade")).toHaveLength(2);
+    expect(screen.getAllByRole("combobox")[0]).toHaveDisplayValue("Joy 1st Grade");
 
     // Nothing printed for a batch that does not exist.
     expect(printLabels).not.toHaveBeenCalled();
@@ -281,11 +284,9 @@ describe("the kiosk classroom picker", () => {
     await reachChildren(user);
 
     // The screen falls back to exactly what it did before it could choose,
-    // rather than offering a button that leads nowhere.
+    // rather than offering an empty dropdown.
     await waitFor(() =>
-      expect(
-        screen.queryByRole("button", { name: /change classroom/i }),
-      ).not.toBeInTheDocument(),
+      expect(screen.queryByRole("combobox")).not.toBeInTheDocument(),
     );
     await user.click(screen.getByRole("button", { name: /check in 2 children/i }));
     await screen.findByRole("heading", { name: /all done/i });

@@ -36,23 +36,18 @@ export const kioskStrings = {
   noneSelected: "Tap at least one child",
 
   /**
-   * Choosing a classroom.
+   * Choosing a classroom, in the dropdown under each child.
    *
    * The word is "classroom", never "room" — a parent reads "room" as a
    * building, and the printed label says classroom too.
    */
-  classroomIs: (name: string) => `Classroom: ${name}`,
-  classroomByGrade: "Classroom: chosen by their grade",
-  changeClassroom: "Change classroom",
-  chooseClassroomFor: (name: string) => `Which classroom for ${name}?`,
-  chooseClassroomHelp:
-    "Most families can leave this as it is. Change it to keep brothers and sisters together, or if the class below is not the right one.",
-  usual: "Usual classroom",
-  useUsual: "Use their usual classroom",
-  roomFull: "Full",
-  noRooms:
-    "The classrooms are not open yet. Please see a Kids Ministry volunteer.",
-  chosenClassroom: "Chosen",
+  classroomLabel: "Classroom",
+  /** The first option: where the child goes if nobody touches anything. */
+  usualOption: (name: string) => `${name} (usual)`,
+  /** The same option when no classroom could be worked out for them. */
+  byGradeOption: "Chosen by their grade",
+  /** Listed so a parent can see it exists, but it cannot be picked. */
+  fullOption: (name: string) => `${name} — full`,
 
   /** The result. */
   allDone: "All done",
@@ -74,13 +69,13 @@ export const kioskStrings = {
 
   /**
    * A full or closed classroom, which a parent can now actually hit because a
-   * parent can now actually choose one. Both name the way out — tap Change
-   * classroom — because on this screen there is nobody else to name.
+   * parent can now actually choose one. Both name the way out — the list under
+   * the child's name — because on this screen there is nobody else to name.
    */
   classroomFull:
-    "That classroom is full now. Tap “Change classroom” to pick another one, or see a Kids Ministry volunteer who can make room.",
+    "That classroom is full now. Please choose another one from the list under your child's name, or see a Kids Ministry volunteer who can make room.",
   classroomClosed:
-    "That classroom has just closed. Tap “Change classroom” to pick another one.",
+    "That classroom has just closed. Please choose another one from the list under your child's name.",
   noClassroom:
     "No classroom is open for your children yet. Please see a Kids Ministry volunteer.",
 
