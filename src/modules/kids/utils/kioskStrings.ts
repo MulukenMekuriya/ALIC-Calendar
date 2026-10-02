@@ -35,9 +35,30 @@ export const kioskStrings = {
   checkIn: (n: number) => `Check in ${n} ${n === 1 ? "child" : "children"}`,
   noneSelected: "Tap at least one child",
 
+  /**
+   * Choosing a classroom, in the dropdown under each child.
+   *
+   * The word is "classroom", never "room" — a parent reads "room" as a
+   * building, and the printed label says classroom too.
+   */
+  classroomLabel: "Classroom",
+  /**
+   * The first option, and the one selected until a parent touches the list.
+   *
+   * It says how the classroom is decided rather than naming one, because the
+   * kiosk is not told the answer: pick_room_for_child decides at commit time
+   * and weighs a standing room preference and an age band as well as a grade.
+   * The last screen names the classroom each child actually got.
+   */
+  byGradeOption: "Chosen by their grade",
+  /** Listed so a parent can see it exists, but it cannot be picked. */
+  fullOption: (name: string) => `${name} — full`,
+
   /** The result. */
   allDone: "All done",
   yourCode: "Your pick-up code",
+  /** Where each child went, on the last screen, so a parent can walk them there. */
+  takeThemTo: "Take them to",
   keepCode: "You will need this code to collect them",
   printing: "Printing your labels…",
   startAgain: "Done",
@@ -50,6 +71,18 @@ export const kioskStrings = {
   needTenDigits: "Please enter all ten digits of your mobile number.",
   noSession:
     "Check-in is not open just now. Please see a Kids Ministry volunteer.",
+
+  /**
+   * A full or closed classroom, which a parent can now actually hit because a
+   * parent can now actually choose one. Both name the way out — the list under
+   * the child's name — because on this screen there is nobody else to name.
+   */
+  classroomFull:
+    "That classroom is full now. Please choose another one from the list under your child's name, or see a Kids Ministry volunteer who can make room.",
+  classroomClosed:
+    "That classroom has just closed. Please choose another one from the list under your child's name.",
+  noClassroom:
+    "No classroom is open for your children yet. Please see a Kids Ministry volunteer.",
 
   /**
    * Offline. A self-service device that cannot reach the database has nothing
@@ -74,9 +107,22 @@ export const kioskStrings = {
   deviceUnknownBody:
     "Please see a Kids Ministry leader. Check-in will work again once it is registered.",
 
-  /** Secondary actions. */
-  lostSlip: "Lost your slip?",
+  /**
+   * The desk's two dialogs, in a parent's words. The desk's buttons say
+   * "Visiting family" and "Lost slip" to a volunteer; a parent reads the
+   * question they were already asking themselves.
+   */
   visiting: "First time here?",
+  lostSlip: "Lost your slip?",
+
+  /**
+   * A lost slip, replaced. The old one stopped working the moment this
+   * printed — said in words, so a slip found in the car later is not handed
+   * to anyone.
+   */
+  newSlipTitle: "Here is your new slip",
+  newSlipBody:
+    "Your old slip no longer works. You will need this code to collect them.",
 } as const;
 
 export type KioskStrings = typeof kioskStrings;

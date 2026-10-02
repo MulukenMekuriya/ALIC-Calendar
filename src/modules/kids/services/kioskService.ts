@@ -1,5 +1,5 @@
 /**
- * The lobby kiosk's only three doors into the database.
+ * The lobby kiosk's only four doors into the database.
  *
  * THE KIOSK READS NOTHING DIRECTLY, and that is an invariant rather than a
  * habit. It holds no module grant — deliberately, because any grant lifts the
@@ -13,6 +13,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { throwRpc } from "./rpcError";
+import type { StationRoom } from "../types";
 
 const church = () => supabase.schema("church");
 
@@ -35,6 +36,32 @@ export interface KioskChild {
   photo_path: string | null;
   grade_name: string | null;
   already_checked_in: boolean;
+}
+
+/*
+ * NO suggested_room HERE, deliberately. kiosk_find_household_by_phone does not
+ * compute one, and the kiosk does not need it: a parent who touches nothing
+ * sends a null and church.pick_room_for_child() decides at commit time, which
+ * is what keeps two rooms sharing a grade self-balancing instead of taking a
+ * morning's families into whichever was emptiest at 9:02. The done screen then
+ * names the room each child actually got, from the rows the database returned.
+ */
+
+/**
+ * One classroom a parent may choose between.
+ *
+ * NARROWED FROM StationRoom ON ARRIVAL. The desk's row also carries a live
+ * headcount and the first names of the room's standing teachers - reasonable
+ * for a volunteer behind a desk, and not something an unattended screen in a
+ * lobby should be able to reach. Mapping to this shape inside sessionRooms()
+ * is what stops it: `is_full` is the whole of what the choice needs, and the
+ * whole of what comes back out.
+ */
+export interface KioskRoom {
+  room_id: string;
+  room_name: string;
+  grade_name: string | null;
+  is_full: boolean;
 }
 
 export const kioskService = {
@@ -83,6 +110,43 @@ export const kioskService = {
     });
     throwRpc(error);
     return (data ?? []) as unknown as KioskChild[];
+  },
+
+  /**
+   * The classrooms a parent may choose between.
+   *
+   * THE DESK'S OWN FUNCTION, not a kiosk twin of it. station_session_rooms
+   * already reconciles a session whose rooms were never attached, already
+   * orders them Pre-K to Grade 8, and already does the capacity arithmetic the
+   * volunteers see every Sunday. A second copy would be a second thing to keep
+   * in step, and the desk and the lobby disagreeing about which rooms are open
+   * is a worse failure than the one a kiosk-only function would prevent.
+   *
+   * NO NEW DOOR NEEDED, so the invariant at the top of this file holds
+   * unchanged: resolve_actor gives a kiosk can_check_in, which is the only
+   * thing that function asks of its caller. Still SECURITY DEFINER, still not
+   * a grant.
+   *
+   * ONE THING A KIOSK-ONLY FUNCTION COULD DO AND THIS CANNOT: it takes no
+   * station id, so a revoked tablet is still listed the classrooms. That is
+   * not a way in - kiosk_find_household_by_phone finds a revoked tablet no
+   * family, so it has nobody to put in a room.
+   */
+  async sessionRooms(kidsSessionId: string): Promise<KioskRoom[]> {
+    const { data, error } = await church().rpc("station_session_rooms", {
+      _kids_session_id: kidsSessionId,
+      _shift_token: null,
+    });
+    throwRpc(error);
+    const rows = (data ?? []) as unknown as StationRoom[];
+    return rows.map((r) => ({
+      room_id: r.room_id,
+      room_name: r.room_name,
+      grade_name: r.grade_name,
+      // The same two numbers the desk reads off the same row. A room with no
+      // capacity set is never full.
+      is_full: r.capacity != null && r.checked_in_count >= r.capacity,
+    }));
   },
 
   /** Registers this device once, on first setup. */
