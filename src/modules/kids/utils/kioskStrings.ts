@@ -42,9 +42,14 @@ export const kioskStrings = {
    * building, and the printed label says classroom too.
    */
   classroomLabel: "Classroom",
-  /** The first option: where the child goes if nobody touches anything. */
-  usualOption: (name: string) => `${name} (usual)`,
-  /** The same option when no classroom could be worked out for them. */
+  /**
+   * The first option, and the one selected until a parent touches the list.
+   *
+   * It says how the classroom is decided rather than naming one, because the
+   * kiosk is not told the answer: pick_room_for_child decides at commit time
+   * and weighs a standing room preference and an age band as well as a grade.
+   * The last screen names the classroom each child actually got.
+   */
   byGradeOption: "Chosen by their grade",
   /** Listed so a parent can see it exists, but it cannot be picked. */
   fullOption: (name: string) => `${name} — full`,

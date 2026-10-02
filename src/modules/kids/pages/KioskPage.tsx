@@ -137,8 +137,9 @@ export default function KioskPage() {
 
   // The classrooms, as soon as a session is open and again with every
   // bootstrap, so "Full" is not ten minutes stale. It also reconciles the
-  // session's rooms — the same thing the staffed desk does when it lists them —
-  // which is what stops a parent being offered an empty list and then refused.
+  // session's rooms — the same thing the staffed desk does when it lists them,
+  // because it IS the thing the staffed desk does — which is what stops a
+  // parent being offered an empty list and then refused.
   //
   // A FAILURE HERE IS NOT FATAL: rooms stays empty, the chooser is not
   // rendered, and the kiosk behaves exactly as it did before it could choose.
@@ -149,7 +150,7 @@ export default function KioskPage() {
     }
     let cancelled = false;
     void kioskService
-      .sessionRooms(boot.kids_session_id, stationId)
+      .sessionRooms(boot.kids_session_id)
       .then((r) => {
         if (!cancelled) setRooms(r);
       })
@@ -157,7 +158,7 @@ export default function KioskPage() {
     return () => {
       cancelled = true;
     };
-  }, [boot, stationId]);
+  }, [boot]);
 
   useEffect(() => {
     const up = () => setOnline(true);
@@ -566,16 +567,20 @@ export default function KioskPage() {
                         className="w-full min-h-[44px] rounded-lg border-2 bg-background
                           px-3 py-2 text-base font-semibold"
                       >
-                        {/* The DEFAULT, and it names the room rather than
-                            saying "by grade" as the desk does — a parent wants
-                            to read where their child is going, not how the
-                            decision was made. Its value is "", so leaving it
-                            alone still sends a null. */}
-                        <option value="">
-                          {c.suggested_room_name
-                            ? S.usualOption(c.suggested_room_name)
-                            : S.byGradeOption}
-                        </option>
+                        {/* The DEFAULT. It says how the decision is made
+                            rather than naming the room, because the kiosk is
+                            not told the answer: where a child lands is decided
+                            by pick_room_for_child at commit time, and it
+                            weighs a standing room preference and an age band
+                            as well as the grade. A guess from the grade alone
+                            would be wrong for exactly the children whose
+                            placement is least obvious. The last screen names
+                            the room each child actually got, from the
+                            database's own rows.
+
+                            Its value is "", so leaving it alone still sends a
+                            null and placement keeps self-balancing. */}
+                        <option value="">{S.byGradeOption}</option>
                         {rooms.map((r) => (
                           /* A full classroom is listed but cannot be picked.
                              The kiosk cannot override capacity — can_override

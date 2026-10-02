@@ -13,6 +13,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { throwRpc } from "./rpcError";
+import type { StationRoom } from "../types";
 
 const church = () => supabase.schema("church");
 
@@ -35,29 +36,26 @@ export interface KioskChild {
   photo_path: string | null;
   grade_name: string | null;
   already_checked_in: boolean;
-  /**
-   * Where this child goes if the parent touches nothing — the same answer
-   * church.pick_room_for_child() will reach at check-in.
-   *
-   * A DISPLAY VALUE, NOT AN INSTRUCTION. The kiosk sends a room id back only
-   * for a child whose parent actually chose one; otherwise it still sends
-   * null, so placement keeps balancing two rooms that share a grade instead of
-   * piling a morning's families into whichever was emptiest at 9:02.
-   *
-   * Null when no classroom is open yet. The child is still listed — that is
-   * what the LEFT JOIN in the RPC is for.
-   */
-  suggested_room_id: string | null;
-  suggested_room_name: string | null;
 }
+
+/*
+ * NO suggested_room HERE, deliberately. kiosk_find_household_by_phone does not
+ * compute one, and the kiosk does not need it: a parent who touches nothing
+ * sends a null and church.pick_room_for_child() decides at commit time, which
+ * is what keeps two rooms sharing a grade self-balancing instead of taking a
+ * morning's families into whichever was emptiest at 9:02. The done screen then
+ * names the room each child actually got, from the rows the database returned.
+ */
 
 /**
  * One classroom a parent may choose between.
  *
- * NOT StationRoom. That carries the live headcount and the first names of the
- * room's standing teachers, which is a reasonable thing for a volunteer behind
- * a desk to see and an unreasonable thing to put on an unattended screen in a
- * lobby. `is_full` is the whole of what the choice needs.
+ * NARROWED FROM StationRoom ON ARRIVAL. The desk's row also carries a live
+ * headcount and the first names of the room's standing teachers - reasonable
+ * for a volunteer behind a desk, and not something an unattended screen in a
+ * lobby should be able to reach. Mapping to this shape inside sessionRooms()
+ * is what stops it: `is_full` is the whole of what the choice needs, and the
+ * whole of what comes back out.
  */
 export interface KioskRoom {
   room_id: string;
@@ -117,20 +115,38 @@ export const kioskService = {
   /**
    * The classrooms a parent may choose between.
    *
-   * Reconciles the session's rooms first, exactly as the staffed desk does, so
-   * a session whose rooms were never attached does not show a parent an empty
-   * list and then refuse them.
+   * THE DESK'S OWN FUNCTION, not a kiosk twin of it. station_session_rooms
+   * already reconciles a session whose rooms were never attached, already
+   * orders them Pre-K to Grade 8, and already does the capacity arithmetic the
+   * volunteers see every Sunday. A second copy would be a second thing to keep
+   * in step, and the desk and the lobby disagreeing about which rooms are open
+   * is a worse failure than the one a kiosk-only function would prevent.
+   *
+   * NO NEW DOOR NEEDED, so the invariant at the top of this file holds
+   * unchanged: resolve_actor gives a kiosk can_check_in, which is the only
+   * thing that function asks of its caller. Still SECURITY DEFINER, still not
+   * a grant.
+   *
+   * ONE THING A KIOSK-ONLY FUNCTION COULD DO AND THIS CANNOT: it takes no
+   * station id, so a revoked tablet is still listed the classrooms. That is
+   * not a way in - kiosk_find_household_by_phone finds a revoked tablet no
+   * family, so it has nobody to put in a room.
    */
-  async sessionRooms(
-    kidsSessionId: string,
-    stationId: string | null,
-  ): Promise<KioskRoom[]> {
-    const { data, error } = await church().rpc("kiosk_session_rooms", {
+  async sessionRooms(kidsSessionId: string): Promise<KioskRoom[]> {
+    const { data, error } = await church().rpc("station_session_rooms", {
       _kids_session_id: kidsSessionId,
-      _station_id: stationId,
+      _shift_token: null,
     });
     throwRpc(error);
-    return (data ?? []) as unknown as KioskRoom[];
+    const rows = (data ?? []) as unknown as StationRoom[];
+    return rows.map((r) => ({
+      room_id: r.room_id,
+      room_name: r.room_name,
+      grade_name: r.grade_name,
+      // The same two numbers the desk reads off the same row. A room with no
+      // capacity set is never full.
+      is_full: r.capacity != null && r.checked_in_count >= r.capacity,
+    }));
   },
 
   /** Registers this device once, on first setup. */

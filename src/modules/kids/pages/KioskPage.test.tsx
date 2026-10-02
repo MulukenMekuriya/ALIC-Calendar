@@ -83,8 +83,6 @@ beforeEach(() => {
       photo_path: null,
       grade_name: "Grade 4",
       already_checked_in: false,
-      suggested_room_id: SHINE,
-      suggested_room_name: "Shine 4th Grade",
     },
     {
       household_id: "h1",
@@ -94,8 +92,6 @@ beforeEach(() => {
       photo_path: null,
       grade_name: "Grade 1",
       already_checked_in: false,
-      suggested_room_id: JOY,
-      suggested_room_name: "Joy 1st Grade",
     },
   ]);
 
@@ -165,11 +161,13 @@ describe("the kiosk classroom picker", () => {
     const user = userEvent.setup();
     await reachChildren(user);
 
-    // The suggestion is the selected option before anything is committed, so a
-    // parent can read where their child is going and simply not touch it.
+    // The default is selected before anything is committed, and it says how
+    // the room is decided rather than naming one. The kiosk is not told where
+    // a child will land - pick_room_for_child decides at commit time - so a
+    // named room here would be a guess presented as a fact.
     const [abel, sara] = screen.getAllByRole("combobox");
-    expect(abel).toHaveDisplayValue("Shine 4th Grade (usual)");
-    expect(sara).toHaveDisplayValue("Joy 1st Grade (usual)");
+    expect(abel).toHaveDisplayValue("Chosen by their grade");
+    expect(sara).toHaveDisplayValue("Chosen by their grade");
 
     await user.click(screen.getByRole("button", { name: /check in 2 children/i }));
     await screen.findByRole("heading", { name: /all done/i });
@@ -186,8 +184,8 @@ describe("the kiosk classroom picker", () => {
     await user.selectOptions(abel, JOY);
 
     expect(abel).toHaveDisplayValue("Joy 1st Grade");
-    // Sara's is untouched and still showing her own default.
-    expect(sara).toHaveDisplayValue("Joy 1st Grade (usual)");
+    // Sara's is untouched and still on the default.
+    expect(sara).toHaveDisplayValue("Chosen by their grade");
 
     await user.click(screen.getByRole("button", { name: /check in 2 children/i }));
     await screen.findByRole("heading", { name: /all done/i });
@@ -206,15 +204,15 @@ describe("the kiosk classroom picker", () => {
     // In words, not only greyed out: a disabled option carries no other signal.
     expect(full).toHaveTextContent(/full/i);
 
-    // And selecting it does nothing — the dropdown keeps the child's own
-    // classroom rather than quietly accepting a room that will refuse the
-    // whole family at the last moment.
+    // And selecting it does nothing — the dropdown stays where it was rather
+    // than quietly accepting a room that will refuse the whole family at the
+    // last moment.
     const [abel] = screen.getAllByRole("combobox");
     await user.selectOptions(abel, REDEEMED);
-    expect(abel).toHaveDisplayValue("Shine 4th Grade (usual)");
+    expect(abel).toHaveDisplayValue("Chosen by their grade");
   });
 
-  it("lets a parent undo a choice back to the usual classroom", async () => {
+  it("lets a parent undo a choice back to the default", async () => {
     const user = userEvent.setup();
     await reachChildren(user);
 
@@ -222,7 +220,7 @@ describe("the kiosk classroom picker", () => {
     await user.selectOptions(abel, JOY);
     // Back to the first option, which is the undo: "" sends a null again.
     await user.selectOptions(abel, "");
-    expect(abel).toHaveDisplayValue("Shine 4th Grade (usual)");
+    expect(abel).toHaveDisplayValue("Chosen by their grade");
 
     await user.click(screen.getByRole("button", { name: /check in 2 children/i }));
     await screen.findByRole("heading", { name: /all done/i });
