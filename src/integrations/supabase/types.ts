@@ -5728,6 +5728,15 @@ export type Database = {
           status: string
         }[]
       }
+      kids_is_past_eighth_grade: {
+        Args: {
+          _birth_month: number
+          _birth_year: number
+          _organization_id: string
+          _school_grade_id: string
+        }
+        Returns: boolean
+      }
       kids_is_restricted_from: {
         Args: { _child_person_id: string; _person_id: string }
         Returns: boolean
