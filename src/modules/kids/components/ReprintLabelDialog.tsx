@@ -6,16 +6,21 @@
  * two-person act — making it the routine remedy for mislaid paper is how a
  * control stops meaning anything to the people operating it.
  *
- * REPRINTING ROTATES THE CODE. The old slip stops resolving the moment the new
- * one prints, so paper dropped in the car park is dead rather than live for the
- * rest of the morning. That is why the screen says so plainly before the
- * volunteer commits: it is not a second copy, it is a replacement.
+ * REPRINTING KEEPS THE CODE. It used to rotate it, which killed the code on
+ * every tag the children were already wearing — the code is printed on the
+ * child's tag too — so the new slip matched none of them. The reprint is now
+ * a second copy of the same slip: the old one keeps working, and so do the
+ * tags (20260322340500).
+ *
+ * The parent slip always prints. Each child's tag prints too unless it is
+ * unticked: a tag still on the child does not need replacing, a lost one does.
  *
  * Search is by name or phone, never by code — the code is the thing they lost.
  */
 
 import { useState } from "react";
 import { Button } from "@/shared/components/ui/button";
+import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
 import {
   Dialog,
@@ -25,7 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/components/ui/dialog";
-import { Loader2, Search, Printer, AlertTriangle } from "lucide-react";
+import { Loader2, Search, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { kidsStationService } from "../services";
 import { errorMessage } from "../services/rpcError";
@@ -35,8 +40,17 @@ interface ReprintLabelDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sessionId: string | null;
-  /** Hands the rotated code back so the caller can print it. */
-  onReprinted: (rows: ReprintedLabelRow[]) => void;
+  /**
+   * Hands the code back so the caller can print it. `rows` is every child the
+   * code still collects — the parent slip counts all of them; `tags` is the
+   * children whose tags to print.
+   */
+  onReprinted: (rows: ReprintedLabelRow[], tags: ReprintedLabelRow[]) => void;
+}
+
+/** The search row's children, one per name — the same names, in the same order, the reprint returns. */
+function childNames(row: ReprintCandidateRow): string[] {
+  return (row.children ?? "").split(", ").filter(Boolean);
 }
 
 export function ReprintLabelDialog({
@@ -48,21 +62,39 @@ export function ReprintLabelDialog({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ReprintCandidateRow[]>([]);
   const [chosen, setChosen] = useState<ReprintCandidateRow | null>(null);
+  // The tags NOT to print, by child name. Unticked rather than ticked, so a
+  // name that fails to match a returned row prints: an extra tag costs a
+  // label, a missing one leaves a child with nothing to collect them by.
+  const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const choose = (row: ReprintCandidateRow | null) => {
+    setChosen(row);
+    setSkipped(new Set());
+  };
+
+  const toggleTag = (name: string, print: boolean) => {
+    setSkipped((prev) => {
+      const next = new Set(prev);
+      if (print) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
+
   const reset = () => {
     setQuery("");
     setResults([]);
-    setChosen(null);
+    choose(null);
     setReason("");
     setError(null);
   };
 
   const search = async (value: string) => {
     setQuery(value);
-    setChosen(null);
+    choose(null);
     setError(null);
     if (value.trim().length < 3) {
       setResults([]);
@@ -89,8 +121,9 @@ export function ReprintLabelDialog({
         setError("Nothing was reprinted. Look the family up again.");
         return;
       }
+      const tags = rows.filter((r) => !skipped.has(r.child_name));
       reset();
-      onReprinted(rows);
+      onReprinted(rows, tags);
     } catch (err) {
       const raw = errorMessage(err);
       setError(
@@ -141,7 +174,7 @@ export function ReprintLabelDialog({
                 <button
                   key={r.batch_id}
                   type="button"
-                  onClick={() => setChosen(picked ? null : r)}
+                  onClick={() => choose(picked ? null : r)}
                   className={cn(
                     "w-full rounded-lg border-2 p-3 text-left transition",
                     picked ? "border-primary bg-primary/5" : "border-muted"
@@ -169,16 +202,21 @@ export function ReprintLabelDialog({
 
           {chosen && (
             <>
-              {/* Stated before they commit, not after. A volunteer who thinks
-                  they are printing a spare copy will hand the old slip back to
-                  the parent. */}
-              <div className="flex gap-2 rounded-md border-2 border-amber-400 bg-amber-50 p-3">
-                <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+              <div className="rounded-md border p-3 space-y-2">
                 <p className="text-sm">
-                  This creates a <strong>new code</strong>. The old slip will
-                  stop working immediately — if they find it later, it is no
-                  use to anyone.
+                  The parent slip prints with the <strong>same code</strong> as
+                  before, so it still matches the children's tags. Untick any
+                  tag that does not need printing again.
                 </p>
+                {childNames(chosen).map((name) => (
+                  <label key={name} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={!skipped.has(name)}
+                      onCheckedChange={(c) => toggleTag(name, c === true)}
+                    />
+                    Tag for {name}
+                  </label>
+                ))}
               </div>
 
               <Input

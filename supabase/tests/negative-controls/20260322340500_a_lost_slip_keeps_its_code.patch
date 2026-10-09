@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322340500_a_lost_slip_keeps_its_code.sql	2026-10-08 21:07:35
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/8d2a7488-35b0-4b3c-bf61-5da83fde4a20/scratchpad/b1.sql	2026-10-08 21:08:54
+@@ -433,7 +433,7 @@
+     AND s.pickup_token IS NOT NULL
+     AND s.code_hash = church.hash_pickup(s.pickup_code)
+     AND s.token_hash = church.hash_pickup(s.pickup_token);
+-  _kept := FOUND;
++  _kept := false;
+ 
+   IF _kept THEN
+     BEGIN

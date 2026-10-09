@@ -116,13 +116,12 @@ export const kioskStrings = {
   lostSlip: "Lost your slip?",
 
   /**
-   * A lost slip, replaced. The old one stopped working the moment this
-   * printed — said in words, so a slip found in the car later is not handed
-   * to anyone.
+   * A lost slip, replaced with the same code — the one on the children's
+   * tags. Said in words, so a parent does not wonder which slip to trust.
    */
   newSlipTitle: "Here is your new slip",
   newSlipBody:
-    "Your old slip no longer works. You will need this code to collect them.",
+    "It has the same code as before, so it matches your children's tags. You will need this code to collect them.",
 } as const;
 
 export type KioskStrings = typeof kioskStrings;

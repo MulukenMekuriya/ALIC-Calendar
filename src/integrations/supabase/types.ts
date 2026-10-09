@@ -1949,6 +1949,8 @@ export type Database = {
           expires_at: string
           kids_session_id: string
           locked_until: string | null
+          pickup_code: string | null
+          pickup_token: string | null
           rotated_at: string
           token_hash: string
         }
@@ -1961,6 +1963,8 @@ export type Database = {
           expires_at: string
           kids_session_id: string
           locked_until?: string | null
+          pickup_code?: string | null
+          pickup_token?: string | null
           rotated_at?: string
           token_hash: string
         }
@@ -1973,6 +1977,8 @@ export type Database = {
           expires_at?: string
           kids_session_id?: string
           locked_until?: string | null
+          pickup_code?: string | null
+          pickup_token?: string | null
           rotated_at?: string
           token_hash?: string
         }
@@ -6030,31 +6036,18 @@ export type Database = {
           station_name: string
         }[]
       }
-      kiosk_session_bootstrap:
-        | {
-            Args: { _station_id?: string }
-            Returns: {
-              kids_session_id: string
-              open_room_count: number
-              session_date: string
-              session_label: string
-              station_known: boolean
-              station_name: string
-              status: string
-            }[]
-          }
-        | {
-            Args: { _station_id?: string; _today?: string }
-            Returns: {
-              kids_session_id: string
-              open_room_count: number
-              session_date: string
-              session_label: string
-              station_known: boolean
-              station_name: string
-              status: string
-            }[]
-          }
+      kiosk_session_bootstrap: {
+        Args: { _station_id?: string; _today?: string }
+        Returns: {
+          kids_session_id: string
+          open_room_count: number
+          session_date: string
+          session_label: string
+          station_known: boolean
+          station_name: string
+          status: string
+        }[]
+      }
       leave_group: { Args: { _membership_id: string }; Returns: undefined }
       leave_ministry: { Args: { _assignment_id: string }; Returns: undefined }
       link_profile_to_person: {

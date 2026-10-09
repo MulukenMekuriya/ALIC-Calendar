@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322340500_a_lost_slip_keeps_its_code.sql	2026-10-08 21:07:35
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/8d2a7488-35b0-4b3c-bf61-5da83fde4a20/scratchpad/b3.sql	2026-10-08 21:08:54
+@@ -167,8 +167,6 @@
+       UPDATE church.kids_check_in_secrets
+          SET code_hash = church.hash_pickup(_code),
+              token_hash = church.hash_pickup(_token),
+-             pickup_code = _code,
+-             pickup_token = _token,
+              attempts = 0, locked_until = NULL, rotated_at = now(),
+              -- Rotating a code that was already consumed leaves the parent
+              -- holding a label that resolves to nothing.

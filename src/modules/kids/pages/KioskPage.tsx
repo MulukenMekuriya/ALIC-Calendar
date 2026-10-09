@@ -48,7 +48,8 @@
  * by name or phone from three characters — the desk's idiom, and wider than
  * the ten-digit rule the kiosk's own search keeps. What it can show is a
  * household name, a masked phone and the first names of children still in a
- * room; what it can do is rotate that family's code. The control that
+ * room; what it can do is print that family's code — the same one on the
+ * children's tags, and texted to the family again. The control that
  * actually releases a child is the teacher at the door matching the adult
  * against the approved list, and that is untouched. If the ministry wants
  * the lobby held to the ten-digit rule here too, that is a phone-only door
@@ -101,6 +102,17 @@ import {
 } from "../utils/kioskPhone";
 
 type Step = "idle" | "phone" | "children" | "done";
+
+/** One child on a family's labels, from a check-in or a reprint. */
+type SlipRow = {
+  child_name: string;
+  room_name: string | null;
+  tag_number: number;
+  allergy_label: string | null;
+  guardian_phone?: string | null;
+  pickup_code: string;
+  pickup_token: string;
+};
 
 /** The code stays up long enough to be written down. */
 const DONE_RESET_MS = 30_000;
@@ -320,25 +332,21 @@ export default function KioskPage() {
    * One family's labels — the child tags and the parent slip — for a fresh
    * check-in and for a replaced slip alike. A reprint goes through exactly the
    * path a check-in does, so the two cannot drift on what a label says.
+   *
+   * `tags` is the children whose tags print. A reprint can leave some out;
+   * the slip still counts every child in `rows`.
    */
   async function printSlip(
-    rows: {
-      child_name: string;
-      room_name: string | null;
-      tag_number: number;
-      allergy_label: string | null;
-      guardian_phone?: string | null;
-      pickup_code: string;
-      pickup_token: string;
-    }[],
+    rows: SlipRow[],
     householdName: string,
+    tags: SlipRow[] = rows,
   ) {
     if (rows.length === 0) return;
     const serviceLabel = boot?.session_label ?? "";
     const sessionDate = boot ? formatSessionDate(boot.session_date) : "";
     const qr = await renderQrSvg(rows[0].pickup_token);
     const result = await printLabels(
-      rows.map((r) => ({
+      tags.map((r) => ({
         childName: r.child_name,
         roomName: r.room_name,
         tagNumber: r.tag_number,
@@ -406,18 +414,18 @@ export default function KioskPage() {
   }
 
   /**
-   * A lost slip has been replaced. The rows carry the ROTATED code, so the old
-   * slip is already dead; what the parent needs now is the new code on paper
-   * and on screen, and the classroom to walk to — which is the done screen.
+   * A lost slip has been replaced. The rows carry the family's own code — the
+   * one on the children's tags — and what the parent needs now is that code on
+   * paper and on screen, and the classroom to walk to: the done screen.
    */
-  async function slipReprinted(rows: ReprintedLabelRow[]) {
+  async function slipReprinted(rows: ReprintedLabelRow[], tags: ReprintedLabelRow[]) {
     setReprinting(false);
     if (rows.length === 0) return;
     setCode(rows[0].pickup_code);
     setPlaced(rows.map((r) => ({ name: r.child_name, room: r.room_name })));
     setDoneKind("reprint");
     setStep("done");
-    await printSlip(rows, rows[0].household_name);
+    await printSlip(rows, rows[0].household_name, tags);
   }
 
   async function checkIn() {
@@ -818,9 +826,8 @@ export default function KioskPage() {
           <h1 className="text-4xl font-bold mb-2">
             {doneKind === "reprint" ? S.newSlipTitle : S.allDone}
           </h1>
-          {/* A replaced slip says so in words: the old one stopped working
-              the moment this screen appeared, and a parent who finds it in
-              the car later must not hand it to anyone. */}
+          {/* A replaced slip says so in words: it is the same code as before,
+              so a parent need not wonder which of two slips to trust. */}
           <p className="text-xl text-muted-foreground mb-6">
             {printFailed
               ? S.printFailedBody
@@ -896,7 +903,7 @@ export default function KioskPage() {
           // This service when there is one; null is "any live batch", which
           // is the desk's own behaviour between sessions.
           sessionId={boot?.kids_session_id ?? null}
-          onReprinted={(rows) => void slipReprinted(rows)}
+          onReprinted={(rows, tags) => void slipReprinted(rows, tags)}
         />
       )}
     </Shell>
