@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322360000_the_check_in_email_in_the_ministrys_words.sql	2026-10-09 10:55:09
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/8d2a7488-35b0-4b3c-bf61-5da83fde4a20/scratchpad/w2.sql	2026-10-09 10:55:39
+@@ -90,7 +90,7 @@
+       || CASE WHEN _code IS NOT NULL
+               THEN 'Your pickup code is ' || _code || '.' || E'\n\n' ELSE '' END
+       || 'We’re so glad your '
+-      || CASE WHEN _n = 1 THEN 'child is' ELSE 'children are' END
++      || 'children are'
+       || ' joining us this morning! Please keep your pickup slip with you, as '
+       || 'you’ll need it when you pick up your '
+       || CASE WHEN _n = 1 THEN 'child' ELSE 'children' END || '.'

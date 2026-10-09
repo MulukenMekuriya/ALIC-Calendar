@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322360000_the_check_in_email_in_the_ministrys_words.sql	2026-10-09 10:55:09
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/8d2a7488-35b0-4b3c-bf61-5da83fde4a20/scratchpad/w1.sql	2026-10-09 10:55:39
+@@ -95,7 +95,7 @@
+       || 'you’ll need it when you pick up your '
+       || CASE WHEN _n = 1 THEN 'child' ELSE 'children' END || '.'
+       || E'\n\n'
+-      || 'May you be blessed and encouraged as you worship in God’s presence.';
++      || 'Enjoy worship!';
+ 
+   ELSE
+     subject := _who || CASE WHEN _n = 1 THEN ' has been picked up' ELSE ' have been picked up' END;
