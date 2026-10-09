@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322390000_check_in_is_eighth_grade_and_under.sql	2026-10-09 15:20:14
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/8d2a7488-35b0-4b3c-bf61-5da83fde4a20/scratchpad/e3.sql	2026-10-09 15:21:01
+@@ -51,7 +51,7 @@
+            _birth_year, _birth_month,
+            make_date(EXTRACT(YEAR FROM current_date)::INTEGER
+                      - CASE WHEN EXTRACT(MONTH FROM current_date) >= 8 THEN 0 ELSE 1 END,
+-                     9, 1)) > 168, false)
++                     9, 1)) > 168 AND false, false)
+   END;
+ $$;
+ 

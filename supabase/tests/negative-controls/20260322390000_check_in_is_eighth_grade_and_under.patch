@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322390000_check_in_is_eighth_grade_and_under.sql	2026-10-09 15:20:14
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/8d2a7488-35b0-4b3c-bf61-5da83fde4a20/scratchpad/e1.sql	2026-10-09 15:21:01
+@@ -120,8 +120,6 @@
+       AND c.merged_into_person_id IS NULL
+       -- Children's Ministry is 8th grade and under. See the head of
+       -- 20260322390000.
+-      AND NOT church.kids_is_past_eighth_grade(
+-            c.organization_id, c.school_grade_id, c.birth_year, c.birth_month)
+       AND (
+         c.search_name % _term
+ 

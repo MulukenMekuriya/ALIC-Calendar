@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322390000_check_in_is_eighth_grade_and_under.sql	2026-10-09 15:20:14
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/8d2a7488-35b0-4b3c-bf61-5da83fde4a20/scratchpad/e2.sql	2026-10-09 15:21:01
+@@ -340,8 +340,6 @@
+       AND p.is_child AND p.is_active AND p.merged_into_person_id IS NULL
+       -- Children's Ministry is 8th grade and under. See the head of
+       -- 20260322390000.
+-      AND NOT church.kids_is_past_eighth_grade(
+-            p.organization_id, p.school_grade_id, p.birth_year, p.birth_month)
+     -- Deterministic: the same parent always sees the same household named,
+     -- rather than whichever row the planner emitted first.
+     ORDER BY p.id, h.name, h.id
