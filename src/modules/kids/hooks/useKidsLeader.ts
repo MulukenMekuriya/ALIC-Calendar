@@ -6,7 +6,7 @@
  */
 
 import { useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { kidsLeaderService } from "../services/kidsLeaderService";
 import { kidsStationService } from "../services/kidsStationService";
@@ -105,6 +105,9 @@ export function useKidsAttendance(
     queryKey: kidsLeaderKeys.attendance(organizationId || "", from, to),
     queryFn: () => kidsLeaderService.attendance(organizationId!, from, to),
     enabled: !!organizationId && !!from && !!to,
+    // A new range keeps the old report on screen, dimmed, until it arrives,
+    // rather than flashing a spinner every time a date is nudged.
+    placeholderData: keepPreviousData,
   });
 }
 

@@ -7,7 +7,7 @@
  * Sundays that most need reviewing.
  */
 
-import { Fragment, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Card,
   CardContent,
@@ -20,15 +20,6 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Badge } from "@/shared/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/shared/components/ui/table";
 import {
   ChevronDown,
   ChevronRight,
@@ -43,6 +34,7 @@ import {
 } from "@/shared/lib/exportPrimitives";
 import { useKidsAttendance, useKidsExceptions } from "../hooks/useKidsLeader";
 import { LatePickupsPanel } from "./LatePickupsPanel";
+import { AttendanceReport } from "./AttendanceReport";
 import { ConsentCoverageCard } from "./ConsentCoverageCard";
 import { ConsentFamiliesPanel } from "./ConsentFamiliesPanel";
 import { ConsentRuleCard } from "./ConsentRuleCard";
@@ -51,49 +43,39 @@ import { RetentionPanel } from "./RetentionPanel";
 import { useConsentPolicy } from "../hooks/useConsent";
 import { useCapabilities } from "@/shared/hooks/useCapabilities";
 import type {
+  AttendanceRow,
   ExceptionCategory,
   ExceptionRow,
 } from "../services/kidsLeaderService";
 import {
   groupByDay,
   sumAttendance,
-  type AttendanceTotals,
 } from "../utils/attendanceTotals";
+
+/** A local calendar date as YYYY-MM-DD; toISOString would shift it to UTC. */
+function isoDate(d: Date): string {
+  const m = `${d.getMonth() + 1}`.padStart(2, "0");
+  const day = `${d.getDate()}`.padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+/** The ranges a leader actually asks about, newest last so "today" is the end of each. */
+const PRESETS = [
+  { key: "4w", label: "Last 4 weeks", days: 28 },
+  { key: "12w", label: "Last 12 weeks", days: 84 },
+  { key: "year", label: "This year", days: null },
+] as const;
+
+function presetRange(days: number | null): { from: string; to: string } {
+  const to = new Date();
+  const from = days === null ? new Date(to.getFullYear(), 0, 1) : new Date(to);
+  if (days !== null) from.setDate(from.getDate() - days);
+  return { from: isoDate(from), to: isoDate(to) };
+}
 
 /** Default window: the last 12 weeks, which is about a quarter of Sundays. */
 function defaultRange() {
-  const to = new Date();
-  const from = new Date();
-  from.setDate(from.getDate() - 84);
-  return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) };
-}
-
-/**
- * The five numeric cells of a total row. Shared so a day subtotal and the
- * grand total cannot drift apart in which columns they fill or how they
- * align — the bug where a footer silently omits a column is invisible until
- * somebody adds the numbers up by hand.
- */
-function TotalCells({ totals }: { totals: AttendanceTotals }) {
-  return (
-    <>
-      <TableCell className="text-right font-medium tabular-nums">
-        {totals.children}
-      </TableCell>
-      <TableCell className="text-right font-medium tabular-nums">
-        {totals.first_time_visitors}
-      </TableCell>
-      <TableCell className="text-right font-medium tabular-nums">
-        {totals.volunteers}
-      </TableCell>
-      <TableCell className="text-right font-medium tabular-nums">
-        {totals.overrides}
-      </TableCell>
-      <TableCell className="text-right font-medium tabular-nums">
-        {totals.not_checked_out}
-      </TableCell>
-    </>
-  );
+  return presetRange(84);
 }
 
 /**
@@ -202,8 +184,6 @@ export function KidsReportsTab({
   const attendance = useKidsAttendance(organizationId, from, to);
   const exceptions = useKidsExceptions(organizationId, from, to);
 
-  const days = useMemo(() => groupByDay(attendance.data ?? []), [attendance.data]);
-  const grand = useMemo(() => sumAttendance(attendance.data ?? []), [attendance.data]);
 
   const [openGroups, setOpenGroups] = useState<
     Partial<Record<ExceptionCategory, boolean>>
@@ -244,9 +224,12 @@ export function KidsReportsTab({
     exceptions.data?.[0]?.total_count ?? exceptions.data?.length ?? 0;
   const truncated = exceptionTotal > (exceptions.data?.length ?? 0);
 
-  function exportAttendance() {
+  function exportAttendance(shown: AttendanceRow[]) {
     // Each day's rooms, then that day's total, then a grand total — the same
-    // shape as the screen, so a spreadsheet and the report agree.
+    // shape as the screen, and the same rows: Sundays only unless the report
+    // is showing every date.
+    const days = groupByDay(shown);
+    const grand = sumAttendance(shown);
     const rows: (string | number | null)[][] = [];
     for (const day of days) {
       for (const row of day.rows) {
@@ -368,6 +351,27 @@ export function KidsReportsTab({
             className="w-40"
           />
         </div>
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Quick ranges">
+          {PRESETS.map((preset) => {
+            const range = presetRange(preset.days);
+            const active = range.from === from && range.to === to;
+            return (
+              <Button
+                key={preset.key}
+                type="button"
+                size="sm"
+                variant={active ? "secondary" : "ghost"}
+                aria-pressed={active}
+                onClick={() => {
+                  setFrom(range.from);
+                  setTo(range.to);
+                }}
+              >
+                {preset.label}
+              </Button>
+            );
+          })}
+        </div>
       </div>
 
       <Tabs defaultValue="attendance">
@@ -391,123 +395,12 @@ export function KidsReportsTab({
         </TabsList>
 
         <TabsContent value="attendance" className="pt-4">
-          <Card>
-            <CardHeader className="flex-row items-start justify-between space-y-0">
-              <div>
-                <CardTitle className="text-base">Attendance by Sunday</CardTitle>
-                <CardDescription>
-                  One row per room per service.
-                </CardDescription>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={exportAttendance}
-                disabled={!attendance.data?.length}
-              >
-                <Download className="h-4 w-4" />
-                CSV
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {attendance.isLoading ? (
-                <div className="flex justify-center py-10">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-              ) : (attendance.data?.length ?? 0) === 0 ? (
-                <p className="py-10 text-center text-sm text-muted-foreground">
-                  No check-ins in this period.
-                </p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Room</TableHead>
-                        <TableHead className="text-right">Children</TableHead>
-                        <TableHead className="text-right">New</TableHead>
-                        <TableHead className="text-right">Volunteers</TableHead>
-                        <TableHead className="text-right">Overrides</TableHead>
-                        <TableHead className="text-right">Not collected</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {days.map((day) => (
-                        <Fragment key={day.session_date}>
-                          {day.rows.map((row, index) => (
-                            <TableRow key={`${row.room_name}-${index}`}>
-                              <TableCell className="whitespace-nowrap">
-                                {row.session_date}
-                                <span className="block text-xs text-muted-foreground">
-                                  {row.service_label}
-                                </span>
-                              </TableCell>
-                              <TableCell>
-                                {row.room_name}
-                                <span className="block text-xs text-muted-foreground">
-                                  {row.age_band_name ?? "—"}
-                                </span>
-                              </TableCell>
-                              <TableCell className="text-right tabular-nums">
-                                {row.children}
-                              </TableCell>
-                              <TableCell className="text-right tabular-nums">
-                                {row.first_time_visitors}
-                              </TableCell>
-                              <TableCell className="text-right tabular-nums">
-                                {row.volunteers}
-                              </TableCell>
-                              <TableCell className="text-right tabular-nums">
-                                {row.overrides > 0 ? (
-                                  <Badge variant="outline" className="border-amber-400">
-                                    {row.overrides}
-                                  </Badge>
-                                ) : (
-                                  0
-                                )}
-                              </TableCell>
-                              <TableCell className="text-right tabular-nums">
-                                {row.not_checked_out > 0 ? (
-                                  <Badge variant="destructive">
-                                    {row.not_checked_out}
-                                  </Badge>
-                                ) : (
-                                  0
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                          <TableRow className="border-t-2 bg-muted/40 hover:bg-muted/40">
-                            <TableCell colSpan={2} className="font-medium">
-                              Total for {day.session_date}
-                              {day.serviceCount > 1 && (
-                                <span className="block text-xs font-normal text-muted-foreground">
-                                  across {day.serviceCount} services — a child at
-                                  more than one is counted once per service
-                                </span>
-                              )}
-                            </TableCell>
-                            <TotalCells totals={day.totals} />
-                          </TableRow>
-                        </Fragment>
-                      ))}
-                    </TableBody>
-                    {days.length > 1 && (
-                      <TableFooter>
-                        <TableRow className="hover:bg-transparent">
-                          <TableCell colSpan={2} className="font-semibold">
-                            All {days.length} days
-                          </TableCell>
-                          <TotalCells totals={grand} />
-                        </TableRow>
-                      </TableFooter>
-                    )}
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <AttendanceReport
+            rows={attendance.data}
+            isLoading={attendance.isLoading}
+            isStale={attendance.isPlaceholderData}
+            onExport={exportAttendance}
+          />
         </TabsContent>
 
         <TabsContent value="late" className="pt-4">
