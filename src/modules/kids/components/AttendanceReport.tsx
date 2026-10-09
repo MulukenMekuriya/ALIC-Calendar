@@ -61,6 +61,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AttendanceRow } from "../services/kidsLeaderService";
+import { ChildAttendanceTable } from "./ChildAttendanceTable";
 import {
   formatStay,
   groupByDay,
@@ -70,6 +71,9 @@ import {
 } from "../utils/attendanceTotals";
 
 interface Props {
+  organizationId: string | undefined;
+  from: string;
+  to: string;
   rows: AttendanceRow[] | undefined;
   isLoading: boolean;
   /** Showing the previous range while the new one loads. */
@@ -250,7 +254,7 @@ const isSunday = (iso: string) => asDate(iso).getDay() === 0;
  */
 const LONGEST_REAL_STAY = 12 * 60;
 
-export function AttendanceReport({ rows, isLoading, isStale, onExport }: Props) {
+export function AttendanceReport({ organizationId, from, to, rows, isLoading, isStale, onExport }: Props) {
   /*
    * SUNDAYS ONLY, BY DEFAULT. Sessions are opened midweek too, for a
    * programme, a rehearsal or simply to try the desk, and one of those with
@@ -281,7 +285,7 @@ export function AttendanceReport({ rows, isLoading, isStale, onExport }: Props) 
   const rooms = useMemo(() => summarizeRooms(shown), [shown]);
   const per = allDates ? "date" : "Sunday";
   const perPlural = allDates ? "dates" : "Sundays";
-  const [view, setView] = useState<"days" | "rooms">("days");
+  const [view, setView] = useState<"days" | "rooms" | "children">("days");
   // The newest date starts open; the rest are one click away.
   const [open, setOpen] = useState<Set<string> | null>(null);
   const expanded = open ?? new Set(days.slice(0, 1).map((d) => d.session_date));
@@ -493,14 +497,17 @@ export function AttendanceReport({ rows, isLoading, isStale, onExport }: Props) 
             <CardDescription>
               {view === "days"
                 ? "Each date, and its classrooms underneath."
-                : "Each classroom across the whole range, busiest first."}
+                : view === "rooms"
+                  ? "Each classroom across the whole range, busiest first."
+                  : `Each child across these ${perPlural.toLowerCase()}, newest first.`}
             </CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Tabs value={view} onValueChange={(v) => setView(v as "days" | "rooms")}>
+            <Tabs value={view} onValueChange={(v) => setView(v as "days" | "rooms" | "children")}>
               <TabsList>
                 <TabsTrigger value="days">By {per}</TabsTrigger>
                 <TabsTrigger value="rooms">By room</TabsTrigger>
+                <TabsTrigger value="children">By child</TabsTrigger>
               </TabsList>
             </Tabs>
             {view === "days" && (
@@ -514,13 +521,24 @@ export function AttendanceReport({ rows, isLoading, isStale, onExport }: Props) 
                 {allOpen ? "Collapse all" : "Expand all"}
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={() => onExport(shown)}>
-              <Download className="h-4 w-4" />
-              CSV
-            </Button>
+            {/* The by-child view has its own export, in its own shape. */}
+            {view !== "children" && (
+              <Button variant="outline" size="sm" onClick={() => onExport(shown)}>
+                <Download className="h-4 w-4" />
+                CSV
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
+          {view === "children" ? (
+            <ChildAttendanceTable
+              organizationId={organizationId}
+              from={from}
+              to={to}
+              dates={days.map((d) => d.session_date)}
+            />
+          ) : (
           <div className="overflow-x-auto rounded-md border">
             {view === "days" ? (
               <Table>
@@ -660,13 +678,14 @@ export function AttendanceReport({ rows, isLoading, isStale, onExport }: Props) 
               </Table>
             )}
           </div>
-          {!showVolunteers && (
+          )}
+          {view !== "children" && !showVolunteers && (
             <p className="mt-3 text-xs text-muted-foreground">
               Volunteers are not being signed in to classrooms yet, so staffing is not shown. The
               column appears here once they are.
             </p>
           )}
-          {staleStays && (
+          {view !== "children" && staleStays && (
             <p className="mt-2 text-xs text-muted-foreground">
               Stays over twelve hours are left out of the averages and shown as —. They are
               check-ins closed off days later, not time in a room.

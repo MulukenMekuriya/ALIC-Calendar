@@ -396,6 +396,9 @@ export function KidsReportsTab({
 
         <TabsContent value="attendance" className="pt-4">
           <AttendanceReport
+            organizationId={organizationId}
+            from={from}
+            to={to}
             rows={attendance.data}
             isLoading={attendance.isLoading}
             isStale={attendance.isPlaceholderData}

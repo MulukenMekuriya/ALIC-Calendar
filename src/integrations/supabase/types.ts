@@ -5506,6 +5506,16 @@ export type Database = {
           viewed_at: string
         }[]
       }
+      kids_child_attendance: {
+        Args: { _from: string; _organization_id: string; _to: string }
+        Returns: {
+          child_name: string
+          child_person_id: string
+          first_check_in: string
+          room_name: string
+          session_date: string
+        }[]
+      }
       kids_child_room_preferences: {
         Args: {
           _child_person_ids: string[]

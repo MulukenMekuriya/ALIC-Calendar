@@ -1,0 +1,10 @@
+--- supabase/migrations/20260322380000_attendance_by_child.sql	2026-10-09 14:27:49
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/8d2a7488-35b0-4b3c-bf61-5da83fde4a20/scratchpad/a1.sql	2026-10-09 14:28:10
+@@ -37,7 +37,6 @@
+ SET search_path = church, public, extensions
+ AS $$
+ BEGIN
+-  PERFORM church.assert_kids_leader(_organization_id);
+   IF _from IS NULL OR _to IS NULL OR _to < _from THEN
+     RAISE EXCEPTION 'invalid_date_range';
+   END IF;
