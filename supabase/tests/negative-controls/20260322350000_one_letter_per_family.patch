@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322350000_one_letter_per_family.sql	2026-10-08 22:02:58
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/8d2a7488-35b0-4b3c-bf61-5da83fde4a20/scratchpad/n1.sql	2026-10-08 22:05:15
+@@ -229,7 +229,7 @@
+       AND n.channel = 'email'
+       AND n.recipient_person_id = t.person_id
+       AND n.status = 'queued'
+-      AND n.created_at = now()
++      AND false
+       AND EXISTS (SELECT 1 FROM church.kids_check_ins x
+                    WHERE x.id = ANY(n.check_in_ids) AND x.batch_id = _ci.batch_id)
+     LIMIT 1;

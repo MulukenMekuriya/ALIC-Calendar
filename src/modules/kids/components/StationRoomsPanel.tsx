@@ -333,7 +333,7 @@ export function StationRoomsPanel({
           </p>
           <div className="flex flex-wrap gap-2">
             {[
-              `Please report to Children's Ministry room ${room.room_name} immediately.`,
+              `Please come to the Children's Ministry room ${room.room_name} now.`,
               "Your child is asking for you — please come to the classroom.",
               "Your child is not feeling well. Please come to the classroom.",
             ].map((quick) => (
@@ -438,7 +438,7 @@ export function StationRoomsPanel({
                 setSendResult(null);
                 setMessaging(child);
                 setMessageText(
-                  `Please report to Children's Ministry room ${room.room_name} immediately.`
+                  `Please come to the Children's Ministry room ${room.room_name} now.`
                 );
               }}
             >

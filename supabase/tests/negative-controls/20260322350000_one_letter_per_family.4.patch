@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322350000_one_letter_per_family.sql	2026-10-08 22:02:58
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/8d2a7488-35b0-4b3c-bf61-5da83fde4a20/scratchpad/n4.sql	2026-10-08 22:05:15
+@@ -387,7 +387,7 @@
+                     WHEN n.attempts >= 5 THEN 'failed'
+                     ELSE 'queued'
+                   END,
+-         attempts = CASE WHEN _wait THEN greatest(n.attempts - 1, 0) ELSE n.attempts END,
++         attempts = n.attempts,
+          not_before = CASE WHEN _wait THEN now() + _retry_after ELSE NULL END,
+          provider_message_id = coalesce(_provider_message_id, n.provider_message_id),
+          error = CASE WHEN _ok THEN NULL ELSE left(_error, 500) END,

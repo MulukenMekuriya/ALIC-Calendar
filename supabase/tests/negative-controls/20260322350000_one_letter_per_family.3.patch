@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322350000_one_letter_per_family.sql	2026-10-08 22:02:58
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/8d2a7488-35b0-4b3c-bf61-5da83fde4a20/scratchpad/n3.sql	2026-10-08 22:05:15
+@@ -824,7 +824,7 @@
+         AND s.code_hash = church.hash_pickup(s.pickup_code)
+         AND s.token_hash = church.hash_pickup(s.pickup_token);
+ 
+-      IF FOUND THEN
++      IF false THEN
+         UPDATE church.kids_check_in_secrets s
+            SET attempts = 0, locked_until = NULL
+          WHERE s.batch_id = _existing.id;

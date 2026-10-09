@@ -33,15 +33,64 @@ const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID");
 const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
 const TWILIO_FROM_NUMBER = Deno.env.get("TWILIO_FROM_NUMBER");
 const SMS_CONFIGURED = !!(TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_FROM_NUMBER);
+/**
+ * The church, not "Kids Ministry". A parent's inbox shows this name before
+ * anything else, and "Kids Ministry" read like nobody in particular. Not
+ * RESEND_FROM_EMAIL: that is the event calendar's sender.
+ */
 const RESEND_FROM_EMAIL =
   Deno.env.get("RESEND_KIDS_FROM_EMAIL") ||
-  Deno.env.get("RESEND_FROM_EMAIL") ||
-  "Kids Ministry <team@addislidet.info>";
+  "Addis Lidet International Church <team@addislidet.info>";
 const CHURCH_NAME =
   Deno.env.get("CHURCH_NAME") || "Addis Lidet International Church";
+const CHURCH_LOGO_URL =
+  Deno.env.get("CHURCH_LOGO_URL") || "https://www.addislidet.info/alic-logo.png";
+const CHURCH_WEBSITE = Deno.env.get("CHURCH_WEBSITE") || "alic.org";
 
 /** Per invocation. Keeps one run inside the edge function time limit. */
 const BATCH_SIZE = 50;
+
+/**
+ * Resend accepts 10 emails a second. Fifty at this pace is ten seconds, well
+ * inside the time limit, and claim_queued_notifications runs one sender at a
+ * time, so this is the whole rate.
+ */
+const PACE_MS = 200;
+
+/**
+ * How long to hold an email the service refused for now. The daily limit lifts
+ * within the day; a check-in or pickup notice still waiting three hours on is
+ * skipped by claim_queued_notifications rather than sent late.
+ */
+const QUOTA_WAIT = "30 minutes";
+const RATE_WAIT = "1 minute";
+
+/**
+ * The emails a parent receives. They open with a greeting and close with a
+ * blessing and a verse; the staff notes keep to the facts. An urgent classroom
+ * message is a parent's too, but it stays short: see renderEmail.
+ */
+const PARENT_KINDS = new Set([
+  "check_in",
+  "check_out",
+  "volunteer_message",
+  "kids_late_pickup",
+  "kids_check_in_held",
+  "kids_incident_to_parent",
+  "kids_consent_signed",
+  "kids_consent_resign_needed",
+  "kids_consent_resign_reminder",
+  "kids_consent_resign_overdue",
+]);
+
+const MINISTRY = "Children's Ministry";
+const MINISTRY_AM = "የልጆች አገልግሎት";
+const BLESSING_AM = "ተባረኩ";
+const VERSE =
+  "“Let the little children come to me, and do not hinder them, for the kingdom of heaven belongs to such as these.” Matthew 19:14";
+const CAMPUSES = "Silver Spring, MD · Alexandria, VA";
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -102,60 +151,99 @@ function escapeHtml(value: string): string {
 }
 
 /**
- * A volunteer_message is an interruption during a service — the parent is
- * being asked to get up and walk to a classroom. It gets the loud treatment;
- * the routine check-in and check-out confirmations do not.
+ * How each email is framed, decided once so the HTML and the plain text agree.
+ *
+ * A parent's email opens "Selam Meseret," and closes with a blessing and a
+ * verse: the voice of the church that sent it, approved by the ministry. An
+ * urgent classroom message keeps none of that — the parent is being asked to
+ * get up and walk to a classroom, and a greeting only delays the instruction —
+ * but it does keep who sent it. Staff notes keep to the facts.
  */
+function framing(notification: QueuedNotification) {
+  const urgent = notification.kind === "volunteer_message";
+  const warm = PARENT_KINDS.has(notification.kind) && !urgent;
+  const firstName = (notification.recipient_name ?? "").trim().split(/\s+/)[0];
+  return {
+    urgent,
+    warm,
+    title: notification.subject || MINISTRY,
+    greeting: warm ? (firstName ? `Selam ${firstName},` : "Selam,") : null,
+    // Only the urgent message names its sender. On every other parent email
+    // the sender is the ministry, signed below; a leader's account name there
+    // read like a stranger had written.
+    sentBy: urgent || !warm ? notification.sent_by_name : null,
+  };
+}
+
 /**
- * The body is escaped and then its newlines become <br>.
+ * The email in the church's colours, with its logo and name.
  *
- * Without that, every message renders as one run-on paragraph, because HTML
- * collapses newlines. It went unnoticed while the only messages were the
- * one-sentence check-in and check-out confirmations, which have no newlines to
- * lose. The auto-expire summary added in 20260322140000 is a LIST OF
- * CHILDREN'S NAMES, and an access email is a set of credentials on their own
- * lines; both are unreadable as a single paragraph.
- *
- * <br> rather than white-space:pre-wrap because Outlook's Word engine ignores
- * the latter. Runs of leading spaces still collapse, so compose bodies that do
- * not rely on column alignment.
+ * Tables for the header and inline styles throughout, because that is what
+ * Outlook and Gmail both render. The body is escaped and its newlines become
+ * <br>: HTML collapses newlines, and a list of children's names or a set of
+ * credentials is unreadable as one paragraph. <br> rather than
+ * white-space:pre-wrap because Outlook's Word engine ignores the latter.
  */
 function renderEmail(notification: QueuedNotification): string {
-  const urgent = notification.kind === "volunteer_message";
-  const accent = urgent ? "#b91c1c" : "#1d4ed8";
-  const heading = urgent
-    ? "Please come to the Children's Ministry"
-    : notification.subject || "Children's Ministry";
+  const f = framing(notification);
+  const red = f.urgent ? "#8b0000" : "#b22222";
+  const ink = "#18181b";
+  const muted = "#71717a";
+  const para = `margin:0 0 16px;font-size:16px;line-height:1.65;color:${ink};`;
 
   return `<!DOCTYPE html>
 <html>
-  <body style="margin:0;padding:24px;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <body style="margin:0;padding:24px;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans Ethiopic',sans-serif;">
     <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e4e4e7;">
-      <div style="background:${accent};padding:20px 24px;">
-        <p style="margin:0;color:#ffffff;font-size:18px;font-weight:600;">
-          ${escapeHtml(heading)}
-        </p>
-      </div>
-      <div style="padding:24px;">
-        <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#18181b;">
-          ${escapeHtml(notification.body).replace(/\n/g, "<br>")}
-        </p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${red};">
+        <tr>
+          <td style="padding:16px 0 16px 22px;width:44px;vertical-align:middle;">
+            <img src="${CHURCH_LOGO_URL}" width="44" height="44" alt="" style="display:block;border-radius:50%;background:#ffffff;">
+          </td>
+          <td style="padding:16px 22px 16px 14px;vertical-align:middle;color:#ffffff;">
+            <div style="font-size:15px;font-weight:600;line-height:1.25;">${escapeHtml(CHURCH_NAME)}</div>
+            <div style="font-size:12.5px;opacity:0.9;">${MINISTRY} · ${MINISTRY_AM}</div>
+          </td>
+        </tr>
+      </table>
+      <div style="padding:22px 22px 4px;">
+        <p style="margin:0 0 14px;font-size:19px;font-weight:600;line-height:1.3;color:${ink};">${escapeHtml(f.title)}</p>
+        ${f.greeting ? `<p style="${para}">${escapeHtml(f.greeting)}</p>` : ""}
+        <p style="${para}">${escapeHtml(notification.body).replace(/\n/g, "<br>")}</p>
+        ${f.sentBy ? `<p style="margin:0 0 16px;font-size:13px;color:${muted};">Sent by ${escapeHtml(f.sentBy)}</p>` : ""}
         ${
-          notification.sent_by_name
-            ? `<p style="margin:0;font-size:13px;color:#71717a;">Sent by ${escapeHtml(
-                notification.sent_by_name
-              )}</p>`
+          f.warm
+            ? `<p style="${para}">Be blessed · <span style="color:#b22222;">${BLESSING_AM}</span><br>Addis Lidet ${MINISTRY}</p>
+        <p style="margin:0 0 16px;padding-top:14px;border-top:1px solid #f0e4e4;font-size:13px;font-style:italic;line-height:1.5;color:${muted};">${escapeHtml(VERSE)}</p>`
             : ""
         }
       </div>
-      <div style="padding:16px 24px;background:#fafafa;border-top:1px solid #e4e4e7;">
-        <p style="margin:0;font-size:12px;color:#71717a;">
-          ${escapeHtml(CHURCH_NAME)} · Children's Ministry
-        </p>
+      <div style="padding:12px 22px;background:#fafafa;border-top:1px solid #e4e4e7;font-size:12px;line-height:1.5;color:${muted};">
+        ${escapeHtml(CHURCH_NAME)} · ${CAMPUSES}<br>
+        <a href="https://${CHURCH_WEBSITE}" style="color:${muted};">${CHURCH_WEBSITE}</a>
       </div>
     </div>
   </body>
 </html>`;
+}
+
+/**
+ * The same email as plain text. Sent alongside the HTML: a mail client that
+ * shows no HTML still gets the whole message, and spam filters trust an email
+ * that carries both more than one that carries HTML alone.
+ */
+function renderText(notification: QueuedNotification): string {
+  const f = framing(notification);
+  return [
+    f.greeting,
+    notification.body,
+    f.sentBy ? `Sent by ${f.sentBy}` : null,
+    f.warm ? `Be blessed · ${BLESSING_AM}\nAddis Lidet ${MINISTRY}` : null,
+    f.warm ? VERSE : null,
+    `${CHURCH_NAME} · ${CAMPUSES}\n${CHURCH_WEBSITE}`,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 /**
@@ -222,10 +310,22 @@ async function loadAttachment(
   };
 }
 
+/**
+ * What the service said, when it said no.
+ *
+ * "quota": the account's daily limit is spent. Nothing else will go today
+ * either, so the run stops and every email it holds waits.
+ * "rate": more than 10 a second. A moment's pause and it goes.
+ * Anything else is a real failure and counts towards the five attempts.
+ */
+type SendResult =
+  | { ok: true; id: string }
+  | { ok: false; error: string; wait?: "quota" | "rate" };
+
 async function sendEmail(
   notification: QueuedNotification,
   attachment: { filename: string; content: string } | null,
-): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+): Promise<SendResult> {
   const payloadBody: Record<string, unknown> = {
     from: RESEND_FROM_EMAIL,
     to: [notification.recipient_email],
@@ -233,8 +333,9 @@ async function sendEmail(
       notification.subject ||
       (notification.kind === "volunteer_message"
         ? "Please come to the Children's Ministry"
-        : "Children's Ministry"),
+        : MINISTRY),
     html: renderEmail(notification),
+    text: renderText(notification),
   };
 
   // One `if`. A row without an attachment produces a payload byte-identical
@@ -255,10 +356,16 @@ async function sendEmail(
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    return {
-      ok: false,
-      error: payload?.message || `Resend returned ${response.status}`,
-    };
+    const error: string = payload?.message || `Resend returned ${response.status}`;
+    // Matched on the message as well as the name: the message is what every
+    // refused row on 27 September and 4 October recorded.
+    const wait =
+      payload?.name === "daily_quota_exceeded" || /sending quota/i.test(error)
+        ? "quota"
+        : response.status === 429
+          ? "rate"
+          : undefined;
+    return { ok: false, error, wait };
   }
   return { ok: true, id: payload?.id ?? "sent" };
 }
@@ -350,6 +457,10 @@ async function sendSms(
   let sent = 0;
   let failed = 0;
   let skipped = 0;
+  let waiting = 0;
+  // Set when the daily limit is spent. Nothing else goes today either, so the
+  // rest of the batch waits instead of being sent and refused one by one.
+  let quotaSpent = false;
 
   for (const notification of notifications) {
     try {
@@ -396,19 +507,46 @@ async function sendSms(
         continue;
       }
 
+      if (quotaSpent) {
+        await supabase.rpc("complete_notification", {
+          _id: notification.id,
+          _ok: false,
+          _error: "waiting: the daily sending limit is reached",
+          _retry_after: QUOTA_WAIT,
+        });
+        waiting++;
+        continue;
+      }
+
       // Inside the existing try, on purpose: a failure to read the
       // attachment throws, the row is marked failed with the reason, and it
       // retries. It must NOT send an email whose copy says a record is
       // attached when nothing is.
       const attachment = await loadAttachment(supabase.storage, notification);
-      const result = await sendEmail(notification, attachment);
+      let result = await sendEmail(notification, attachment);
+      if (!result.ok && result.wait === "rate") {
+        await sleep(1000);
+        result = await sendEmail(notification, attachment);
+      }
+      const wait = result.ok || !result.wait
+        ? null
+        : result.wait === "quota" ? QUOTA_WAIT : RATE_WAIT;
+      if (!result.ok && result.wait === "quota") quotaSpent = true;
+
       await supabase.rpc("complete_notification", {
         _id: notification.id,
         _ok: result.ok,
         _provider_message_id: result.ok ? result.id : null,
         _error: result.ok ? null : result.error,
+        // A wait is not a failed attempt; complete_notification holds the row
+        // until then without counting it.
+        _retry_after: wait,
       });
-      result.ok ? sent++ : failed++;
+      if (result.ok) sent++;
+      else if (wait) waiting++;
+      else failed++;
+
+      await sleep(PACE_MS);
     } catch (error) {
       // Never let one bad row abandon the rest of the batch: an unreleased
       // claim would sit in 'sending' until the reclaim window expires.
@@ -424,11 +562,11 @@ async function sendSms(
   }
 
   console.log(
-    `Kids notifications: claimed ${notifications.length}, sent ${sent}, failed ${failed}, skipped ${skipped}`
+    `Kids notifications: claimed ${notifications.length}, sent ${sent}, failed ${failed}, skipped ${skipped}, waiting ${waiting}`
   );
 
   return new Response(
-    JSON.stringify({ claimed: notifications.length, sent, failed, skipped }),
+    JSON.stringify({ claimed: notifications.length, sent, failed, skipped, waiting }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } }
   );
 });

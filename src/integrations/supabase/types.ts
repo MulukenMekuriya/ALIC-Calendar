@@ -3455,6 +3455,7 @@ export type Database = {
           body: string
           channel: string
           check_in_id: string | null
+          check_in_ids: string[] | null
           child_person_id: string | null
           claimed_at: string | null
           consent_signature_id: string | null
@@ -3463,6 +3464,7 @@ export type Database = {
           id: string
           kids_session_id: string | null
           kind: string
+          not_before: string | null
           organization_id: string
           provider_message_id: string | null
           recipient_email: string | null
@@ -3484,6 +3486,7 @@ export type Database = {
           body: string
           channel?: string
           check_in_id?: string | null
+          check_in_ids?: string[] | null
           child_person_id?: string | null
           claimed_at?: string | null
           consent_signature_id?: string | null
@@ -3492,6 +3495,7 @@ export type Database = {
           id?: string
           kids_session_id?: string | null
           kind: string
+          not_before?: string | null
           organization_id: string
           provider_message_id?: string | null
           recipient_email?: string | null
@@ -3513,6 +3517,7 @@ export type Database = {
           body?: string
           channel?: string
           check_in_id?: string | null
+          check_in_ids?: string[] | null
           child_person_id?: string | null
           claimed_at?: string | null
           consent_signature_id?: string | null
@@ -3521,6 +3526,7 @@ export type Database = {
           id?: string
           kids_session_id?: string | null
           kind?: string
+          not_before?: string | null
           organization_id?: string
           provider_message_id?: string | null
           recipient_email?: string | null
@@ -5089,6 +5095,7 @@ export type Database = {
           body: string
           channel: string
           check_in_id: string | null
+          check_in_ids: string[] | null
           child_person_id: string | null
           claimed_at: string | null
           consent_signature_id: string | null
@@ -5097,6 +5104,7 @@ export type Database = {
           id: string
           kids_session_id: string | null
           kind: string
+          not_before: string | null
           organization_id: string
           provider_message_id: string | null
           recipient_email: string | null
@@ -5127,6 +5135,7 @@ export type Database = {
           _id: string
           _ok: boolean
           _provider_message_id?: string
+          _retry_after?: string
         }
         Returns: undefined
       }
@@ -5591,6 +5600,10 @@ export type Database = {
           expired_count: number
         }[]
       }
+      kids_family_notice: {
+        Args: { _check_in_ids: string[]; _kind: string; _with_code: boolean }
+        Returns: Record<string, unknown>
+      }
       kids_grant_consent_exception: {
         Args: {
           _child_person_id: string
@@ -5644,6 +5657,11 @@ export type Database = {
           status: string
         }[]
       }
+      kids_is_restricted_from: {
+        Args: { _child_person_id: string; _person_id: string }
+        Returns: boolean
+      }
+      kids_join_names: { Args: { _names: string[] }; Returns: string }
       kids_late_pickup_report: {
         Args: { _from: string; _organization_id: string; _to: string }
         Returns: {
@@ -6376,6 +6394,13 @@ export type Database = {
       }
       queue_consent_notifications: {
         Args: { _signature_id: string }
+        Returns: number
+      }
+      queue_family_notice: {
+        Args: {
+          _ci: Database["church"]["Tables"]["kids_check_ins"]["Row"]
+          _kind: string
+        }
         Returns: number
       }
       queue_missing_consent_notifications: { Args: never; Returns: number }
