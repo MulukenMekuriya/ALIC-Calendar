@@ -329,11 +329,11 @@ export const kidsStationService = {
   },
 
   /**
-   * Reissue a family's slip with a NEW code.
+   * Reissue a family's slip with the code they already have.
    *
-   * Rotation is the point. The previous slip stops resolving the instant this
-   * returns, so paper left in a car — or handed to the wrong person — is dead
-   * rather than live for the rest of the morning.
+   * The code is on every child's tag too, so a new one would leave the tags
+   * matching nothing. Only a batch checked in before 20260322340500, which has
+   * no code on file, still gets a new one.
    */
   async reprintLabel(
     batchId: string,

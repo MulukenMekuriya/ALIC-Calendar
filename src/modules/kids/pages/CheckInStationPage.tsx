@@ -767,7 +767,13 @@ export default function CheckInStationPage() {
      * different family than the one still sitting in this component's state,
      * and a tag naming the wrong adult is worse than one naming nobody.
      */
-    contactName?: string | null
+    contactName?: string | null,
+    /**
+     * The parent slip's own details, for a reprint. It may print fewer tags
+     * than the code collects, and the slip still counts every child; and it
+     * may be for a family other than the one in this component's state.
+     */
+    slip?: { householdName: string; childCount: number }
   ) => {
     const qr = await renderQrSvg(token);
     const dateLabel = formatSessionDate(session?.session_date);
@@ -791,8 +797,8 @@ export default function CheckInStationPage() {
         guardianPhone: r.guardian_phone ?? ctx.household?.masked_phone ?? null,
       })),
       {
-        householdName: ctx.household?.household_name ?? "",
-        childCount: rows.length,
+        householdName: slip?.householdName ?? ctx.household?.household_name ?? "",
+        childCount: slip?.childCount ?? rows.length,
         pickupCode: code,
         qrSvg: qr,
         serviceLabel: session?.service_label ?? "",
@@ -2006,20 +2012,20 @@ export default function CheckInStationPage() {
       {/* The New Family desk. Registering hands straight over to the normal
           check-in flow — the family is in the directory now, so nothing about
           the rest of the morning is special-cased. */}
-      {/* Reprinting ROTATES the code, so the label that comes out is the only
-          one that now works. Printed here rather than inside the dialog, so it
+      {/* Reprinting keeps the code, so the slip matches the tags the children
+          are already wearing. Printed here rather than inside the dialog, so it
           goes through the same path as every other label. */}
       <ReprintLabelDialog
         open={reprinting}
         onOpenChange={setReprinting}
         sessionId={session?.id ?? null}
-        onReprinted={async (rows) => {
+        onReprinted={async (rows, tags) => {
           setReprinting(false);
           if (rows.length === 0) return;
           await doPrint(
             rows[0].pickup_code,
             rows[0].pickup_token,
-            rows.map((r) => ({
+            tags.map((r) => ({
               child_name: r.child_name,
               room_name: r.room_name,
               tag_number: r.tag_number,
@@ -2028,7 +2034,8 @@ export default function CheckInStationPage() {
             })),
             // The batch's own household, not this component's state: a reprint
             // can be for a family it never checked in.
-            rows[0].household_name
+            rows[0].household_name,
+            { householdName: rows[0].household_name, childCount: rows.length }
           );
         }}
       />

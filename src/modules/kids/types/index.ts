@@ -198,7 +198,7 @@ export interface ReprintCandidateRow {
   checked_in_at: string;
 }
 
-/** One child on a reprinted label, with the ROTATED code. */
+/** One child on a reprinted label, with the family's own code. */
 export interface ReprintedLabelRow {
   batch_id: string;
   pickup_code: string;

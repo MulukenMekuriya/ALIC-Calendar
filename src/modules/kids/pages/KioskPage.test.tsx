@@ -20,7 +20,7 @@
  * THE SECOND GROUP is the welcome screen's two secondary actions, which are
  * the desk's own dialogs. The dialogs are stood in for: what they do inside is
  * theirs and tested nowhere near here; what the kiosk does with what they hand
- * back — a registered family, a rotated code — is what these check.
+ * back — a registered family, a reprinted code — is what these check.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -101,34 +101,46 @@ vi.mock("../components/ReprintLabelDialog", () => ({
     open: boolean;
     sessionId: string | null;
     onOpenChange: (open: boolean) => void;
-    onReprinted: (rows: unknown[]) => void;
-  }) =>
-    p.open ? (
+    onReprinted: (rows: unknown[], tags: unknown[]) => void;
+  }) => {
+    const rows = [
+      {
+        batch_id: "b7",
+        pickup_code: "K3PT",
+        pickup_token: "tok1",
+        household_name: "Bekele",
+        check_in_id: "c1",
+        child_name: "Abel Bekele",
+        room_name: "Shine 4th Grade",
+        tag_number: 11,
+        allergy_label: null,
+        guardian_phone: null,
+      },
+      {
+        batch_id: "b7",
+        pickup_code: "K3PT",
+        pickup_token: "tok1",
+        household_name: "Bekele",
+        check_in_id: "c2",
+        child_name: "Hana Bekele",
+        room_name: "Little Lambs",
+        tag_number: 12,
+        allergy_label: null,
+        guardian_phone: null,
+      },
+    ];
+    return p.open ? (
       <div role="dialog" aria-label="Reprint a pickup slip">
         <span data-testid="reprint-session">{p.sessionId ?? "any"}</span>
-        <button
-          type="button"
-          onClick={() =>
-            p.onReprinted([
-              {
-                batch_id: "b7",
-                pickup_code: "N3W1",
-                pickup_token: "tok2",
-                household_name: "Bekele",
-                check_in_id: "c1",
-                child_name: "Abel Bekele",
-                room_name: "Shine 4th Grade",
-                tag_number: 11,
-                allergy_label: null,
-                guardian_phone: null,
-              },
-            ])
-          }
-        >
+        <button type="button" onClick={() => p.onReprinted(rows, rows)}>
           Print a new slip
         </button>
+        <button type="button" onClick={() => p.onReprinted(rows, [])}>
+          Print the slip without tags
+        </button>
       </div>
-    ) : null,
+    ) : null;
+  },
 }));
 
 import KioskPage from "./KioskPage";
@@ -462,7 +474,7 @@ describe("the welcome screen's two secondary actions", () => {
     expect(screen.queryByRole("button", { name: /first time here/i })).not.toBeInTheDocument();
   });
 
-  it("replaces a lost slip and shows the new code with the classroom", async () => {
+  it("replaces a lost slip with the same code and every tag", async () => {
     const user = userEvent.setup();
     render(<KioskPage />);
     await user.click(await screen.findByRole("button", { name: /lost your slip/i }));
@@ -471,20 +483,37 @@ describe("the welcome screen's two secondary actions", () => {
     await user.click(screen.getByRole("button", { name: /print a new slip/i }));
 
     await screen.findByRole("heading", { name: /here is your new slip/i });
-    expect(screen.getByText("N3W1")).toBeInTheDocument();
-    expect(screen.getByText(/old slip no longer works/i)).toBeInTheDocument();
+    expect(screen.getByText("K3PT")).toBeInTheDocument();
+    expect(screen.getByText(/same code as before/i)).toBeInTheDocument();
     expect(screen.getByText("Abel Bekele").closest("li")).toHaveTextContent("Shine 4th Grade");
 
-    // Printed through the same path as a check-in, with the ROTATED code.
+    // Printed through the same path as a check-in, with the family's own code.
     await waitFor(() => expect(printLabels).toHaveBeenCalledTimes(1));
     const [childLabels, parentSlip] = printLabels.mock.calls[0];
     expect(parentSlip).toMatchObject({
       householdName: "Bekele",
-      pickupCode: "N3W1",
+      pickupCode: "K3PT",
+      childCount: 2,
       serviceLabel: "Second Service",
     });
-    expect(childLabels[0]).toMatchObject({ childName: "Abel Bekele", pickupCode: "N3W1" });
+    expect(childLabels).toHaveLength(2);
+    expect(childLabels[0]).toMatchObject({ childName: "Abel Bekele", pickupCode: "K3PT" });
     expect(checkIn).not.toHaveBeenCalled();
+  });
+
+  it("prints only the parent slip when every tag is left out", async () => {
+    const user = userEvent.setup();
+    render(<KioskPage />);
+    await user.click(await screen.findByRole("button", { name: /lost your slip/i }));
+    await user.click(screen.getByRole("button", { name: /without tags/i }));
+
+    await waitFor(() => expect(printLabels).toHaveBeenCalledTimes(1));
+    const [childLabels, parentSlip] = printLabels.mock.calls[0];
+    expect(childLabels).toEqual([]);
+    // The slip still counts both children: the code collects both.
+    expect(parentSlip).toMatchObject({ pickupCode: "K3PT", childCount: 2 });
+    // And the done screen still says where both of them are.
+    expect(screen.getByText("Hana Bekele").closest("li")).toHaveTextContent("Little Lambs");
   });
 
   it("wipes an open form when nobody touches the screen", async () => {
