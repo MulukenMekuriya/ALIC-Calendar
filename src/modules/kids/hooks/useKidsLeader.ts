@@ -6,7 +6,7 @@
  */
 
 import { useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { kidsLeaderService } from "../services/kidsLeaderService";
 import { kidsStationService } from "../services/kidsStationService";
@@ -18,6 +18,8 @@ export const kidsLeaderKeys = {
     [...kidsLeaderKeys.all, "roster", sessionId, roomId ?? "all"] as const,
   attendance: (orgId: string, from: string, to: string) =>
     [...kidsLeaderKeys.all, "attendance", orgId, from, to] as const,
+  childAttendance: (orgId: string, from: string, to: string) =>
+    [...kidsLeaderKeys.all, "child-attendance", orgId, from, to] as const,
   retention: (orgId: string) => [...kidsLeaderKeys.all, "retention", orgId] as const,
   accessSummary: (orgId: string, from: string, to: string) =>
     [...kidsLeaderKeys.all, "access-summary", orgId, from, to] as const,
@@ -105,6 +107,24 @@ export function useKidsAttendance(
     queryKey: kidsLeaderKeys.attendance(organizationId || "", from, to),
     queryFn: () => kidsLeaderService.attendance(organizationId!, from, to),
     enabled: !!organizationId && !!from && !!to,
+    // A new range keeps the old report on screen, dimmed, until it arrives,
+    // rather than flashing a spinner every time a date is nudged.
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** The by-child grid. Fetched only when that view is open. */
+export function useKidsChildAttendance(
+  organizationId: string | undefined,
+  from: string,
+  to: string,
+  enabled: boolean
+) {
+  return useQuery({
+    queryKey: kidsLeaderKeys.childAttendance(organizationId || "", from, to),
+    queryFn: () => kidsLeaderService.childAttendance(organizationId!, from, to),
+    enabled: enabled && !!organizationId && !!from && !!to,
+    placeholderData: keepPreviousData,
   });
 }
 

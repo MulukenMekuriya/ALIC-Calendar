@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
+import { summarizeDays, summarizeRooms, formatStay,
   sumAttendance,
   groupByDay,
   type AttendanceTotalsRow,
@@ -126,5 +126,56 @@ describe("groupByDay", () => {
 
   it("handles an empty report", () => {
     expect(groupByDay([])).toEqual([]);
+  });
+});
+
+describe("summarizeDays", () => {
+  const rows = [
+    { session_date: "2026-09-27", room_name: "A", children: 10, first_time_visitors: 1, volunteers: 0, overrides: 0, not_checked_out: 0, avg_minutes: 100 },
+    { session_date: "2026-09-27", room_name: "B", children: 20, first_time_visitors: 2, volunteers: 0, overrides: 0, not_checked_out: 0, avg_minutes: 100 },
+    { session_date: "2026-10-04", room_name: "A", children: 12, first_time_visitors: 0, volunteers: 0, overrides: 1, not_checked_out: 0, avg_minutes: 90 },
+    { session_date: "2026-10-04", room_name: "B", children: 14, first_time_visitors: 3, volunteers: 0, overrides: 0, not_checked_out: 0, avg_minutes: 90 },
+  ];
+
+  it("averages per date, finds the busiest, and compares the latest with the one before", () => {
+    const s = summarizeDays(groupByDay(rows));
+    expect(s.days).toBe(2);
+    expect(s.totals.children).toBe(56);
+    expect(s.perDay).toBe(28);
+    expect(s.peak).toEqual({ session_date: "2026-09-27", children: 30 });
+    expect(s.latest).toEqual({ session_date: "2026-10-04", children: 26, previous: 30 });
+  });
+
+  it("knows when no volunteer was recorded anywhere", () => {
+    expect(summarizeDays(groupByDay(rows)).volunteersRecorded).toBe(false);
+  });
+
+  it("has nothing to say about an empty range", () => {
+    const s = summarizeDays(groupByDay([]));
+    expect(s.perDay).toBeNull();
+    expect(s.latest).toBeNull();
+  });
+});
+
+describe("summarizeRooms", () => {
+  it("gives one row per room, busiest first, averaged over the dates it was open", () => {
+    const rooms = summarizeRooms([
+      { session_date: "2026-09-27", room_name: "Joy", age_band_name: null, children: 10, first_time_visitors: 1, volunteers: 0, overrides: 0, not_checked_out: 0, avg_minutes: 60 },
+      { session_date: "2026-10-04", room_name: "Joy", age_band_name: null, children: 14, first_time_visitors: 2, volunteers: 0, overrides: 0, not_checked_out: 0, avg_minutes: 60 },
+      { session_date: "2026-10-04", room_name: "Shine", age_band_name: "5th", children: 30, first_time_visitors: 0, volunteers: 0, overrides: 0, not_checked_out: 0, avg_minutes: 120 },
+    ]);
+    expect(rooms.map((r) => [r.room_name, r.sessions, r.average, r.peak, r.total])).toEqual([
+      ["Shine", 1, 30, 30, 30],
+      ["Joy", 2, 12, 14, 24],
+    ]);
+  });
+});
+
+describe("formatStay", () => {
+  it("reads like a time, not a number of minutes", () => {
+    expect(formatStay(48)).toBe("48m");
+    expect(formatStay(112)).toBe("1h 52m");
+    expect(formatStay(120)).toBe("2h");
+    expect(formatStay(null)).toBe("—");
   });
 });

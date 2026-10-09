@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322380000_attendance_by_child.sql	2026-10-09 14:27:49
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/8d2a7488-35b0-4b3c-bf61-5da83fde4a20/scratchpad/a2.sql	2026-10-09 14:28:10
+@@ -44,7 +44,7 @@
+ 
+   RETURN QUERY
+   WITH visits AS (
+-    SELECT DISTINCT ON (c.child_person_id, s.session_date)
++    SELECT
+            c.child_person_id AS child_id,
+            s.session_date AS on_date,
+            coalesce(r.name, c.label_room_name, 'Unassigned') AS room

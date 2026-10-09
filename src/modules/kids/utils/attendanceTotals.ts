@@ -125,3 +125,100 @@ export function groupByDay<T extends AttendanceTotalsRow>(
       serviceCount: new Set(dayRows.map((r) => r.service_label ?? "")).size,
     }));
 }
+
+/**
+ * The headline numbers for a range, read off the grouped days.
+ *
+ * `perDay` is the average children per date in the range, not per room, which
+ * is the number a leader means by "how many do we usually have". `latest` is
+ * compared with the date before it, so the change is week on week rather than
+ * against an average that the latest Sunday is itself part of.
+ */
+export interface AttendanceSummary {
+  days: number;
+  totals: AttendanceTotals;
+  perDay: number | null;
+  peak: { session_date: string; children: number } | null;
+  latest: { session_date: string; children: number; previous: number | null } | null;
+  /** False when no room recorded a volunteer anywhere in the range. */
+  volunteersRecorded: boolean;
+}
+
+export function summarizeDays<T extends AttendanceTotalsRow>(
+  days: readonly AttendanceDay<T>[]
+): AttendanceSummary {
+  const totals = sumAttendance(days.flatMap((d) => d.rows));
+  if (days.length === 0) {
+    return { days: 0, totals, perDay: null, peak: null, latest: null, volunteersRecorded: false };
+  }
+  const peak = days.reduce((best, d) => (d.totals.children > best.totals.children ? d : best));
+  // groupByDay is newest first.
+  const [latest, previous] = days;
+  return {
+    days: days.length,
+    totals,
+    perDay: Math.round(totals.children / days.length),
+    peak: { session_date: peak.session_date, children: peak.totals.children },
+    latest: {
+      session_date: latest.session_date,
+      children: latest.totals.children,
+      previous: previous ? previous.totals.children : null,
+    },
+    volunteersRecorded: totals.volunteers > 0,
+  };
+}
+
+/** One classroom across the whole range. */
+export interface RoomSummary {
+  room_name: string;
+  age_band_name: string | null;
+  /** Dates the room was open (had a row). */
+  sessions: number;
+  total: number;
+  /** Children per date it was open, rounded. */
+  average: number;
+  peak: number;
+  first_time_visitors: number;
+  avg_minutes: number | null;
+}
+
+/**
+ * The same report turned on its side: one row per classroom, busiest first.
+ * "Which rooms are growing" is a question the by-date view cannot answer
+ * without a pencil.
+ */
+export function summarizeRooms<
+  T extends AttendanceTotalsRow & { room_name: string; age_band_name?: string | null },
+>(rows: readonly T[]): RoomSummary[] {
+  const byRoom = new Map<string, T[]>();
+  for (const row of rows) {
+    const bucket = byRoom.get(row.room_name);
+    if (bucket) bucket.push(row);
+    else byRoom.set(row.room_name, [row]);
+  }
+  return [...byRoom.entries()]
+    .map(([room_name, roomRows]) => {
+      const totals = sumAttendance(roomRows);
+      const sessions = new Set(roomRows.map((r) => r.session_date)).size;
+      return {
+        room_name,
+        age_band_name: roomRows.find((r) => r.age_band_name)?.age_band_name ?? null,
+        sessions,
+        total: totals.children,
+        average: sessions > 0 ? Math.round(totals.children / sessions) : 0,
+        peak: Math.max(...roomRows.map((r) => r.children)),
+        first_time_visitors: totals.first_time_visitors,
+        avg_minutes: totals.avg_minutes,
+      };
+    })
+    .sort((a, b) => b.average - a.average || a.room_name.localeCompare(b.room_name));
+}
+
+/** "1h 52m", "48m", or an em dash when nobody was collected. */
+export function formatStay(minutes: number | null): string {
+  if (minutes === null) return "—";
+  if (minutes < 60) return `${minutes}m`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m === 0 ? `${h}h` : `${h}h ${m}m`;
+}

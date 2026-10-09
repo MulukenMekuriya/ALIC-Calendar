@@ -88,6 +88,16 @@ export interface AttendanceRow {
   avg_minutes: number | null;
 }
 
+/** One row from church.kids_child_attendance: a child, on a date they came. */
+export interface ChildAttendanceRow {
+  child_person_id: string;
+  child_name: string;
+  session_date: string;
+  room_name: string;
+  /** The child's first check-in ever, at this church. */
+  first_check_in: string;
+}
+
 /** One row from church.kids_exceptions_report. */
 export type ExceptionCategory =
   | "not_collected"
@@ -363,6 +373,21 @@ export const kidsLeaderService = {
     });
     throwRpc(error);
     return (data ?? []) as unknown as AttendanceRow[];
+  },
+
+  /** One row per child per date they were checked in. */
+  async childAttendance(
+    organizationId: string,
+    from: string,
+    to: string
+  ): Promise<ChildAttendanceRow[]> {
+    const { data, error } = await church().rpc("kids_child_attendance", {
+      _organization_id: organizationId,
+      _from: from,
+      _to: to,
+    });
+    throwRpc(error);
+    return (data ?? []) as unknown as ChildAttendanceRow[];
   },
 
   async exceptions(
