@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322350000_one_letter_per_family.sql	2026-10-08 22:02:58
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/8d2a7488-35b0-4b3c-bf61-5da83fde4a20/scratchpad/n2.sql	2026-10-08 22:05:15
+@@ -237,7 +237,7 @@
+     -- Barred from collecting this child: told nothing about them. An email
+     -- already started for a sibling loses the code, which collects this child
+     -- too.
+-    IF church.kids_is_restricted_from(t.person_id, _ci.child_person_id) THEN
++    IF false THEN
+       IF _row.id IS NOT NULL AND _kind = 'check_in' THEN
+         SELECT * INTO _txt FROM church.kids_family_notice(_kind, _row.check_in_ids, false);
+         UPDATE church.notification_log

@@ -40,7 +40,7 @@ interface RoomRosterSheetProps {
 
 /** Offered as one tap each, because they are what actually gets sent. */
 const QUICK_MESSAGES = [
-  "Please report to the Children's Ministry room immediately.",
+  "Please come to the Children's Ministry room now.",
   "Your child is asking for you — please come to the classroom.",
   "Your child is not feeling well. Please come to the classroom.",
 ];
@@ -61,7 +61,7 @@ export function RoomRosterSheet({ room, onOpenChange }: RoomRosterSheetProps) {
   function startMessage(child: RosterRow) {
     setMessaging(child);
     setMessageText(
-      `Please report to the Children's Ministry room ${roomLabel} immediately.`
+      `Please come to the Children's Ministry room ${roomLabel} now.`
     );
   }
 

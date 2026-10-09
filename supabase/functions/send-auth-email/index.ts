@@ -12,7 +12,9 @@ const corsHeaders = {
 const CHURCH_NAME =
   Deno.env.get("CHURCH_NAME") || "Addis Lidet International Church";
 const CHURCH_LOGO_URL =
-  Deno.env.get("CHURCH_LOGO_URL") || "https://addislidet.info/logo.png";
+  // addislidet.info/logo.png never existed: every password email showed a
+  // broken image. The app serves the logo itself.
+  Deno.env.get("CHURCH_LOGO_URL") || "https://www.addislidet.info/alic-logo.png";
 const APP_URL = Deno.env.get("APP_URL") || "https://app.addislidet.info";
 
 interface AuthEmailPayload {
