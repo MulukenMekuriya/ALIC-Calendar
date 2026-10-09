@@ -176,6 +176,43 @@ function framing(notification: QueuedNotification) {
 }
 
 /**
+ * The pickup code line, exactly as church.kids_family_notice writes it on a
+ * check-in email: "Your pickup code is YTRA." on a line of its own. Change one
+ * and the other must change with it, or the code goes back to being a
+ * sentence.
+ */
+const PICKUP_CODE_LINE = /^Your pickup code is ([A-Z0-9-]+)\.$/m;
+
+/** The body split around the pickup code, so the code can stand on its own. */
+function splitAtCode(notification: QueuedNotification) {
+  const m = notification.kind === "check_in"
+    ? notification.body.match(PICKUP_CODE_LINE)
+    : null;
+  if (!m || m.index === undefined) {
+    return { before: notification.body, code: null, after: "" };
+  }
+  return {
+    before: notification.body.slice(0, m.index).trimEnd(),
+    code: m[1],
+    after: notification.body.slice(m.index + m[0].length).trimStart(),
+  };
+}
+
+/**
+ * The pickup code, set the way the printed slip sets it: large, bold and
+ * spaced, in a red-bordered box, so a parent finds it at a glance at the
+ * classroom door.
+ */
+function codeBlock(code: string): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:2px solid #b22222;border-radius:10px;background:#fdf2f2;">
+          <tr><td style="padding:14px 18px;text-align:center;">
+            <div style="font-size:12px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#8b0000;">Your pickup code</div>
+            <div style="font-size:36px;font-weight:800;letter-spacing:0.25em;line-height:1.2;color:#18181b;font-family:'SF Mono',Menlo,Consolas,'Courier New',monospace;">${escapeHtml(code)}</div>
+          </td></tr>
+        </table>`;
+}
+
+/**
  * The email in the church's colours, with its logo and name.
  *
  * Tables for the header and inline styles throughout, because that is what
@@ -190,6 +227,9 @@ function renderEmail(notification: QueuedNotification): string {
   const ink = "#18181b";
   const muted = "#71717a";
   const para = `margin:0 0 16px;font-size:16px;line-height:1.65;color:${ink};`;
+  const prose = (text: string) =>
+    text ? `<p style="${para}">${escapeHtml(text).replace(/\n/g, "<br>")}</p>` : "";
+  const body = splitAtCode(notification);
 
   return `<!DOCTYPE html>
 <html>
@@ -209,7 +249,9 @@ function renderEmail(notification: QueuedNotification): string {
       <div style="padding:22px 22px 4px;">
         <p style="margin:0 0 14px;font-size:19px;font-weight:600;line-height:1.3;color:${ink};">${escapeHtml(f.title)}</p>
         ${f.greeting ? `<p style="${para}">${escapeHtml(f.greeting)}</p>` : ""}
-        <p style="${para}">${escapeHtml(notification.body).replace(/\n/g, "<br>")}</p>
+        ${prose(body.before)}
+        ${body.code ? codeBlock(body.code) : ""}
+        ${prose(body.after)}
         ${f.sentBy ? `<p style="margin:0 0 16px;font-size:13px;color:${muted};">Sent by ${escapeHtml(f.sentBy)}</p>` : ""}
         ${
           f.warm
@@ -234,9 +276,13 @@ function renderEmail(notification: QueuedNotification): string {
  */
 function renderText(notification: QueuedNotification): string {
   const f = framing(notification);
+  const body = splitAtCode(notification);
   return [
     f.greeting,
-    notification.body,
+    body.before,
+    // Plain text has no bold; capitals and a line of its own do the same job.
+    body.code ? `YOUR PICKUP CODE:  ${body.code}` : null,
+    body.after,
     f.sentBy ? `Sent by ${f.sentBy}` : null,
     f.warm ? `Be blessed · ${BLESSING_AM}\nAddis Lidet ${MINISTRY}` : null,
     f.warm ? VERSE : null,
