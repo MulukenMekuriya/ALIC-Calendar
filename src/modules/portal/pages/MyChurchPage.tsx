@@ -43,7 +43,7 @@
  * reports are the church's account of who runs what, not a self-description).
  */
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/shared/components/layout/DashboardLayout";
 import {
@@ -78,6 +78,7 @@ import { MyInformation } from "@/modules/members/components/MyInformation";
 import { useMyGiving, useMyGivingYears } from "@/modules/giving/hooks";
 import { formatMoney, METHOD_LABELS } from "@/modules/giving/utils/money";
 import { greeting } from "../utils/whenIsIt";
+import { ConsentCard } from "../components/ConsentCard";
 import {
   OverviewTab,
   MyStatementButton,
@@ -131,6 +132,25 @@ export default function MyChurchPage() {
       // A tab is not a place you want to press Back through six times.
       { replace: true }
     );
+
+  /*
+   * The consent reminder email links to ?tab=children&consent=1, which opens
+   * the form at once. Cleared as soon as it has, so a reload does not open it
+   * again over whatever the parent went on to do.
+   */
+  const openConsent = searchParams.get("consent") === "1";
+  const consentOpened = useCallback(
+    () =>
+      setSearchParams(
+        (prev) => {
+          const p = new URLSearchParams(prev);
+          p.delete("consent");
+          return p;
+        },
+        { replace: true }
+      ),
+    [setSearchParams]
+  );
 
   const { data: summary, isLoading } = usePortalSummary(orgId);
   const linked = summary?.linked === true;
@@ -433,7 +453,12 @@ export default function MyChurchPage() {
                 should not have to hunt for where its history went. The empty
                 state inside says plainly when there is nothing to show — and
                 now offers to add the first one. */}
-            <TabsContent value="children" className="mt-4">
+            <TabsContent value="children" className="mt-4 space-y-4">
+              <ConsentCard
+                enabled={linked}
+                autoOpen={openConsent}
+                onAutoOpened={consentOpened}
+              />
               <ChildrenTab
                 children={children}
                 checkIns={checkIns}

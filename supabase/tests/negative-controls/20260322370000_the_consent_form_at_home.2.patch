@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322370000_the_consent_form_at_home.sql	2026-10-09 11:38:12
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/8d2a7488-35b0-4b3c-bf61-5da83fde4a20/scratchpad/c2.sql	2026-10-09 11:39:48
+@@ -48,7 +48,7 @@
+        notice_text = replace(notice_text, 'From Sunday 1 November', 'From Sunday 6 December')
+  WHERE organization_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+    AND mode = 'block'
+-   AND enforce_from = DATE '2026-11-01';
++   AND enforce_from = DATE '2026-11-08';
+ 
+ -- ---------------------------------------------------------- 3. My Church
+ 

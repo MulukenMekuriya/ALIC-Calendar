@@ -130,3 +130,72 @@ export const PER_CHILD_SECTION_KEYS = ["photo_video"] as const;
 export function isPerChild(section: ConsentSection): boolean {
   return (PER_CHILD_SECTION_KEYS as readonly string[]).includes(section.key);
 }
+
+/**
+ * A section that asks ONE question with two or more answers: snacks, extra
+ * support, off-site trips, photos, and whether a child has a known medical
+ * condition. Exactly one answer is given.
+ *
+ * The desk once drew each of these as separate checkboxes, and two of the
+ * first seven forms said "may" and "may not" to the same question.
+ * sign_kids_consent applies this same rule and refuses anything else.
+ */
+export function isSingleChoice(section: ConsentSection): boolean {
+  return (
+    (section.kind === "choice" || section.kind === "fields") &&
+    (section.options?.length ?? 0) > 1
+  );
+}
+
+/** Answers per child, keyed by child id, for the per-child sections. */
+export type PerChildAnswers = Record<string, Record<string, boolean>>;
+
+/** The one answer chosen in a single-choice section, if exactly one is. */
+export function chosenOption(
+  section: ConsentSection,
+  answers: Record<string, boolean> | undefined,
+): string | null {
+  const chosen = (section.options ?? []).filter((o) => answers?.[o.key] === true);
+  return chosen.length === 1 ? chosen[0].key : null;
+}
+
+/**
+ * Answer a single-choice question: the chosen key true, every other answer to
+ * the same question false. Sending the falses is what makes the record say
+ * "no" rather than "not asked".
+ */
+export function choose(
+  section: ConsentSection,
+  answers: Record<string, boolean>,
+  key: string,
+): Record<string, boolean> {
+  const next = { ...answers };
+  for (const o of section.options ?? []) next[o.key] = o.key === key;
+  return next;
+}
+
+/**
+ * The sections on this surface that still need something from the parent: an
+ * unticked required acknowledgment, or a single-choice question without
+ * exactly one answer (for each child, where it is asked per child).
+ *
+ * Sections rather than keys, so the screen can say "Snacks" instead of an
+ * internal name, and so a parent is told which question and not just how many.
+ */
+export function unansweredSections(
+  doc: Pick<ConsentDocument, "body" | "required_acknowledgments">,
+  surface: Exclude<ConsentSurface, "both">,
+  answers: Record<string, boolean>,
+  perChild: PerChildAnswers,
+  childIds: string[],
+): ConsentSection[] {
+  const required = new Set(doc.required_acknowledgments);
+  return sectionsForSurface(doc.body, surface).filter((section) => {
+    if (isSingleChoice(section)) {
+      return isPerChild(section)
+        ? childIds.some((id) => chosenOption(section, perChild[id]) === null)
+        : chosenOption(section, answers) === null;
+    }
+    return (section.options ?? []).some((o) => required.has(o.key) && answers[o.key] !== true);
+  });
+}

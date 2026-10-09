@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322370000_the_consent_form_at_home.sql	2026-10-09 11:38:12
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/8d2a7488-35b0-4b3c-bf61-5da83fde4a20/scratchpad/c3.sql	2026-10-09 11:39:48
+@@ -299,7 +299,7 @@
+       AND NOT EXISTS (
+         SELECT 1 FROM church.kids_consent_reminders r
+         WHERE r.household_id = hh.id
+-          AND r.sent_at > now() - CASE WHEN _manual THEN interval '1 hour'
++          AND r.sent_at > now() - CASE WHEN _manual THEN interval '0 seconds'
+                                        ELSE interval '6 days' END)
+     GROUP BY hh.id
+   LOOP

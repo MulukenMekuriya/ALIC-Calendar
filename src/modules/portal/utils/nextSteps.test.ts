@@ -128,3 +128,16 @@ describe("joinNames", () => {
     expect(joinNames(["Selam", "Dawit", "Hana"])).toBe("Selam, Dawit and Hana");
   });
 });
+
+describe("the consent form", () => {
+  it("asks for it by name, ahead of the member's own details", () => {
+    const steps = buildNextSteps({ ...SETTLED, phone: null, consentNeeded: ["Hana", "Abel"] });
+    expect(steps.map((s) => s.id)).toEqual(["consent-form", "no-phone"]);
+    expect(steps[0].title).toBe("The consent form for Hana and Abel");
+    expect(steps[0].tab).toBe("children");
+  });
+
+  it("says nothing once every child is covered", () => {
+    expect(ids({ ...SETTLED, consentNeeded: [] })).toEqual([]);
+  });
+});

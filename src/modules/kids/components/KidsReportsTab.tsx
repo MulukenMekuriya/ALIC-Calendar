@@ -44,6 +44,7 @@ import {
 import { useKidsAttendance, useKidsExceptions } from "../hooks/useKidsLeader";
 import { LatePickupsPanel } from "./LatePickupsPanel";
 import { ConsentCoverageCard } from "./ConsentCoverageCard";
+import { ConsentFamiliesPanel } from "./ConsentFamiliesPanel";
 import { ConsentRuleCard } from "./ConsentRuleCard";
 import { AccessLogPanel } from "./AccessLogPanel";
 import { RetentionPanel } from "./RetentionPanel";
@@ -659,9 +660,11 @@ export function KidsReportsTab({
         )}
 
         <TabsContent value="consent" className="pt-4 space-y-4">
-          {/* The rule first, then the numbers. Somebody opening this tab on a
-              difficult Sunday morning is looking for the pause button, not
-              for a progress bar. */}
+          {/* The families first: who still needs to sign is what the ministry
+              opens this tab for, week to week. Then the rule, whose pause
+              button is one scroll away on a difficult Sunday, then the
+              numbers. */}
+          <ConsentFamiliesPanel organizationId={organizationId} canRemind={canWrite} />
           <ConsentRuleCard organizationId={organizationId} canEdit={canWrite} />
           <ConsentCoverageCard
             organizationId={organizationId}

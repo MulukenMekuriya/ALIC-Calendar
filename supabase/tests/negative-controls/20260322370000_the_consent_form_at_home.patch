@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322370000_the_consent_form_at_home.sql	2026-10-09 11:38:12
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/8d2a7488-35b0-4b3c-bf61-5da83fde4a20/scratchpad/c1.sql	2026-10-09 11:39:48
+@@ -553,7 +553,7 @@
+   -- Photo consent is per child, so it is counted per child.
+   FOR _section IN
+     SELECT sec FROM jsonb_array_elements(_doc.body) AS sec
+-    WHERE sec->>'kind' IN ('choice', 'fields')
++    WHERE false AND sec->>'kind' IN ('choice', 'fields')
+       AND jsonb_array_length(coalesce(sec->'options', '[]'::jsonb)) > 1
+       AND coalesce(sec->>'surface', 'both') IN ('both', _source)
+   LOOP

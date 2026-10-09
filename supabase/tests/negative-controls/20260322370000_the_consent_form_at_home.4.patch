@@ -1,0 +1,15 @@
+--- supabase/migrations/20260322370000_the_consent_form_at_home.sql	2026-10-09 11:38:12
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/8d2a7488-35b0-4b3c-bf61-5da83fde4a20/scratchpad/c4.sql	2026-10-09 11:39:48
+@@ -139,12 +139,6 @@
+ SET search_path = church, public
+ AS $$
+ BEGIN
+-  IF NOT church.has_permission_in_org(
+-           _organization_id,
+-           ARRAY['kids_admin','kids_leader','leadership_viewer']::church.module_permission[]) THEN
+-    RAISE EXCEPTION 'not_permitted' USING ERRCODE = '42501';
+-  END IF;
+-
+   RETURN QUERY
+   WITH kids AS (
+     SELECT hm.household_id, p.id,

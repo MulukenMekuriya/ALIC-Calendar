@@ -10,7 +10,8 @@
  * only door, and keeping every caller on it means the kiosk path is the
  * tested path rather than a special case.
  *
- * Signing lives in a later branch. This file only reads.
+ * Signing goes through it too: at the desk (signAtStation) and at home in My
+ * Church (signAtHome).
  */
 
 import { supabase } from "@/integrations/supabase/client";
@@ -378,4 +379,126 @@ export const consentService = {
     throwRpc(error);
     return (data as unknown as ConsentPolicy[] | null)?.[0] ?? null;
   },
+
+  /** My Church: the signed-in parent's children and where each stands. */
+  async myStatus(): Promise<MyConsentRow[]> {
+    const { data, error } = await church().rpc("my_consent_status");
+    throwRpc(error);
+    return (data ?? []) as unknown as MyConsentRow[];
+  },
+
+  /**
+   * A parent signing at home. The signer is their own person in the
+   * household; sign_kids_consent refuses anybody else on this path.
+   */
+  async signAtHome(v: {
+    organizationId: string;
+    householdId: string;
+    childPersonIds: string[];
+    signerPersonId: string;
+    signerPrintedName: string;
+    answers: Record<string, boolean>;
+    perChildAnswers: Record<string, Record<string, boolean>>;
+    signerRelationship?: string | null;
+  }): Promise<void> {
+    const { error } = await church().rpc("sign_kids_consent", {
+      _organization_id: v.organizationId,
+      _household_id: v.householdId,
+      _child_person_ids: v.childPersonIds,
+      _signer_person_id: v.signerPersonId,
+      _signer_printed_name: v.signerPrintedName,
+      _source: "portal",
+      _answers: v.answers,
+      _per_child_answers: v.perChildAnswers,
+      _signer_relationship: v.signerRelationship ?? null,
+      _user_agent: typeof navigator === "undefined" ? null : navigator.userAgent,
+    });
+    throwRpc(error);
+  },
+
+  /**
+   * A short-lived link to a signed form. consent_pdf_signed_url decides who
+   * may (the family, kids admins and the office) and logs that it was opened.
+   */
+  async signedFormUrl(signatureId: string): Promise<string> {
+    const { data, error } = await church().rpc("consent_pdf_signed_url", {
+      _signature_id: signatureId,
+    });
+    throwRpc(error);
+    const row = (data as unknown as { storage_path: string; expires_in: number }[] | null)?.[0];
+    if (!row) throw new Error("The form could not be found.");
+    const { data: link, error: linkError } = await supabase.storage
+      .from("kids-consent-forms")
+      .createSignedUrl(row.storage_path, row.expires_in);
+    if (linkError || !link) throw linkError ?? new Error("The form could not be opened.");
+    return link.signedUrl;
+  },
+
+  /** The Consent tab's list: one row per family with children. */
+  async roster(organizationId: string): Promise<ConsentRosterRow[]> {
+    const { data, error } = await church().rpc("kids_consent_roster", {
+      _organization_id: organizationId,
+    });
+    throwRpc(error);
+    return (data ?? []) as unknown as ConsentRosterRow[];
+  },
+
+  /**
+   * "Please fill in the consent form", to the families given, or with none
+   * given, to every family not yet signed whose children came in the last
+   * eight weeks.
+   */
+  async sendReminders(
+    organizationId: string,
+    householdIds: string[] | null,
+  ): Promise<{ households: number; emails: number }> {
+    const { data, error } = await church().rpc("kids_send_consent_reminders", {
+      _organization_id: organizationId,
+      _household_ids: householdIds,
+    });
+    throwRpc(error);
+    const row = (data as unknown as { households: number; emails: number }[] | null)?.[0];
+    return row ?? { households: 0, emails: 0 };
+  },
 };
+
+/** One of my children, on My Church. */
+export interface MyConsentRow {
+  organization_id: string;
+  household_id: string;
+  household_name: string | null;
+  signer_person_id: string;
+  signer_name: string;
+  child_person_id: string;
+  child_name: string;
+  state: ConsentStateValue;
+  signature_id: string | null;
+  signed_at: string | null;
+  resign_due_by: string | null;
+  has_pdf: boolean;
+}
+
+/** Where a family stands, as the Consent tab's list shows it. */
+export type ConsentRosterStatus =
+  | "not_signed"
+  | "partly"
+  | "out_of_date"
+  | "resign_due"
+  | "signed";
+
+export interface ConsentRosterRow {
+  household_id: string;
+  household_name: string;
+  children: { id: string; name: string; state: ConsentStateValue }[];
+  status: ConsentRosterStatus;
+  resign_due_by: string | null;
+  signature_id: string | null;
+  signed_at: string | null;
+  signed_by: string | null;
+  source: "kiosk" | "portal" | null;
+  has_pdf: boolean;
+  can_open: boolean;
+  emailable_adults: number;
+  last_check_in: string | null;
+  last_reminded_at: string | null;
+}

@@ -59,6 +59,11 @@ export interface NextStepInputs {
   givingYears: { tax_year: number }[];
   /** church.my_workflow_cards. Empty for the great majority of members. */
   cards: { is_overdue: boolean }[];
+  /**
+   * First names of the children whose consent form is missing or needs
+   * filling in again, from church.my_consent_status. Absent while it loads.
+   */
+  consentNeeded?: string[];
   /** Injected so the January rule is testable in July. */
   today: Date;
 }
@@ -105,6 +110,27 @@ export function buildNextSteps(input: NextStepInputs): NextStep[] {
       detail: "Nothing overdue. A note or a phone call moves a card on.",
       tab: "followups",
       actionLabel: "Open follow-ups",
+    });
+  }
+
+  /* ------------------------------------------------------------------ *
+   * The children's consent form                                        *
+   * ------------------------------------------------------------------ */
+  //
+  // Before a child goes to a classroom the church asks for it, and from the
+  // enforcement date the desk asks for it in the queue. Doing it here, at
+  // home, is the easy way, so it comes before everything except a follow-up
+  // somebody is already waiting on.
+  const consent = input.consentNeeded ?? [];
+  if (consent.length > 0) {
+    tasks.push({
+      id: "consent-form",
+      tone: "todo",
+      title: `The consent form for ${joinNames(consent)}`,
+      detail:
+        "We ask every family to fill it in before the children go to a classroom. It takes about five minutes.",
+      tab: "children",
+      actionLabel: "Fill in the form",
     });
   }
 

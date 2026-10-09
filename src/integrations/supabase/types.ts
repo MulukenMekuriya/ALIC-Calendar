@@ -2361,6 +2361,47 @@ export type Database = {
         }
         Relationships: []
       }
+      kids_consent_reminders: {
+        Row: {
+          emails: number
+          household_id: string
+          id: string
+          manual: boolean
+          organization_id: string
+          sent_at: string
+          sent_by: string | null
+          sent_by_name: string | null
+        }
+        Insert: {
+          emails: number
+          household_id: string
+          id?: string
+          manual: boolean
+          organization_id: string
+          sent_at?: string
+          sent_by?: string | null
+          sent_by_name?: string | null
+        }
+        Update: {
+          emails?: number
+          household_id?: string
+          id?: string
+          manual?: boolean
+          organization_id?: string
+          sent_at?: string
+          sent_by?: string | null
+          sent_by_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kids_consent_reminders_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kids_events: {
         Row: {
           auto_expire_minutes_after_end: number
@@ -5546,11 +5587,31 @@ export type Database = {
           updated_by_name: string
         }[]
       }
+      kids_consent_reminder_sweep: { Args: never; Returns: number }
       kids_consent_resign_sweep: {
         Args: never
         Returns: {
           overdue: number
           reminded: number
+        }[]
+      }
+      kids_consent_roster: {
+        Args: { _organization_id: string }
+        Returns: {
+          can_open: boolean
+          children: Json
+          emailable_adults: number
+          has_pdf: boolean
+          household_id: string
+          household_name: string
+          last_check_in: string
+          last_reminded_at: string
+          resign_due_by: string
+          signature_id: string
+          signed_at: string
+          signed_by: string
+          source: string
+          status: string
         }[]
       }
       kids_decline_incident: {
@@ -5838,6 +5899,16 @@ export type Database = {
           room_id: string
         }[]
       }
+      kids_queue_consent_reminders: {
+        Args: {
+          _actor: string
+          _actor_name: string
+          _household_ids: string[]
+          _manual: boolean
+          _organization_id: string
+        }
+        Returns: Record<string, unknown>
+      }
       kids_raise_check_in_hold: {
         Args: {
           _child_person_id: string
@@ -5913,6 +5984,10 @@ export type Database = {
           status: string
           tag_number: number
         }[]
+      }
+      kids_send_consent_reminders: {
+        Args: { _household_ids?: string[]; _organization_id: string }
+        Returns: Record<string, unknown>
       }
       kids_send_incident_to_parent: {
         Args: { _incident_id: string; _source?: string }
@@ -6124,6 +6199,23 @@ export type Database = {
           service_label: string
           session_date: string
           status: string
+        }[]
+      }
+      my_consent_status: {
+        Args: never
+        Returns: {
+          child_name: string
+          child_person_id: string
+          has_pdf: boolean
+          household_id: string
+          household_name: string
+          organization_id: string
+          resign_due_by: string
+          signature_id: string
+          signed_at: string
+          signer_name: string
+          signer_person_id: string
+          state: string
         }[]
       }
       my_current_shift: {
