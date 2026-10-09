@@ -81,6 +81,7 @@ const PARENT_KINDS = new Set([
   "kids_consent_resign_needed",
   "kids_consent_resign_reminder",
   "kids_consent_resign_overdue",
+  "kids_consent_requested",
 ]);
 
 const MINISTRY = "Children's Ministry";
@@ -122,7 +123,8 @@ interface QueuedNotification {
     | "kids_consent_resign_reminder"
     | "kids_consent_resign_overdue"
     | "kids_consent_signed"
-    | "kids_consent_filed";
+    | "kids_consent_filed"
+    | "kids_consent_requested";
   channel: "email" | "sms";
   recipient_name: string | null;
   recipient_email: string | null;
@@ -199,6 +201,26 @@ function splitAtCode(notification: QueuedNotification) {
 }
 
 /**
+ * A line holding only a link to the church's own app becomes a button. The
+ * consent reminder puts the form's address on a line of its own for exactly
+ * this; in the plain-text copy it stays the address, which every mail app
+ * makes clickable.
+ */
+const APP_LINK_LINE = /^(https:\/\/www\.addislidet\.info\/\S+)$/;
+
+const BUTTON_LABEL: Partial<Record<QueuedNotification["kind"], string>> = {
+  kids_consent_requested: "Fill in the consent form",
+};
+
+function linkButton(url: string, label: string): string {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 16px;">
+          <tr><td style="border-radius:8px;background:#b22222;">
+            <a href="${escapeHtml(url)}" style="display:inline-block;padding:12px 22px;font-size:16px;font-weight:600;color:#ffffff;text-decoration:none;">${escapeHtml(label)}</a>
+          </td></tr>
+        </table>`;
+}
+
+/**
  * The pickup code, set the way the printed slip sets it: large, bold and
  * spaced, in a red-bordered box, so a parent finds it at a glance at the
  * classroom door.
@@ -227,8 +249,18 @@ function renderEmail(notification: QueuedNotification): string {
   const ink = "#18181b";
   const muted = "#71717a";
   const para = `margin:0 0 16px;font-size:16px;line-height:1.65;color:${ink};`;
+  // Paragraph by paragraph, so a link standing alone can become a button.
   const prose = (text: string) =>
-    text ? `<p style="${para}">${escapeHtml(text).replace(/\n/g, "<br>")}</p>` : "";
+    text
+      .split(/\n{2,}/)
+      .filter((block) => block.trim())
+      .map((block) => {
+        const link = block.trim().match(APP_LINK_LINE);
+        return link
+          ? linkButton(link[1], BUTTON_LABEL[notification.kind] ?? "Open")
+          : `<p style="${para}">${escapeHtml(block).replace(/\n/g, "<br>")}</p>`;
+      })
+      .join("\n        ");
   const body = splitAtCode(notification);
 
   return `<!DOCTYPE html>

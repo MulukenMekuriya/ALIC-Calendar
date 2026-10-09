@@ -72,6 +72,8 @@ import {
   useMyChildrenCheckIns,
 } from "../hooks";
 import { buildNextSteps, type NextStep } from "../utils/nextSteps";
+import { useMyConsentStatus } from "@/modules/kids/hooks/useConsent";
+import { consentNeededNames } from "../utils/consentFamilies";
 import {
   describeWhen,
   describeMeeting,
@@ -209,9 +211,11 @@ export function OverviewTab({
    */
   const { data: gifts } = useMyGiving(null);
   const { data: checkIns } = useMyChildrenCheckIns(30, linked);
+  const { data: consentRows } = useMyConsentStatus(linked);
 
   const steps = buildNextSteps({
     linked,
+    consentNeeded: consentNeededNames(consentRows),
     phone: summary?.phone,
     email: summary?.email,
     householdSize: summary?.household_size,

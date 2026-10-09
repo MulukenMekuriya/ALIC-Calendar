@@ -6,6 +6,10 @@ import {
   sectionForOption,
   unsatisfiableRequirements,
   isPerChild,
+  isSingleChoice,
+  chosenOption,
+  choose,
+  unansweredSections,
   type ConsentDocument,
   type ConsentSection,
 } from "./consentDocument";
@@ -49,6 +53,7 @@ const BODY: ConsentSection[] = [
     "emergency_medical_authorization",
   ]),
   section("physician_insurance", "fields", "portal"),
+  section("snack", "choice", "both", ["snack_authorized", "snack_declined"]),
   section("photo_video", "choice", "both", ["photo_permitted", "photo_declined"]),
   section("acknowledgment", "signature", "both", ["parent_acknowledgment"]),
 ];
@@ -190,5 +195,69 @@ describe("isPerChild", () => {
   it("does not mark the household-wide sections", () => {
     expect(isPerChild(section("off_site", "choice", "both"))).toBe(false);
     expect(isPerChild(section("snack", "choice", "both"))).toBe(false);
+  });
+});
+
+describe("single-choice questions", () => {
+  const snack = BODY.find((s) => s.key === "snack")!;
+  const health = BODY.find((s) => s.key === "health_information")!;
+
+  it("counts a two-answer choice or fields section, and nothing else", () => {
+    expect(isSingleChoice(snack)).toBe(true);
+    expect(isSingleChoice(health)).toBe(true);
+    expect(isSingleChoice(BODY.find((s) => s.key === "safety_acknowledgment")!)).toBe(false);
+    expect(isSingleChoice(BODY.find((s) => s.key === "physician_insurance")!)).toBe(false);
+  });
+
+  it("choosing one answer clears the other, so the record never says both", () => {
+    const yes = choose(snack, {}, "snack_authorized");
+    expect(yes).toEqual({ snack_authorized: true, snack_declined: false });
+    const no = choose(snack, yes, "snack_declined");
+    expect(no).toEqual({ snack_authorized: false, snack_declined: true });
+    expect(chosenOption(snack, no)).toBe("snack_declined");
+  });
+
+  it("treats both answers ticked as no answer at all", () => {
+    expect(chosenOption(snack, { snack_authorized: true, snack_declined: true })).toBeNull();
+  });
+});
+
+describe("unansweredSections", () => {
+  const all: Record<string, boolean> = Object.fromEntries(REQUIRED.map((k) => [k, true]));
+  const answered = {
+    ...all,
+    health_none_known: true,
+    snack_authorized: true,
+    sick_policy_understood: true,
+  };
+  const photos = { c1: { photo_permitted: true }, c2: { photo_declined: true } };
+
+  it("is empty when every question has its answer", () => {
+    expect(unansweredSections(DOC, "portal", answered, photos, ["c1", "c2"])).toEqual([]);
+  });
+
+  it("names the question left unanswered", () => {
+    const { snack_authorized: _, ...noSnack } = answered;
+    const keys = unansweredSections(DOC, "kiosk", noSnack, photos, ["c1", "c2"]).map((s) => s.key);
+    expect(keys).toEqual(["snack"]);
+  });
+
+  it("asks the photo question of every child, not just the first", () => {
+    const keys = unansweredSections(DOC, "kiosk", answered, { c1: { photo_permitted: true } }, [
+      "c1",
+      "c2",
+    ]).map((s) => s.key);
+    expect(keys).toEqual(["photo_video"]);
+  });
+
+  it("still requires each acknowledgment ticked", () => {
+    const keys = unansweredSections(
+      DOC,
+      "kiosk",
+      { ...answered, safety_reachable: false },
+      photos,
+      ["c1", "c2"],
+    ).map((s) => s.key);
+    expect(keys).toEqual(["safety_acknowledgment"]);
   });
 });

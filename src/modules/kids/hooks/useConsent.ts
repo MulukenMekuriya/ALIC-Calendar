@@ -21,6 +21,8 @@ export const consentKeys = {
   childState: (childId: string, householdId: string | null) =>
     [...consentKeys.all, "child", childId, householdId ?? "desk"] as const,
   medical: (childId: string) => [...consentKeys.all, "medical", childId] as const,
+  mine: () => [...consentKeys.all, "mine"] as const,
+  roster: (orgId: string) => [...consentKeys.all, "roster", orgId] as const,
 };
 
 export function useConsentDocument(
@@ -123,6 +125,48 @@ export function useSetConsentMode() {
     onSuccess: (_r, vars) => {
       qc.invalidateQueries({ queryKey: consentKeys.policy(vars.organizationId) });
       qc.invalidateQueries({ queryKey: consentKeys.coverage(vars.organizationId) });
+    },
+  });
+}
+
+/** My Church: my children and where each one stands. */
+export function useMyConsentStatus(enabled = true) {
+  return useQuery({
+    queryKey: consentKeys.mine(),
+    queryFn: () => consentService.myStatus(),
+    enabled,
+    staleTime: 60 * 1000,
+  });
+}
+
+/** A parent signing at home. Refreshes their own status and the admin's view. */
+export function useSignConsentAtHome() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: consentService.signAtHome,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: consentKeys.all });
+    },
+  });
+}
+
+/** The Consent tab's list of families. */
+export function useConsentRoster(organizationId: string | undefined) {
+  return useQuery({
+    queryKey: consentKeys.roster(organizationId ?? "none"),
+    queryFn: () => consentService.roster(organizationId!),
+    enabled: !!organizationId,
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useSendConsentReminders(organizationId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (householdIds: string[] | null) =>
+      consentService.sendReminders(organizationId!, householdIds),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: consentKeys.roster(organizationId ?? "none") });
     },
   });
 }

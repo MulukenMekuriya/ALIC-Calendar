@@ -18,10 +18,14 @@
  * combined tick is one thing to deny afterwards and four are four.
  *
  * SECTION 4 DOES NOT ASK FOR MEDICAL TEXT AT A QUEUE. It shows what is
- * already on file and offers "This is correct" or "Something has changed".
- * The second does not open a medical form with people waiting; it records
- * that a follow-up is wanted. A form that silently asserts a negative because
- * nobody asked is worse than no form.
+ * already on file, asks the form's own one-answer health question, and offers
+ * "Something has changed". That does not open a medical form with people
+ * waiting; it records that a follow-up is wanted. A form that silently asserts
+ * a negative because nobody asked is worse than no form.
+ *
+ * ONE ANSWER TO ONE QUESTION. The questions themselves are ConsentQuestions,
+ * shared with My Church: an either/or question is a single choice, not two
+ * boxes that could both be ticked.
  *
  * TYPED NAME, NOT A DRAWN MARK. A finger-drawn squiggle on a shared tablet is
  * worth LESS evidentially: it matches no specimen the church holds, anyone
@@ -55,7 +59,8 @@ import { Loader2, ShieldCheck } from "lucide-react";
 import { useToast } from "@/shared/hooks/use-toast";
 import { consentService, type ScreenedChild } from "../services/consentService";
 import { useConsentDocument } from "../hooks/useConsent";
-import { sectionsForSurface, missingAcknowledgments } from "../utils/consentDocument";
+import { unansweredSections, type PerChildAnswers } from "../utils/consentDocument";
+import { ConsentQuestions } from "./ConsentQuestions";
 import { errorMessage } from "../services/rpcError";
 
 interface Props {
@@ -97,8 +102,8 @@ export function ConsentSheet({
   const [signerId, setSignerId] = useState("");
   const [printedName, setPrintedName] = useState("");
   const [relationship, setRelationship] = useState("");
-  const [ticked, setTicked] = useState<Record<string, boolean>>({});
-  const [photoDeclined, setPhotoDeclined] = useState<Record<string, boolean>>({});
+  const [answers, setAnswers] = useState<Record<string, boolean>>({});
+  const [perChild, setPerChild] = useState<PerChildAnswers>({});
   const [medicalChanged, setMedicalChanged] = useState(false);
   const [saving, setSaving] = useState(false);
   const [exceptionReason, setExceptionReason] = useState("");
@@ -141,50 +146,32 @@ export function ConsentSheet({
     };
   }, [open, childIds, shiftToken, toast]);
 
-  const sections = useMemo(
-    () => (doc ? sectionsForSurface(doc.body, "kiosk") : []),
-    [doc],
-  );
-
-  const missing = useMemo(
-    () =>
-      doc
-        ? missingAcknowledgments(
-            doc.required_acknowledgments,
-            Object.entries(ticked)
-              .filter(([, v]) => v)
-              .map(([k]) => k),
-          )
-        : [],
-    [doc, ticked],
+  const unanswered = useMemo(
+    () => (doc ? unansweredSections(doc, "kiosk", answers, perChild, childIds) : []),
+    [doc, answers, perChild, childIds],
   );
 
   const nobodyCanBeEmailed =
     signers.length > 0 && signers.every((s) => !s.has_email);
 
   const canSign =
-    !!doc && !!householdId && !!signerId && printedName.trim().length >= 2 && missing.length === 0;
+    !!doc && !!householdId && !!signerId && printedName.trim().length >= 2 && unanswered.length === 0;
 
   async function onSign() {
     if (!householdId || !doc) return;
     setSaving(true);
     try {
-      const answers: Record<string, boolean> = { ...ticked };
-      if (medicalChanged) answers.medical_needs_review = true;
-
-      const perChild: Record<string, Record<string, boolean>> = {};
-      for (const c of screened) {
-        perChild[c.child_person_id] = photoDeclined[c.child_person_id]
-          ? { photo_declined: true }
-          : { photo_permitted: true };
-      }
+      // No answer is assumed for anybody: every question was answered on
+      // screen, and sign_kids_consent checks that again.
+      const given: Record<string, boolean> = { ...answers };
+      if (medicalChanged) given.medical_needs_review = true;
 
       await consentService.signAtStation({
         householdId,
         childPersonIds: childIds,
         signerPersonId: signerId,
         signerPrintedName: printedName.trim(),
-        answers,
+        answers: given,
         perChildAnswers: perChild,
         signerRelationship: relationship.trim() || null,
         shiftToken,
@@ -298,68 +285,17 @@ export function ConsentSheet({
               </label>
             </section>
 
-            {/* The document's own sections ---------------------------------- */}
-            {sections
-              .filter((s) => s.key !== "child_information" && s.key !== "health_information")
-              .map((section) => (
-                <section key={section.key} className="space-y-1.5">
-                  <p className="text-sm font-medium">{section.heading}</p>
-                  {section.text && (
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      {section.text}
-                    </p>
-                  )}
-
-                  {section.key === "photo_video"
-                    ? /* PER CHILD, not per household. photo_consent is a
-                         per-child column and one household answer applied to
-                         N children overwrites real differences between them. */
-                      screened.map((c) => (
-                        <label
-                          key={c.child_person_id}
-                          className="flex items-start gap-2 text-sm pt-0.5"
-                        >
-                          <Checkbox
-                            checked={!!photoDeclined[c.child_person_id]}
-                            onCheckedChange={(v) =>
-                              setPhotoDeclined((prev) => ({
-                                ...prev,
-                                [c.child_person_id]: v === true,
-                              }))
-                            }
-                            className="mt-0.5"
-                          />
-                          <span>Please do not use photographs of {c.child_name}</span>
-                        </label>
-                      ))
-                    : (section.options ?? []).map((option) => {
-                        const required = doc.required_acknowledgments.includes(option.key);
-                        return (
-                          <label
-                            key={option.key}
-                            className="flex items-start gap-2 text-sm pt-0.5"
-                          >
-                            <Checkbox
-                              checked={!!ticked[option.key]}
-                              onCheckedChange={(v) =>
-                                setTicked((prev) => ({ ...prev, [option.key]: v === true }))
-                              }
-                              className="mt-0.5"
-                            />
-                            <span>
-                              {option.text}
-                              {required && !ticked[option.key] && (
-                                <span className="text-amber-700 dark:text-amber-500">
-                                  {" "}
-                                  (needed)
-                                </span>
-                              )}
-                            </span>
-                          </label>
-                        );
-                      })}
-                </section>
-              ))}
+            {/* The document's own questions ------------------------------- */}
+            <ConsentQuestions
+              doc={doc}
+              surface="kiosk"
+              childList={screened.map((c) => ({ id: c.child_person_id, name: c.child_name }))}
+              answers={answers}
+              perChild={perChild}
+              onAnswersChange={setAnswers}
+              onPerChildChange={setPerChild}
+              unanswered={unanswered}
+            />
 
             {/* The signature ------------------------------------------------ */}
             <section className="rounded-md border p-3 space-y-3">
@@ -440,10 +376,9 @@ export function ConsentSheet({
                 </div>
               )}
 
-              {missing.length > 0 && (
+              {unanswered.length > 0 && (
                 <p className="text-xs text-amber-700 dark:text-amber-500">
-                  {missing.length} {missing.length === 1 ? "item" : "items"} above still
-                  need agreeing to.
+                  Still to answer: {unanswered.map((u) => u.heading).join("; ")}
                 </p>
               )}
             </section>
