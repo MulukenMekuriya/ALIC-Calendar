@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { safeNext } from "../utils/safeNext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -147,6 +148,8 @@ const Auth = () => {
   const [signInProblem, setSignInProblem] = useState<SignInProblem | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  // Where they were going before they were asked to sign in. See safeNext.
+  const [searchParams] = useSearchParams();
 
   // Editing either credential retracts the complaint about the last attempt:
   // leaving "Wrong email or password" on screen while somebody retypes reads
@@ -182,7 +185,7 @@ const Auth = () => {
       if (error) {
         setSignInProblem(whySignInFailed(error));
       } else {
-        navigate("/dashboard");
+        navigate(safeNext(searchParams.get("next")), { replace: true });
       }
     } catch (error) {
       if (error instanceof z.ZodError) {

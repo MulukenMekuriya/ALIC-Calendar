@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322400000_the_consent_link_goes_to_alic_org.sql	2026-10-09 17:11:13
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/8d2a7488-35b0-4b3c-bf61-5da83fde4a20/scratchpad/l1.sql	2026-10-09 17:11:22
+@@ -29,7 +29,7 @@
+   _body TEXT;
+   _subject TEXT;
+   _n INTEGER;
+-  _link CONSTANT TEXT := 'https://alic.org/my?tab=children&consent=1';
++  _link CONSTANT TEXT := 'https://www.addislidet.info/my?tab=children&consent=1';
+ BEGIN
+   households := 0;
+   emails := 0;

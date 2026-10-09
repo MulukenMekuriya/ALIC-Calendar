@@ -31,9 +31,9 @@ vi.mock("react-router-dom", async () => {
 
 import Auth from "./Auth";
 
-const renderAuth = () =>
+const renderAuth = (at = "/auth") =>
   render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[at]}>
       <Auth />
     </MemoryRouter>,
   );
@@ -66,7 +66,7 @@ describe("Auth sign-in failures", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent(/wrong email or password/i);
-    expect(navigate).not.toHaveBeenCalledWith("/dashboard");
+    expect(navigate).not.toHaveBeenCalled();
 
     // Still there a moment later — a toast would have begun dismissing itself.
     await new Promise((r) => setTimeout(r, 50));
@@ -144,5 +144,32 @@ describe("Auth sign-in failures", () => {
 
     const live = container.querySelector('[aria-live="assertive"]');
     expect(live?.contains(screen.getByRole("alert"))).toBe(true);
+  });
+});
+
+describe("Auth sign-in success", () => {
+  beforeEach(() => {
+    signInWithPassword.mockReset();
+    navigate.mockReset();
+    signInWithPassword.mockResolvedValue({ error: null });
+  });
+  afterEach(cleanup);
+
+  it("returns a parent to the consent form their email link opened", async () => {
+    const user = userEvent.setup();
+    renderAuth("/auth?next=%2Fmy%3Ftab%3Dchildren%26consent%3D1");
+    await fillIn(user);
+    await user.click(screen.getByRole("button", { name: /sign in/i }));
+    await vi.waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith("/my?tab=children&consent=1", { replace: true }),
+    );
+  });
+
+  it("refuses to send anyone off the site, and goes to the dashboard instead", async () => {
+    const user = userEvent.setup();
+    renderAuth("/auth?next=https%3A%2F%2Fevil.example%2F");
+    await fillIn(user);
+    await user.click(screen.getByRole("button", { name: /sign in/i }));
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith("/dashboard", { replace: true }));
   });
 });
