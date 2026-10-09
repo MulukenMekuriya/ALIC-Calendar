@@ -20,6 +20,7 @@ import {
 } from "@/shared/contexts";
 import { SearchProvider } from "@/shared/contexts/SearchContext";
 import { useIsKiosk } from "@/shared/hooks/useIsKiosk";
+import { signInFor } from "@/modules/auth/utils/safeNext";
 import { useCapabilities } from "@/shared/hooks/useCapabilities";
 import type { Capability } from "@/shared/lib/capabilities";
 
@@ -168,7 +169,9 @@ const ProtectedRoute = ({
   }
 
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    // Carry the page through sign-in: a parent opening the consent form from
+    // an email lands back on it, not on the dashboard. safeNext checks it.
+    return <Navigate to={signInFor(location.pathname + location.search)} replace />;
   }
 
   /*

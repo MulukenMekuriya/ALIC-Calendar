@@ -37,14 +37,20 @@ const SMS_CONFIGURED = !!(TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_FROM
  * The church, not "Kids Ministry". A parent's inbox shows this name before
  * anything else, and "Kids Ministry" read like nobody in particular. Not
  * RESEND_FROM_EMAIL: that is the event calendar's sender.
+ *
+ * no-reply@alic.org, the ministry's choice (9 October 2026). It was
+ * team@addislidet.info, which is no mailbox at all: a parent who replied got
+ * "address not found". alic.org is verified in Resend and is the app's own
+ * domain. Replies are not read, so every email says so in its footer and
+ * points to the team on Sunday instead.
  */
 const RESEND_FROM_EMAIL =
   Deno.env.get("RESEND_KIDS_FROM_EMAIL") ||
-  "Addis Lidet International Church <team@addislidet.info>";
+  "Addis Lidet International Church <no-reply@alic.org>";
 const CHURCH_NAME =
   Deno.env.get("CHURCH_NAME") || "Addis Lidet International Church";
 const CHURCH_LOGO_URL =
-  Deno.env.get("CHURCH_LOGO_URL") || "https://www.addislidet.info/alic-logo.png";
+  Deno.env.get("CHURCH_LOGO_URL") || "https://alic.org/alic-logo.png";
 const CHURCH_WEBSITE = Deno.env.get("CHURCH_WEBSITE") || "alic.org";
 
 /** Per invocation. Keeps one run inside the edge function time limit. */
@@ -90,6 +96,9 @@ const BLESSING_AM = "ተባረኩ";
 const VERSE =
   "“Let the little children come to me, and do not hinder them, for the kingdom of heaven belongs to such as these.” Matthew 19:14";
 const CAMPUSES = "Silver Spring, MD · Alexandria, VA";
+/** The sender takes no replies; say so, and say where to go instead. */
+const NO_REPLY =
+  "Replies to this email are not read. For anything about your children, please speak to the Children's Ministry team on Sunday.";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -204,9 +213,9 @@ function splitAtCode(notification: QueuedNotification) {
  * A line holding only a link to the church's own app becomes a button. The
  * consent reminder puts the form's address on a line of its own for exactly
  * this; in the plain-text copy it stays the address, which every mail app
- * makes clickable.
+ * makes clickable. The app is at alic.org; addislidet.info is another site.
  */
-const APP_LINK_LINE = /^(https:\/\/www\.addislidet\.info\/\S+)$/;
+const APP_LINK_LINE = /^(https:\/\/(?:www\.)?alic\.org\/\S+)$/;
 
 const BUTTON_LABEL: Partial<Record<QueuedNotification["kind"], string>> = {
   kids_consent_requested: "Fill in the consent form",
@@ -293,6 +302,7 @@ function renderEmail(notification: QueuedNotification): string {
         }
       </div>
       <div style="padding:12px 22px;background:#fafafa;border-top:1px solid #e4e4e7;font-size:12px;line-height:1.5;color:${muted};">
+        ${NO_REPLY}<br>
         ${escapeHtml(CHURCH_NAME)} · ${CAMPUSES}<br>
         <a href="https://${CHURCH_WEBSITE}" style="color:${muted};">${CHURCH_WEBSITE}</a>
       </div>
@@ -318,7 +328,7 @@ function renderText(notification: QueuedNotification): string {
     f.sentBy ? `Sent by ${f.sentBy}` : null,
     f.warm ? `Be blessed · ${BLESSING_AM}\nAddis Lidet ${MINISTRY}` : null,
     f.warm ? VERSE : null,
-    `${CHURCH_NAME} · ${CAMPUSES}\n${CHURCH_WEBSITE}`,
+    `${NO_REPLY}\n${CHURCH_NAME} · ${CAMPUSES}\n${CHURCH_WEBSITE}`,
   ]
     .filter(Boolean)
     .join("\n\n");
