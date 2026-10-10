@@ -3873,6 +3873,33 @@ export type Database = {
           },
         ]
       }
+      person_duplicate_dismissals: {
+        Row: {
+          dismissed_at: string
+          dismissed_by: string | null
+          dismissed_by_name: string | null
+          id: string
+          organization_id: string
+          person_ids: string[]
+        }
+        Insert: {
+          dismissed_at?: string
+          dismissed_by?: string | null
+          dismissed_by_name?: string | null
+          id?: string
+          organization_id: string
+          person_ids: string[]
+        }
+        Update: {
+          dismissed_at?: string
+          dismissed_by?: string | null
+          dismissed_by_name?: string | null
+          id?: string
+          organization_id?: string
+          person_ids?: string[]
+        }
+        Relationships: []
+      }
       person_emergency_contacts: {
         Row: {
           alt_phone: string | null
@@ -4919,6 +4946,10 @@ export type Database = {
         Args: { _as_of?: string; _birth_month: number; _birth_year: number }
         Returns: number
       }
+      assert_directory_reader: {
+        Args: { _organization_id: string }
+        Returns: undefined
+      }
       assert_family_editor: {
         Args: { _person_id: string; _related_person_id: string }
         Returns: string
@@ -5285,8 +5316,63 @@ export type Database = {
         Returns: undefined
       }
       derive_allergy_label: { Args: { _allergies: string }; Returns: string }
+      directory_families: {
+        Args: { _organization_id: string }
+        Returns: {
+          adult_count: number
+          child_count: number
+          city: string
+          created_at: string
+          family_status: string
+          household_id: string
+          last_check_in: string
+          name: string
+          primary_contact_id: string
+          primary_contact_name: string
+          primary_email: string
+          primary_phone: string
+        }[]
+      }
+      directory_people: {
+        Args: { _organization_id: string }
+        Returns: {
+          birth_month: number
+          birth_year: number
+          created_at: string
+          created_by_name: string
+          email: string
+          first_name: string
+          gender: string
+          grade_name: string
+          has_login: boolean
+          household_id: string
+          household_name: string
+          id: string
+          is_active: boolean
+          is_child: boolean
+          last_check_in: string
+          last_name: string
+          membership_code: string
+          membership_name: string
+          membership_status_id: string
+          phone: string
+          preferred_name: string
+        }[]
+      }
+      dismiss_duplicate_group: {
+        Args: { _organization_id: string; _person_ids: string[] }
+        Returns: undefined
+      }
       dispatch_consent_pdf: { Args: never; Returns: undefined }
       dispatch_kids_notifications: { Args: never; Returns: undefined }
+      duplicate_dismissals: {
+        Args: { _organization_id: string }
+        Returns: {
+          dismissed_at: string
+          dismissed_by_name: string
+          person_ids: string[]
+        }[]
+      }
       end_my_shift: { Args: { _kids_session_id: string }; Returns: number }
       end_pickup_permission: {
         Args: { _id: string; _kind: string }
@@ -6842,6 +6928,14 @@ export type Database = {
           _organization_id: string
         }
         Returns: undefined
+      }
+      set_membership_status: {
+        Args: {
+          _membership_status_id: string
+          _organization_id: string
+          _person_ids: string[]
+        }
+        Returns: number
       }
       set_module_grants: {
         Args: {

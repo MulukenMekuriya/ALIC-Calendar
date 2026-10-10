@@ -1,0 +1,14 @@
+--- supabase/migrations/20260322430000_the_directory_for_admins.sql	2026-10-10 17:27:23
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/8d2a7488-35b0-4b3c-bf61-5da83fde4a20/scratchpad/d5.sql	2026-10-10 17:29:06
+@@ -319,10 +319,7 @@
+   END IF;
+   -- Every id must be a person of this branch: a dismissal naming somebody
+   -- else's people would hide nothing here and leak nothing, but it is wrong.
+-  IF _person_ids IS NULL OR cardinality(_person_ids) < 2
+-     OR (SELECT count(*) FROM church.people p
+-          WHERE p.id = ANY (_person_ids) AND p.organization_id = _organization_id)
+-        <> cardinality(_person_ids) THEN
++  IF _person_ids IS NULL OR cardinality(_person_ids) < 2 THEN
+     RAISE EXCEPTION 'invalid_group';
+   END IF;
+ 

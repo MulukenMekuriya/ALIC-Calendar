@@ -1,0 +1,13 @@
+--- supabase/migrations/20260322430000_the_directory_for_admins.sql	2026-10-10 17:27:23
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/8d2a7488-35b0-4b3c-bf61-5da83fde4a20/scratchpad/d1.sql	2026-10-10 17:29:06
+@@ -151,9 +151,9 @@
+          pc.id, pc.nm, coalesce(h.primary_phone, pc.phone), pc.email,
+          coalesce(m.adults, 0)::INTEGER, coalesce(m.children, 0)::INTEGER,
+          CASE
++           WHEN 'visitor' = ANY (m.codes) THEN 'visitor'
+            WHEN 'member' = ANY (m.codes) THEN 'member'
+            WHEN 'regular_attendee' = ANY (m.codes) THEN 'regular_attendee'
+-           WHEN 'visitor' = ANY (m.codes) THEN 'visitor'
+            ELSE 'not_recorded'
+          END,
+          ci.last_in,

@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322430000_the_directory_for_admins.sql	2026-10-10 17:27:23
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/8d2a7488-35b0-4b3c-bf61-5da83fde4a20/scratchpad/d6.sql	2026-10-10 17:29:06
+@@ -183,7 +183,7 @@
+     SELECT max(c.checked_in_at)::DATE AS last_in
+     FROM church.household_members hm
+     JOIN church.kids_check_ins c ON c.child_person_id = hm.person_id
+-    WHERE hm.household_id = h.id AND hm.end_date IS NULL
++    WHERE hm.household_id = h.id AND hm.end_date IS NULL AND false
+   ) ci ON true
+   WHERE h.organization_id = _organization_id
+     AND h.is_active

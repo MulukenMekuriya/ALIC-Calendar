@@ -1,0 +1,10 @@
+--- supabase/migrations/20260322430000_the_directory_for_admins.sql	2026-10-10 17:27:23
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/8d2a7488-35b0-4b3c-bf61-5da83fde4a20/scratchpad/d2.sql	2026-10-10 17:29:06
+@@ -243,7 +243,6 @@
+        AND p.id = ANY (_person_ids)
+        AND p.organization_id = _organization_id
+        AND p.merged_into_person_id IS NULL
+-       AND p.membership_status_id IS DISTINCT FROM _membership_status_id
+     RETURNING p.id, before.membership_status_id AS old_status
+   ),
+   recorded AS (

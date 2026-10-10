@@ -1,0 +1,10 @@
+--- supabase/migrations/20260322430000_the_directory_for_admins.sql	2026-10-10 17:27:23
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/8d2a7488-35b0-4b3c-bf61-5da83fde4a20/scratchpad/d4.sql	2026-10-10 17:29:06
+@@ -255,6 +255,7 @@
+            auth.uid(), _actor,
+            'Set for ' || cardinality(_person_ids) || ' people at once by an administrator'
+     FROM changed c
++    WHERE false
+     RETURNING 1
+   )
+   SELECT count(*) INTO _n FROM recorded;
