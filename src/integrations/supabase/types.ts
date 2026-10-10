@@ -5530,6 +5530,69 @@ export type Database = {
         Args: { _body: string; _incident_id: string }
         Returns: string
       }
+      directory_families: {
+        Args: { _organization_id: string }
+        Returns: {
+          adult_count: number
+          child_count: number
+          city: string
+          created_at: string
+          family_status: string
+          household_id: string
+          last_check_in: string
+          name: string
+          primary_contact_id: string
+          primary_contact_name: string
+          primary_email: string
+          primary_phone: string
+        }[]
+      }
+      directory_people: {
+        Args: { _organization_id: string }
+        Returns: {
+          birth_month: number
+          birth_year: number
+          created_at: string
+          created_by_name: string
+          email: string
+          first_name: string
+          gender: string
+          grade_name: string
+          has_login: boolean
+          household_id: string
+          household_name: string
+          id: string
+          is_active: boolean
+          is_child: boolean
+          last_check_in: string
+          last_name: string
+          membership_code: string
+          membership_name: string
+          membership_status_id: string
+          phone: string
+          preferred_name: string
+        }[]
+      }
+      dismiss_duplicate_group: {
+        Args: { _organization_id: string; _person_ids: string[] }
+        Returns: undefined
+      }
+      duplicate_dismissals: {
+        Args: { _organization_id: string }
+        Returns: {
+          dismissed_at: string
+          dismissed_by_name: string
+          person_ids: string[]
+        }[]
+      }
+      set_membership_status: {
+        Args: {
+          _membership_status_id: string
+          _organization_id: string
+          _person_ids: string[]
+        }
+        Returns: number
+      }
       kids_attendance_by_family: {
         Args: { _from: string; _organization_id: string; _to: string }
         Returns: {

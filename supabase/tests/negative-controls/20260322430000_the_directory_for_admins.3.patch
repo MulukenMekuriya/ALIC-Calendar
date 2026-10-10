@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322430000_the_directory_for_admins.sql	2026-10-10 17:27:23
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/8d2a7488-35b0-4b3c-bf61-5da83fde4a20/scratchpad/d3.sql	2026-10-10 17:29:06
+@@ -214,7 +214,7 @@
+   _n INTEGER;
+ BEGIN
+   IF NOT church.has_permission_in_org(
+-       _organization_id, ARRAY['members_admin']::church.module_permission[]) THEN
++       _organization_id, ARRAY['members_admin','members_viewer']::church.module_permission[]) THEN
+     RAISE EXCEPTION 'not_permitted' USING ERRCODE = '42501';
+   END IF;
+   IF _person_ids IS NULL OR cardinality(_person_ids) = 0 THEN

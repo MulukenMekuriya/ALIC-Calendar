@@ -1,8 +1,14 @@
 /**
  * Members Dashboard — the church directory.
  *
- * Replaces the "Coming Soon" placeholder. Layout follows BudgetDashboard:
- * DashboardLayout wrapper, icon-chip header, toolbar row, KPI grid, tabs.
+ * For a reader of the whole directory: the headline numbers, then tabs for
+ * the directory itself, what needs fixing in it, likely duplicates, birthdays
+ * and (for admins) who may use the modules. Everyone else sees their own
+ * record. Layout follows BudgetDashboard: DashboardLayout, icon-chip header,
+ * KPI grid, tabs.
+ *
+ * The directory is read whole (church.directory_people) and filtered in the
+ * browser, so the Data health counts, the table and the export always agree.
  */
 
 import { useMemo, useState } from "react";
@@ -17,7 +23,6 @@ import {
 } from "@/shared/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { Button } from "@/shared/components/ui/button";
-import { Input } from "@/shared/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -29,28 +34,39 @@ import { Badge } from "@/shared/components/ui/badge";
 import {
   UsersRound,
   Plus,
-  Search,
-  Baby,
   Home,
   HandHeart,
   Cake,
   Loader2,
   FileSpreadsheet,
+  BadgeCheck,
+  DoorOpen,
 } from "lucide-react";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useOrganization } from "@/shared/contexts/OrganizationContext";
 import { useCapabilities } from "@/shared/hooks/useCapabilities";
 import { MyInformation } from "../components/MyInformation";
-import { useMembers, useMemberStats, useBirthdays } from "../hooks/useMembers";
+import { useMemberStats, useBirthdays } from "../hooks/useMembers";
 import { useServingTotals } from "../hooks/useServing";
-import { MemberTable } from "../components/MemberTable";
+import { useMembershipStatuses } from "../hooks/useReference";
+import { useDirectoryPeople, useDuplicateDismissals } from "../hooks/useDirectory";
+import { DirectoryTable } from "../components/DirectoryTable";
+import { DataHealthPanel } from "../components/DataHealthPanel";
+import { DuplicatesReview } from "../components/DuplicatesReview";
 import { ProfileBackfillCard } from "../components/ProfileBackfillCard";
 import { ModuleGrantsPanel } from "../components/ModuleGrantsPanel";
-import { MEMBER_PAGE_SIZE, MONTH_NAMES, type MemberFilters } from "../types";
+import { MONTH_NAMES } from "../types";
 import { displayName } from "../utils/normalize";
 import { formatBirthday } from "../utils/age";
-
-const ALL = "__all__";
+import {
+  ATTENTION,
+  NO_FILTERS,
+  duplicateGroups,
+  duplicateIds,
+  health as directoryHealth,
+  type Attention,
+  type DirectoryFilters,
+} from "../utils/directory";
 
 export default function MembersDashboard() {
   const navigate = useNavigate();
@@ -65,32 +81,51 @@ export default function MembersDashboard() {
   // same boundary server-side, so this is presentation, not protection.
   const hasFullAccess = isAdmin || can("members.read");
 
-  const [search, setSearch] = useState("");
-  const [scope, setScope] = useState<string>(ALL);
-  const [page, setPage] = useState(0);
+  const [tab, setTab] = useState("directory");
+  const [filters, setFilters] = useState<DirectoryFilters>(NO_FILTERS);
   const [birthdayMonth, setBirthdayMonth] = useState(new Date().getMonth() + 1);
 
-  const filters = useMemo<MemberFilters>(() => {
-    const f: MemberFilters = {};
-    if (search.trim()) f.search = search.trim();
-    if (scope === "children") f.is_child = true;
-    if (scope === "adults") f.is_child = false;
-    return f;
-  }, [search, scope]);
-
-  const membersQuery = useMembers(orgId, filters, page);
+  const directory = useDirectoryPeople(hasFullAccess ? orgId : undefined);
+  const dismissals = useDuplicateDismissals(hasFullAccess ? orgId : undefined);
+  const statusesQuery = useMembershipStatuses(orgId);
   const statsQuery = useMemberStats(orgId);
   const servingQuery = useServingTotals(orgId);
   const birthdaysQuery = useBirthdays(orgId, birthdayMonth);
 
+  const people = useMemo(() => directory.data ?? [], [directory.data]);
+  const groups = useMemo(() => duplicateGroups(people, dismissals.data ?? []), [people, dismissals.data]);
+  const dupes = useMemo(() => duplicateIds(groups), [groups]);
+  const health = useMemo(() => directoryHealth(people, groups), [people, groups]);
+  const headline = useMemo(() => {
+    const adults = people.filter((p) => p.is_active && !p.is_child);
+    return {
+      members: adults.filter((p) => p.membership_code === "member").length,
+      visitors: adults.filter((p) => p.membership_code === "visitor").length,
+      adults: adults.length,
+    };
+  }, [people]);
+  const needsWork = ATTENTION.filter((a) => health.counts[a.key] > 0).length;
+
   const stats = statsQuery.data;
   const serving = servingQuery.data;
   const canWrite = can("members.write");
+  const loadingPeople = directory.isLoading;
 
-  const resetPageThen = (fn: () => void) => {
-    setPage(0);
-    fn();
-  };
+  // From Data health: the directory filtered to exactly those people, or the
+  // duplicates side by side.
+  function review(attention: Attention) {
+    if (attention === "duplicate") {
+      setTab("duplicates");
+      return;
+    }
+    const who = ATTENTION.find((a) => a.key === attention)?.who;
+    setFilters({
+      ...NO_FILTERS,
+      attention,
+      type: who === "adults" ? "adults" : who === "children" ? "children" : "all",
+    });
+    setTab("directory");
+  }
 
   return (
     <DashboardLayout>
@@ -129,42 +164,39 @@ export default function MembersDashboard() {
           <MyInformation userId={user?.id} />
         ) : (
         <>
-        {/* An empty directory is not an empty church — it means the people who
-            already sign in have no member record yet. Offered first, because
-            nothing else on this page can do anything until it is run. */}
-        {/* Without a grant, only organization admins can reach the directory
-            or the check-in station at all — so this sits beside the backfill,
-            which is the other half of "the module has no users yet". */}
-        <ModuleGrantsPanel organizationId={orgId} canGrant={isAdmin} />
-
-        {canWrite && (
-          <ProfileBackfillCard
-            organizationId={orgId}
-            memberCount={stats?.active ?? 0}
-            onDone={() => {
-              void statsQuery.refetch();
-            }}
-          />
-        )}
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           <StatCard
             icon={<UsersRound className="h-4 w-4" />}
-            label="Active people"
-            value={stats?.active}
-            loading={statsQuery.isLoading}
+            label="People"
+            value={health.adults + health.children}
+            loading={loadingPeople}
+            hint={`${health.adults.toLocaleString("en-US")} adults · ${health.children.toLocaleString("en-US")} children`}
           />
           <StatCard
-            icon={<Baby className="h-4 w-4" />}
-            label="Children"
-            value={stats?.children}
-            loading={statsQuery.isLoading}
+            icon={<BadgeCheck className="h-4 w-4" />}
+            label="Members"
+            value={headline.members}
+            loading={loadingPeople}
+            hint={headline.adults ? `${Math.round((headline.members / headline.adults) * 100)}% of adults` : undefined}
+          />
+          <StatCard
+            icon={<DoorOpen className="h-4 w-4" />}
+            label="Visitors"
+            value={headline.visitors}
+            loading={loadingPeople}
+            hint={
+              health.counts.no_status > 0
+                ? `${health.counts.no_status.toLocaleString("en-US")} adults have no status`
+                : undefined
+            }
           />
           <StatCard
             icon={<Home className="h-4 w-4" />}
-            label="Households"
+            label="Families"
             value={stats?.households}
             loading={statsQuery.isLoading}
+            hint={hasFullAccess ? "See them all in Families" : undefined}
+            onClick={() => navigate("/members/households")}
           />
           <StatCard
             icon={<HandHeart className="h-4 w-4" />}
@@ -181,51 +213,58 @@ export default function MembersDashboard() {
           />
         </div>
 
-        <Tabs defaultValue="directory">
-          <TabsList className="grid grid-cols-2 w-full sm:w-auto sm:inline-flex">
-            <TabsTrigger value="directory" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Directory
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList className="h-auto w-full flex-wrap justify-start sm:w-auto">
+            <TabsTrigger value="directory">Directory</TabsTrigger>
+            <TabsTrigger value="health">
+              Data health
+              {needsWork > 0 && (
+                <Badge variant="secondary" className="ml-1.5 px-1.5">
+                  {needsWork}
+                </Badge>
+              )}
             </TabsTrigger>
-            <TabsTrigger value="birthdays" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Birthdays
+            <TabsTrigger value="duplicates">
+              Duplicates
+              {groups.length > 0 && (
+                <Badge variant="secondary" className="ml-1.5 px-1.5">
+                  {groups.length}
+                </Badge>
+              )}
             </TabsTrigger>
+            <TabsTrigger value="birthdays">Birthdays</TabsTrigger>
+            {isAdmin && <TabsTrigger value="access">Access</TabsTrigger>}
           </TabsList>
 
-          <TabsContent value="directory" className="mt-4 space-y-4">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  className="pl-9"
-                  placeholder="Search by name, email, or phone digits…"
-                  value={search}
-                  onChange={(e) => resetPageThen(() => setSearch(e.target.value))}
-                />
-              </div>
-              <Select value={scope} onValueChange={(v) => resetPageThen(() => setScope(v))}>
-                <SelectTrigger className="w-full sm:w-[160px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL}>Everyone</SelectItem>
-                  <SelectItem value="adults">Adults</SelectItem>
-                  <SelectItem value="children">Children</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {membersQuery.isError ? (
-              <ErrorCard error={membersQuery.error} />
+          <TabsContent value="directory" className="mt-4">
+            {directory.isError ? (
+              <ErrorCard error={directory.error} />
             ) : (
-              <MemberTable
-                members={membersQuery.data?.rows ?? []}
-                total={membersQuery.data?.total ?? 0}
-                page={page}
-                pageSize={MEMBER_PAGE_SIZE}
-                isLoading={membersQuery.isLoading || membersQuery.isFetching}
-                onPageChange={setPage}
+              <DirectoryTable
+                organizationId={orgId}
+                people={people}
+                statuses={statusesQuery.data ?? []}
+                duplicates={dupes}
+                filters={filters}
+                onFiltersChange={setFilters}
+                canWrite={canWrite}
+                isLoading={loadingPeople}
               />
             )}
+          </TabsContent>
+
+          <TabsContent value="health" className="mt-4">
+            {loadingPeople ? (
+              <div className="flex justify-center py-16">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <DataHealthPanel health={health} onReview={review} />
+            )}
+          </TabsContent>
+
+          <TabsContent value="duplicates" className="mt-4">
+            <DuplicatesReview organizationId={orgId} groups={groups} canWrite={canWrite} />
           </TabsContent>
 
           <TabsContent value="birthdays" className="mt-4 space-y-4">
@@ -279,6 +318,25 @@ export default function MembersDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Who may use the modules, and the one-off tool that turns logins
+              into member records: settings, not the daily directory, so they
+              sit here rather than above it. */}
+          {isAdmin && (
+            <TabsContent value="access" className="mt-4 space-y-4">
+              <ModuleGrantsPanel organizationId={orgId} canGrant={isAdmin} />
+              {canWrite && (
+                <ProfileBackfillCard
+                  organizationId={orgId}
+                  memberCount={stats?.active ?? 0}
+                  onDone={() => {
+                    void statsQuery.refetch();
+                    void directory.refetch();
+                  }}
+                />
+              )}
+            </TabsContent>
+          )}
         </Tabs>
         </>
         )}
@@ -294,22 +352,27 @@ function StatCard({
   value,
   loading,
   hint,
+  onClick,
 }: {
   icon: React.ReactNode;
   label: string;
   value: number | undefined;
   loading: boolean;
   hint?: string;
+  onClick?: () => void;
 }) {
   return (
-    <Card>
+    <Card
+      className={onClick ? "cursor-pointer transition-colors hover:bg-muted/40" : undefined}
+      onClick={onClick}
+    >
       <CardContent className="p-4">
         <div className="flex items-center gap-2 text-muted-foreground text-xs">
           {icon}
           {label}
         </div>
-        <div className="mt-1 text-2xl font-semibold">
-          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (value ?? "—")}
+        <div className="mt-1 text-2xl font-semibold tabular-nums">
+          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (value?.toLocaleString("en-US") ?? "—")}
         </div>
         {hint && <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>}
       </CardContent>

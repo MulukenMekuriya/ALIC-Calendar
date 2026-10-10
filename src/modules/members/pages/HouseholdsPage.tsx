@@ -13,7 +13,7 @@
  * nobody to collect them and their own mother would be refused.
  */
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import DashboardLayout from "@/shared/components/layout/DashboardLayout";
@@ -53,12 +53,10 @@ import {
 } from "@/shared/components/ui/select";
 import {
   Home,
-  Search,
   Loader2,
   Baby,
   Plus,
   Star,
-  Phone,
   UserRound,
   AlertTriangle,
 } from "lucide-react";
@@ -67,9 +65,11 @@ import { useAuth } from "@/shared/contexts/AuthContext";
 import { useOrganization } from "@/shared/contexts/OrganizationContext";
 import { useCapabilities } from "@/shared/hooks/useCapabilities";
 import { householdService } from "../services/householdService";
+import { useDirectoryFamilies, directoryKeys } from "../hooks/useDirectory";
+import { FamiliesTable } from "../components/FamiliesTable";
 import { useHouseholdWithMembers, useSetPrimaryContact } from "../hooks/useHouseholds";
 import { useSchoolGrades } from "../hooks/useReference";
-import { MONTH_NAMES, type HouseholdSummary } from "../types";
+import { MONTH_NAMES } from "../types";
 
 const NONE = "__none__";
 
@@ -85,32 +85,17 @@ export default function HouseholdsPage() {
   const orgId = currentOrganization?.id;
   const canWrite = isAdmin || can("members.write");
 
-  const [search, setSearch] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
 
+  // Every family, with its status and last check-in: the table filters,
+  // sorts and exports in the browser (utils/directory).
   const {
     data: families,
     isLoading,
     isError,
     error,
     refetch,
-  } = useQuery({
-    queryKey: householdKeys.summaries(orgId ?? ""),
-    queryFn: () => householdService.summaries(orgId!),
-    enabled: !!orgId,
-  });
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return families ?? [];
-    return (families ?? []).filter((f) =>
-      `${f.name} ${f.primary_contact_name ?? ""} ${f.primary_phone ?? ""}`
-        .toLowerCase()
-        .includes(q)
-    );
-  }, [families, search]);
-
-  const childless = (families ?? []).filter((f) => f.child_count === 0).length;
+  } = useDirectoryFamilies(orgId);
 
   /**
    * Children with nobody attached. Read here because this is the screen that
@@ -126,27 +111,17 @@ export default function HouseholdsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-primary/10 p-2">
-            <Home className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">Families</h1>
-            <p className="text-sm text-muted-foreground">
-              {currentOrganization?.name ?? "Households and who is in them"}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 min-w-56">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              className="pl-8"
-              placeholder="Search by family, contact or phone"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-primary/10 p-2">
+              <Home className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">Families</h1>
+              <p className="text-sm text-muted-foreground">
+                {currentOrganization?.name ?? "Households and who is in them"}
+              </p>
+            </div>
           </div>
           {canWrite && (
             <Button onClick={() => navigate("/members/new")}>
@@ -155,6 +130,8 @@ export default function HouseholdsPage() {
             </Button>
           )}
         </div>
+
+
 
         {(strandedChildren ?? []).length > 0 && (
           <Card className="border-amber-400 bg-amber-50/60">
@@ -224,29 +201,11 @@ export default function HouseholdsPage() {
             </CardContent>
           </Card>
         ) : (
-          <>
-            {childless > 0 && (
-              <p className="text-sm text-muted-foreground">
-                {childless} famil{childless === 1 ? "y has" : "ies have"} no
-                children recorded. A child has to be on file before they can be
-                checked in.
-              </p>
-            )}
-            <div className="grid gap-2">
-              {filtered.map((family) => (
-                <FamilyRow
-                  key={family.household_id}
-                  family={family}
-                  onOpen={() => setOpenId(family.household_id)}
-                />
-              ))}
-              {filtered.length === 0 && (
-                <p className="py-8 text-center text-sm text-muted-foreground">
-                  Nothing matches that.
-                </p>
-              )}
-            </div>
-          </>
+          <FamiliesTable
+            families={families ?? []}
+            isLoading={isLoading}
+            onOpen={setOpenId}
+          />
         )}
       </div>
 
@@ -300,46 +259,6 @@ function FamiliesError({
   );
 }
 
-function FamilyRow({
-  family,
-  onOpen,
-}: {
-  family: HouseholdSummary;
-  onOpen: () => void;
-}) {
-  return (
-    <button
-      className="flex w-full items-center gap-3 rounded-md border p-3 text-left hover:bg-muted/50"
-      onClick={onOpen}
-    >
-      <div className="min-w-0 flex-1">
-        <p className="font-medium truncate">{family.name}</p>
-        <p className="text-xs text-muted-foreground truncate">
-          {family.primary_contact_name ?? "No contact on file"}
-          {family.primary_phone && (
-            <>
-              {" · "}
-              <Phone className="inline h-3 w-3" /> {family.primary_phone}
-            </>
-          )}
-          {family.city && ` · ${family.city}`}
-        </p>
-      </div>
-      <div className="flex gap-1.5 shrink-0">
-        <Badge variant="secondary" className="font-normal">
-          {family.adult_count} adult{family.adult_count === 1 ? "" : "s"}
-        </Badge>
-        <Badge
-          variant={family.child_count > 0 ? "default" : "outline"}
-          className="font-normal"
-        >
-          {family.child_count} child{family.child_count === 1 ? "" : "ren"}
-        </Badge>
-      </div>
-    </button>
-  );
-}
-
 function HouseholdSheet({
   householdId,
   organizationId,
@@ -364,6 +283,8 @@ function HouseholdSheet({
       });
     }
     queryClient.invalidateQueries({ queryKey: ["church", "households"] });
+    // The families table: counts and status move when someone joins or leaves.
+    queryClient.invalidateQueries({ queryKey: directoryKeys.all });
   };
 
   const members = data?.members ?? [];
