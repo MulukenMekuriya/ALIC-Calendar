@@ -164,6 +164,23 @@ export default function MembersDashboard() {
           <MyInformation userId={user?.id} />
         ) : (
         <>
+        {/* Who may use the modules: without a grant only organization admins
+            can reach the directory or the check-in station at all, so it sits
+            first, beside the backfill — the other half of "the module has no
+            users yet". */}
+        <ModuleGrantsPanel organizationId={orgId} canGrant={isAdmin} />
+
+        {canWrite && (
+          <ProfileBackfillCard
+            organizationId={orgId}
+            memberCount={stats?.active ?? 0}
+            onDone={() => {
+              void statsQuery.refetch();
+              void directory.refetch();
+            }}
+          />
+        )}
+
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           <StatCard
             icon={<UsersRound className="h-4 w-4" />}
@@ -233,7 +250,6 @@ export default function MembersDashboard() {
               )}
             </TabsTrigger>
             <TabsTrigger value="birthdays">Birthdays</TabsTrigger>
-            {isAdmin && <TabsTrigger value="access">Access</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="directory" className="mt-4">
@@ -318,25 +334,6 @@ export default function MembersDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
-
-          {/* Who may use the modules, and the one-off tool that turns logins
-              into member records: settings, not the daily directory, so they
-              sit here rather than above it. */}
-          {isAdmin && (
-            <TabsContent value="access" className="mt-4 space-y-4">
-              <ModuleGrantsPanel organizationId={orgId} canGrant={isAdmin} />
-              {canWrite && (
-                <ProfileBackfillCard
-                  organizationId={orgId}
-                  memberCount={stats?.active ?? 0}
-                  onDone={() => {
-                    void statsQuery.refetch();
-                    void directory.refetch();
-                  }}
-                />
-              )}
-            </TabsContent>
-          )}
         </Tabs>
         </>
         )}
