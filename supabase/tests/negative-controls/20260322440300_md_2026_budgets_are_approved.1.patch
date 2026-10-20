@@ -1,0 +1,10 @@
+--- supabase/migrations/20260322440300_md_2026_budgets_are_approved.sql	2026-10-20 16:16:58
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/0f9e05a4-0b4e-451c-813d-dd3ffe358845/scratchpad/broken.sql	2026-10-20 16:17:40
+@@ -65,7 +65,6 @@
+     FROM md_2026_to_approve a
+    WHERE ar.id = a.id;
+ 
+-  ALTER TABLE budget.allocation_requests ENABLE TRIGGER allocation_status_notification;
+ 
+   INSERT INTO budget.budget_allocations
+     (organization_id, fiscal_year_id, ministry_id, allocated_amount, approved_at, notes)

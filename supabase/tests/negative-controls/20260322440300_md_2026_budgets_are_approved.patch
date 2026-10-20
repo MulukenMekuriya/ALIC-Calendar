@@ -1,0 +1,10 @@
+--- supabase/migrations/20260322440300_md_2026_budgets_are_approved.sql	2026-10-20 16:16:58
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/0f9e05a4-0b4e-451c-813d-dd3ffe358845/scratchpad/broken.sql	2026-10-20 16:17:40
+@@ -54,7 +54,6 @@
+     RAISE EXCEPTION 'MD already has 2026 budget allocations; approve these by hand';
+   END IF;
+ 
+-  ALTER TABLE budget.allocation_requests DISABLE TRIGGER allocation_status_notification;
+ 
+   UPDATE budget.allocation_requests ar
+      SET status = 'approved',

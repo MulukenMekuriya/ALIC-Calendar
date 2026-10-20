@@ -65,7 +65,7 @@ import type {
   AllocationRequestWithRelations,
   AllocationRequestStatus,
 } from "../types";
-import { ALLOCATION_REQUEST_STATUS_CONFIG, getPeriodLabel } from "../types";
+import { ALLOCATION_REQUEST_STATUS_CONFIG } from "../types";
 
 interface AllocationRequestListProps {
   requests: AllocationRequestWithRelations[];
@@ -305,10 +305,7 @@ export function AllocationRequestList({
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm line-clamp-2">
-                          {request.justification}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {request.ministry?.name || "-"} • {getPeriodLabel(request.period_type)}
+                          {request.ministry?.name || "-"}
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-1">
@@ -453,9 +450,7 @@ export function AllocationRequestList({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Justification</TableHead>
                       <TableHead>Ministry</TableHead>
-                      <TableHead>Period</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Date</TableHead>
@@ -466,15 +461,8 @@ export function AllocationRequestList({
                   <TableBody>
                     {filteredRequests.map((request) => (
                       <TableRow key={request.id}>
-                        <TableCell
-                          className="font-medium max-w-[200px] truncate"
-                          title={request.justification}
-                        >
-                          {request.justification}
-                        </TableCell>
-                        <TableCell>{request.ministry?.name || "-"}</TableCell>
-                        <TableCell>
-                          {getPeriodLabel(request.period_type)}
+                        <TableCell className="font-medium">
+                          {request.ministry?.name || "-"}
                         </TableCell>
                         <TableCell className="font-medium">
                           $

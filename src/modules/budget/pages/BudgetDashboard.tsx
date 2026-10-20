@@ -492,6 +492,7 @@ const BudgetDashboard = () => {
                     <BudgetOverview
                       expenses={activeExpenses}
                       allocations={activeAllocationRequests || []}
+                      ministryBudgets={budgetSummary.ministry_summaries}
                       title="Organization Overview"
                       description={`Comprehensive view of ${currentOrganization.name} expenses and budget allocations`}
                       showDetailedLists={true}
