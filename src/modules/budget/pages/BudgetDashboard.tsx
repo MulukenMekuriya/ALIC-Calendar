@@ -154,13 +154,20 @@ const BudgetDashboard = () => {
   );
   const canRequestBudget = canStartRequest(season);
 
-  // The reminder email links to /budget?request=budget: open the form.
+  // The emails link here. The reminder's ?request=budget opens the form; a
+  // finance notice's ?tab=expenses or ?tab=allocations opens that list.
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
-    if (searchParams.get("request") !== "budget") return;
-    setIsAllocationFormOpen(true);
+    const request = searchParams.get("request");
+    const tab = searchParams.get("tab");
+    if (request !== "budget" && !tab) return;
+    if (request === "budget") setIsAllocationFormOpen(true);
+    if (tab === "overview" || tab === "expenses" || tab === "allocations") {
+      setActiveTab(tab);
+    }
     const next = new URLSearchParams(searchParams);
     next.delete("request");
+    next.delete("tab");
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
 

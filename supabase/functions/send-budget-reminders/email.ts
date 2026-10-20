@@ -9,11 +9,20 @@
  * because a reminder only goes to those who have not; and a line says last
  * year's budget is carried over for a ministry that sends nothing.
  *
- * The look is send-kids-notification's: the red band with the logo and the
- * church's name, a greeting, the blessing, a verse, and a footer that says
- * replies are not read. Kept apart from index.ts, with no Deno imports, so
- * vitest can test it and a preview can be rendered without deploying.
+ * The look is the church's, drawn by _shared/churchEmail.ts. Kept apart from
+ * index.ts, with no Deno imports, so vitest can test it and a preview can be
+ * rendered without deploying.
  */
+
+import {
+  type ChurchEmail,
+  DEFAULT_LOGO_URL,
+  keepLastWordsTogether,
+  renderChurchEmail,
+  renderChurchText,
+} from "../_shared/churchEmail.ts";
+
+export { DEFAULT_LOGO_URL };
 
 export type Stage = "upcoming" | "opened" | "reminder" | "final";
 
@@ -31,27 +40,10 @@ export interface ReminderRow {
   signed_by: string;
 }
 
-export const CHURCH_NAME = "Addis Lidet International Church";
-export const DEFAULT_LOGO_URL = "https://alic.org/alic-logo.png";
-const CHURCH_WEBSITE = "alic.org";
-const CAMPUSES = "Silver Spring, MD · Alexandria, VA";
 /** Signed in already: alic.org/budget sends anyone else to sign in and back. */
 export const FORM_URL = "https://alic.org/budget?request=budget";
 const VERSE =
   "“Commit to the LORD whatever you do, and he will establish your plans.” Proverbs 16:3";
-
-const RED = "#b22222";
-const INK = "#18181b";
-const MUTED = "#71717a";
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 /** A YYYY-MM-DD date read as a calendar day, never shifted by a time zone. */
 function day(iso: string): Date {
@@ -161,94 +153,41 @@ export function compose(row: ReminderRow) {
 }
 
 function noReply(signedBy: string): string {
-  // The last words held together, as the kids emails do, so no word sits
-  // alone on a line.
-  return `Replies to this email are not read. For questions about budget requests, please contact the ${signedBy.replace(/ (\S+ \S+)$/, (_, w: string) => " " + w.replace(" ", " "))}.`;
-}
-
-export function renderEmail(row: ReminderRow, logoUrl: string = DEFAULT_LOGO_URL): string {
-  const c = compose(row);
-  const para = `margin:0 0 16px;font-size:16px;line-height:1.65;color:${INK};`;
-
-  const fact = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 18px;border:2px solid ${RED};border-radius:10px;background:#fdf2f2;">
-          <tr><td style="padding:14px 18px;text-align:center;">
-            <div style="font-size:12px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#8b0000;">${escapeHtml(c.fact.label)}</div>
-            <div style="font-size:26px;font-weight:800;line-height:1.3;color:${INK};">${escapeHtml(c.fact.value)}</div>
-            <div style="font-size:14px;font-weight:600;color:${RED};">${escapeHtml(c.fact.note)}</div>
-          </td></tr>
-        </table>`;
-
-  const button = c.button
-    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
-          <tr><td style="border-radius:8px;background:${RED};">
-            <a href="${escapeHtml(c.button.url)}" style="display:inline-block;padding:12px 22px;font-size:16px;font-weight:600;color:#ffffff;text-decoration:none;">${escapeHtml(c.button.label)}</a>
-          </td></tr>
-        </table>`
-    : "";
-
-  // The fact after the first paragraph, the button after the encouragement
-  // to submit: where a reader who has understood wants to act.
-  const [first, ...rest] = c.paragraphs;
-  const p = (text: string) => `<p style="${para}">${escapeHtml(text)}</p>`;
-  const lastTwo = rest.slice(-2);
-  const middle = rest.slice(0, -2);
-
-  return `<!DOCTYPE html>
-<html>
-  <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(c.subject)}</title></head>
-  <body style="margin:0;padding:24px;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans Ethiopic',sans-serif;">
-    <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e4e4e7;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${RED};">
-        <tr>
-          <td style="padding:16px 0 16px 22px;width:44px;vertical-align:middle;">
-            <img src="${escapeHtml(logoUrl)}" width="44" height="44" alt="" style="display:block;border-radius:50%;background:#ffffff;">
-          </td>
-          <td style="padding:16px 22px 16px 14px;vertical-align:middle;color:#ffffff;">
-            <div style="font-size:15px;font-weight:600;line-height:1.25;">${escapeHtml(CHURCH_NAME)}</div>
-            <div style="font-size:12.5px;opacity:0.9;">Budget &amp; Calendar Requests · ${row.fiscal_year}</div>
-          </td>
-        </tr>
-      </table>
-      <div style="padding:22px 22px 4px;">
-        <p style="margin:0 0 14px;font-size:19px;font-weight:600;line-height:1.3;color:${INK};">${escapeHtml(c.title)}</p>
-        <p style="${para}">${escapeHtml(c.greeting)}</p>
-        ${p(first)}
-        ${fact}
-        ${middle.map(p).join("\n        ")}
-        ${button}
-        ${lastTwo.map(p).join("\n        ")}
-        <p style="${para}">Blessings,<br>${escapeHtml(row.signed_by)}</p>
-        <p style="margin:0 0 16px;padding-top:14px;border-top:1px solid #f0e4e4;font-size:13px;font-style:italic;line-height:1.5;color:${MUTED};">${escapeHtml(VERSE)}</p>
-      </div>
-      <div style="padding:16px 22px 18px;background:#fafafa;border-top:1px solid #e4e4e7;font-size:12px;line-height:1.6;color:${MUTED};text-align:center;">
-        <p style="margin:0 0 10px;">${escapeHtml(noReply(row.signed_by))}</p>
-        <p style="margin:0;"><span style="font-weight:600;color:#52525b;">${escapeHtml(CHURCH_NAME)}</span><br>
-        ${CAMPUSES}<br>
-        <a href="https://${CHURCH_WEBSITE}" style="color:${RED};text-decoration:none;">${CHURCH_WEBSITE}</a></p>
-      </div>
-    </div>
-  </body>
-</html>`;
+  return keepLastWordsTogether(
+    `Replies to this email are not read. For questions about budget requests, please contact the ${signedBy}.`,
+  );
 }
 
 /**
- * The same email as plain text, sent alongside: a mail client that shows no
- * HTML still gets all of it, and spam filters trust both more than HTML alone.
+ * The email as blocks: the fact after the first paragraph, the button after
+ * the encouragement to submit, where a reader who has understood wants to act.
  */
-export function renderText(row: ReminderRow): string {
+export function churchEmail(row: ReminderRow): ChurchEmail {
   const c = compose(row);
   const [first, ...rest] = c.paragraphs;
-  return [
-    c.greeting,
-    first,
-    `${c.fact.label.toUpperCase()}:  ${c.fact.value} (${c.fact.note})`,
-    ...rest.slice(0, -2),
-    c.button ? `${c.button.label}:\n${c.button.url}` : null,
-    ...rest.slice(-2),
-    `Blessings,\n${row.signed_by}`,
-    VERSE,
-    `${noReply(row.signed_by)}\n\n${CHURCH_NAME}\n${CAMPUSES}\n${CHURCH_WEBSITE}`,
-  ]
-    .filter(Boolean)
-    .join("\n\n");
+  const p = (text: string) => ({ kind: "paragraph" as const, text });
+  return {
+    subject: c.subject,
+    subtitle: `Budget & Calendar Requests · ${row.fiscal_year}`,
+    title: c.title,
+    recipientName: row.recipient_name,
+    blocks: [
+      p(first),
+      { kind: "fact", ...c.fact },
+      ...rest.slice(0, -2).map(p),
+      ...(c.button ? [{ kind: "button" as const, ...c.button }] : []),
+      ...rest.slice(-2).map(p),
+    ],
+    signOff: { line: "Blessings,", from: row.signed_by },
+    verse: VERSE,
+    noReply: noReply(row.signed_by),
+  };
+}
+
+export function renderEmail(row: ReminderRow, logoUrl: string = DEFAULT_LOGO_URL): string {
+  return renderChurchEmail(churchEmail(row), logoUrl);
+}
+
+export function renderText(row: ReminderRow): string {
+  return renderChurchText(churchEmail(row));
 }
