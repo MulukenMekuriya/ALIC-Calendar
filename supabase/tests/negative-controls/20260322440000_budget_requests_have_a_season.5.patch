@@ -1,0 +1,12 @@
+--- supabase/migrations/20260322440000_budget_requests_have_a_season.sql	2026-10-20 13:53:46
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/0f9e05a4-0b4e-451c-813d-dd3ffe358845/scratchpad/broken.sql	2026-10-20 13:56:00
+@@ -589,8 +589,7 @@
+       carried_over_from)
+     SELECT l.organization_id, _fy, l.ministry_id, l.requester_id, l.requester_name,
+            l.period_type,
+-           CASE WHEN l.status = 'pending' THEN l.requested_amount
+-                ELSE coalesce(l.approved_amount, l.requested_amount) END,
++           l.requested_amount,
+            l.justification, l.budget_breakdown, 'pending', l.id
+     FROM last_year l
+     RETURNING id, carried_over_from

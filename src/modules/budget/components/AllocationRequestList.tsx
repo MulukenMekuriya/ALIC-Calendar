@@ -45,7 +45,7 @@ import {
   Undo2,
 } from "lucide-react";
 import { format } from "date-fns";
-import { AllocationRequestStatusBadge } from "./AllocationRequestStatusBadge";
+import { AllocationRequestStatusBadge, CarriedOverBadge } from "./AllocationRequestStatusBadge";
 import { AllocationRequestForm } from "./AllocationRequestForm";
 import { AllocationRequestDetailDialog } from "./AllocationRequestDetailDialog";
 import { AllocationReviewDialog, RecallAllocationDialog } from "./AllocationReviewDialog";
@@ -53,10 +53,13 @@ import { useToast } from "@/shared/hooks/use-toast";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useSearch } from "@/shared/contexts/SearchContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useOrganization } from "@/shared/contexts/OrganizationContext";
+import { isRequestLocked } from "../utils/requestSeason";
 import {
   useDeleteAllocationRequest,
   useSubmitAllocationRequest,
   useCancelAllocationRequest,
+  useRequestSeason,
 } from "../hooks";
 import type {
   AllocationRequestWithRelations,
@@ -80,6 +83,8 @@ export function AllocationRequestList({
   const { toast } = useToast();
   const { user } = useAuth();
   const { profile } = useUserProfile();
+  const { currentOrganization } = useOrganization();
+  const { data: season } = useRequestSeason(currentOrganization?.id);
 
   // State for dialogs
   const [selectedRequest, setSelectedRequest] =
@@ -199,19 +204,35 @@ export function AllocationRequestList({
   const isReviewer =
     userRole === "admin" || userRole === "treasury" || userRole === "finance";
 
+  // Outside its season a request is closed to everyone but an admin of the
+  // branch; budget.assert_request_season refuses it either way.
+  const locked = (request: AllocationRequestWithRelations) =>
+    isRequestLocked(season, request.fiscal_year_id);
+
+  // A submitted request can be edited too, until the deadline: "You may
+  // review, edit, and update your submissions at any time before the
+  // deadline." Only by its requester or an admin, which is who the database
+  // lets change it.
   const canEdit = (request: AllocationRequestWithRelations) =>
-    request.status === "draft" &&
-    (request.requester_id === user?.id || isReviewer);
+    !locked(request) &&
+    ((request.status === "draft" &&
+      (request.requester_id === user?.id || isReviewer)) ||
+      (request.status === "pending" &&
+        (request.requester_id === user?.id || userRole === "admin")));
 
   const canDelete = (request: AllocationRequestWithRelations) =>
-    (request.status === "draft" &&
+    !locked(request) &&
+    ((request.status === "draft" &&
       (request.requester_id === user?.id || isReviewer)) ||
-    (userRole === "admin" && request.status === "denied");
+      (userRole === "admin" && request.status === "denied"));
 
   const canSubmit = (request: AllocationRequestWithRelations) =>
-    request.status === "draft" && request.requester_id === user?.id;
+    !locked(request) &&
+    request.status === "draft" &&
+    request.requester_id === user?.id;
 
   const canCancel = (request: AllocationRequestWithRelations) =>
+    !locked(request) &&
     request.status === "pending" &&
     (request.requester_id === user?.id || isReviewer);
 
@@ -290,7 +311,10 @@ export function AllocationRequestList({
                           {request.ministry?.name || "-"} • {getPeriodLabel(request.period_type)}
                         </p>
                       </div>
-                      <AllocationRequestStatusBadge status={request.status} />
+                      <div className="flex flex-col items-end gap-1">
+                        <AllocationRequestStatusBadge status={request.status} />
+                        {request.carried_over_from && <CarriedOverBadge />}
+                      </div>
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
@@ -477,7 +501,10 @@ export function AllocationRequestList({
                             )}
                         </TableCell>
                         <TableCell>
-                          <AllocationRequestStatusBadge status={request.status} />
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <AllocationRequestStatusBadge status={request.status} />
+                            {request.carried_over_from && <CarriedOverBadge />}
+                          </div>
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {format(new Date(request.created_at), "MMM d, yyyy")}

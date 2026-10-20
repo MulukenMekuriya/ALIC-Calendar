@@ -50,12 +50,18 @@ import {
   useMinistries,
   useFiscalYears,
   useActiveFiscalYear,
+  useRequestSeason,
   useCreateAllocationRequest,
   useUpdateAllocationRequest,
   useSubmitAllocationRequest,
 } from "../hooks";
 import type { AllocationRequest, BudgetBreakdownItem } from "../types";
 import { PERIOD_AMOUNT_CATEGORY } from "../types";
+import {
+  canStartRequest,
+  isRequestLocked,
+  seasonNotice,
+} from "../utils/requestSeason";
 import {
   getJustificationsForMinistry,
   OTHER_JUSTIFICATION_VALUE,
@@ -226,7 +232,12 @@ export function AllocationRequestForm({
     currentOrganization?.id
   );
 
-  // Selected fiscal year state - defaults to current year
+  const { data: season } = useRequestSeason(currentOrganization?.id);
+
+  // Selected fiscal year state - defaults to the year in season while it is
+  // open (from 1 September, next year's), otherwise the current year. On
+  // 7-19 October 2026 four 2027 budgets were filed under 2026 because this
+  // defaulted to the current year.
   const [selectedFiscalYearId, setSelectedFiscalYearId] = useState<string | null>(null);
 
   // Get the current year's fiscal year, or fallback to active if it's not a past year
@@ -234,6 +245,7 @@ export function AllocationRequestForm({
   const currentYearFiscal = fiscalYears?.find((fy) => fy.year === currentYear);
   const effectiveFiscalYearId =
     selectedFiscalYearId ||
+    (season?.state === "open" ? season.fiscal_year_id : null) ||
     currentYearFiscal?.id ||
     (activeFiscalYear && activeFiscalYear.year >= currentYear
       ? activeFiscalYear.id
@@ -596,6 +608,48 @@ export function AllocationRequestForm({
 
   const isLoading = ministriesLoading || fiscalYearsLoading;
 
+  // Outside the season only an admin of the branch can add or change a
+  // request. Said here rather than left to the database to refuse after the
+  // form has been filled in.
+  const closed = isEditing
+    ? isRequestLocked(season, request?.fiscal_year_id)
+    : !canStartRequest(season);
+  if (closed && season) {
+    const notice = seasonNotice(season, false);
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {isEditing
+                ? "This budget request is locked"
+                : season.state === "upcoming"
+                  ? `${season.fiscal_year} budget requests are not open yet`
+                  : `${season.fiscal_year} budget requests are closed`}
+            </DialogTitle>
+            <DialogDescription>
+              {season.state === "upcoming"
+                ? notice?.title ?? `Requests open on September 1.`
+                : "Budget requests can be made and changed from September 1 to November 1. Please ask an administrator to make any change now."}
+            </DialogDescription>
+          </DialogHeader>
+          <Button onClick={() => onOpenChange(false)} className="mt-4">
+            Close
+          </Button>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Someone the season binds can only file in the year in season.
+  const fiscalYearChoices =
+    season?.enforced && !season.can_bypass
+      ? fiscalYears?.filter((fy) => !isRequestLocked(season, fy.id))
+      : fiscalYears?.filter((fy) => fy.year >= currentYear);
+
+  // A submitted request is edited in place: it stays submitted.
+  const editingSubmitted = isEditing && request?.status !== "draft";
+
   if (!selectedFiscalYear && !fiscalYearsLoading) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -637,9 +691,8 @@ export function AllocationRequestForm({
                 <SelectValue placeholder="Select year" />
               </SelectTrigger>
               <SelectContent>
-                {fiscalYears
-                  ?.filter((fy) => fy.year >= currentYear)
-                  .map((fy) => (
+                {fiscalYearChoices
+                  ?.map((fy) => (
                     <SelectItem key={fy.id} value={fy.id}>
                       {fy.name} {fy.is_active && "(Active)"}
                     </SelectItem>
@@ -1177,21 +1230,23 @@ export function AllocationRequestForm({
                     ) : (
                       <Save className="h-4 w-4 mr-2" />
                     )}
-                    Save Draft
+                    {editingSubmitted ? "Save Changes" : "Save Draft"}
                   </Button>
-                  <Button
-                    type="button"
-                    className="flex-1 bg-violet-600 hover:bg-violet-700"
-                    onClick={form.handleSubmit((v) => handleSave(v, true))}
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4 mr-2" />
-                    )}
-                    Submit
-                  </Button>
+                  {!editingSubmitted && (
+                    <Button
+                      type="button"
+                      className="flex-1 bg-violet-600 hover:bg-violet-700"
+                      onClick={form.handleSubmit((v) => handleSave(v, true))}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4 mr-2" />
+                      )}
+                      Submit
+                    </Button>
+                  )}
                 </div>
               </div>
             </form>

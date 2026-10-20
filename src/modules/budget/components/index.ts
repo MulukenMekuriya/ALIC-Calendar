@@ -25,6 +25,7 @@ export { AllocationRequestList } from "./AllocationRequestList";
 export { AllocationRequestStatusBadge } from "./AllocationRequestStatusBadge";
 export { AllocationRequestDetailDialog } from "./AllocationRequestDetailDialog";
 export { AllocationReviewDialog } from "./AllocationReviewDialog";
+export { RequestSeasonBanner } from "./RequestSeasonBanner";
 
 // Budget Alerts
 export { BudgetAlertsPanel, BudgetAlertsBadge } from "./BudgetAlertsPanel";

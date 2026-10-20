@@ -2,7 +2,8 @@
  * Budget Dashboard - Enterprise Budget Management System
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/shared/components/layout/DashboardLayout";
 import {
   Tabs,
@@ -50,7 +51,7 @@ import {
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useOrganization } from "@/shared/contexts/OrganizationContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { useFiscalYears, useActiveFiscalYear } from "../hooks";
+import { useFiscalYears, useActiveFiscalYear, useRequestSeason } from "../hooks";
 import { useExpenses, useExpenseStatistics } from "../hooks";
 import { useOrganizationBudgetSummary } from "../hooks";
 import { useAllocationRequests } from "../hooks";
@@ -67,6 +68,8 @@ import { AllocationRequestForm } from "../components/AllocationRequestForm";
 import { AllocationRequestList } from "../components/AllocationRequestList";
 import { MonthlyBudgetSummary } from "../components/MonthlyBudgetSummary";
 import { MinistryFlagBadge } from "../components/MinistryFlagBadge";
+import { RequestSeasonBanner } from "../components/RequestSeasonBanner";
+import { canStartRequest } from "../utils/requestSeason";
 import { format, parseISO } from "date-fns";
 
 const BudgetDashboard = () => {
@@ -133,6 +136,33 @@ const BudgetDashboard = () => {
   // Fetch allocation requests
   const { data: allocationRequests, refetch: refetchAllocationRequests } =
     useAllocationRequests(effectiveFiscalYearId);
+
+  // Next year's budget requests: open from 1 September to 1 November.
+  const { data: season } = useRequestSeason(currentOrganization?.id);
+  const { data: seasonRequests } = useAllocationRequests(
+    season?.fiscal_year_id ?? undefined,
+    { enabled: !!season?.enforced && !!season.fiscal_year_id }
+  );
+  // In already: anything past a draft, from this person or for their ministry.
+  const seasonSubmitted = (seasonRequests ?? []).some(
+    (r) =>
+      r.status !== "draft" &&
+      r.status !== "cancelled" &&
+      (r.requester_id === user?.id ||
+        (!!profile?.ministry_name &&
+          r.ministry?.name?.toLowerCase() === profile.ministry_name.toLowerCase()))
+  );
+  const canRequestBudget = canStartRequest(season);
+
+  // The reminder email links to /budget?request=budget: open the form.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get("request") !== "budget") return;
+    setIsAllocationFormOpen(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete("request");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   // User's expenses (requester's own) - EXCLUDE cancelled
   const myExpenses =
@@ -290,15 +320,37 @@ const BudgetDashboard = () => {
                     <DollarSign className="mr-2 h-4 w-4" />
                     Expense Request
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsAllocationFormOpen(true)}>
+                  <DropdownMenuItem
+                    onClick={() => setIsAllocationFormOpen(true)}
+                    disabled={!canRequestBudget}
+                  >
                     <Wallet className="mr-2 h-4 w-4" />
-                    Budget Request
+                    <span className="flex flex-col">
+                      Budget Request
+                      {!canRequestBudget && season && (
+                        <span className="text-xs text-muted-foreground">
+                          {season.state === "upcoming"
+                            ? "Opens September 1"
+                            : "Closed since November 1"}
+                        </span>
+                      )}
+                    </span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
           </div>
         </div>
+
+        <RequestSeasonBanner
+          season={season}
+          submitted={seasonSubmitted}
+          onStart={() => setIsAllocationFormOpen(true)}
+          onView={() => {
+            setSelectedFiscalYearId(season?.fiscal_year_id ?? null);
+            setActiveTab("allocations");
+          }}
+        />
 
         {/* Metrics Grid - World Class KPIs for Full Access Users */}
         {!isLoading && budgetSummary && expenses && hasFullAccess && (

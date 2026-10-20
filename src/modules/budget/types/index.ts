@@ -26,6 +26,24 @@ export type FiscalYearUpdate = TablesUpdate<
   "fiscal_years"
 >;
 
+/**
+ * Where budget requests stand for a branch, from budget.request_season: the
+ * year in season is always next year, open from 1 September to the end of
+ * 1 November. can_bypass is true for an admin of this branch.
+ */
+export interface RequestSeason {
+  enforced: boolean;
+  fiscal_year: number;
+  fiscal_year_id: string | null;
+  opens_at: string;
+  closes_at: string;
+  opens_on: string;
+  last_day: string;
+  state: "upcoming" | "open" | "closed";
+  days_left: number | null;
+  can_bypass: boolean;
+}
+
 export type BudgetAllocation = Tables<
   { schema: "budget" },
   "budget_allocations"
@@ -338,6 +356,8 @@ export interface AllocationRequest {
   reviewed_at: string | null;
   admin_notes: string | null;
   approved_amount: number | null;
+  /** Copied from last year's because nothing was submitted by the deadline. */
+  carried_over_from?: string | null;
   created_at: string;
   updated_at: string;
 }

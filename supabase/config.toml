@@ -99,6 +99,11 @@ verify_jwt = false
 [functions.send-kids-notification]
 verify_jwt = false
 
+# Sends today's rows of budget.request_reminders. Woken the same way, by
+# budget.request_reminder_sweep; it sends only what that sweep queued.
+[functions.send-budget-reminders]
+verify_jwt = false
+
 # Called by Stripe, which has no Supabase JWT to send. Its own authentication
 # is the Stripe-Signature header, verified against STRIPE_WEBHOOK_SECRET inside
 # the function; an unsigned or stale request is rejected with a 400 before it

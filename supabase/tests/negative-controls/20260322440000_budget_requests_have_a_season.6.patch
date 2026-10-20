@@ -1,0 +1,10 @@
+--- supabase/migrations/20260322440000_budget_requests_have_a_season.sql	2026-10-20 14:46:50
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/0f9e05a4-0b4e-451c-813d-dd3ffe358845/scratchpad/broken.sql	2026-10-20 14:49:06
+@@ -587,7 +587,6 @@
+     WHERE ar.organization_id = _organization_id
+       AND fy.year = _year - 1
+       AND ar.status IN ('pending', 'approved', 'partially_approved')
+-      AND NOT ar.excluded_from_carry_over
+       AND NOT EXISTS (
+         SELECT 1 FROM budget.allocation_requests n
+         WHERE n.fiscal_year_id = _fy AND n.ministry_id = ar.ministry_id

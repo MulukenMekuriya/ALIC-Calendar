@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322440000_budget_requests_have_a_season.sql	2026-10-20 13:53:46
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/0f9e05a4-0b4e-451c-813d-dd3ffe358845/scratchpad/broken.sql	2026-10-20 13:56:00
+@@ -155,7 +155,7 @@
+ BEGIN
+   -- An update is checked against the year it leaves as well as the one it
+   -- joins, so a closed request cannot be moved into the open year.
+-  IF TG_OP <> 'INSERT' THEN
++  IF TG_OP = 'DELETE' THEN
+     PERFORM budget.assert_request_season(OLD.organization_id, OLD.fiscal_year_id);
+   END IF;
+   IF TG_OP = 'DELETE' THEN
