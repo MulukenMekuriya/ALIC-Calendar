@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322440300_md_2026_budgets_are_approved.sql	2026-10-20 16:16:58
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/0f9e05a4-0b4e-451c-813d-dd3ffe358845/scratchpad/broken.sql	2026-10-20 16:17:40
+@@ -41,7 +41,7 @@
+     AND ar.fiscal_year_id = _fy
+     AND ar.status = 'pending'
+     AND ar.id NOT IN ('a4542dd9-d1cf-4a36-88eb-aca767f37c0e',   -- Deacons, $12,200, a duplicate
+-                      '651e2315-5595-417f-abb6-7c362662886b');  -- Serving, $1,500, a duplicate
++                      '00000000-0000-0000-0000-000000000000');
+ 
+   -- Exactly what was looked at on 20 October, or nothing: a request approved
+   -- or added since then needs a person to decide, not this.

@@ -59,7 +59,6 @@ interface BudgetSectionProps {
   title?: string;
   description?: string;
   showHeader?: boolean;
-  showMinistryBreakdown?: boolean;
 }
 
 // Color palette
@@ -138,7 +137,6 @@ const BudgetSection = ({
   title,
   description,
   showHeader = true,
-  showMinistryBreakdown = true,
 }: BudgetSectionProps) => {
   const config = SECTION_CONFIGS[type];
   const Icon = config.icon;
@@ -200,26 +198,6 @@ const BudgetSection = ({
       return acc;
     }, {} as Record<string, { month: string; amount: number; count: number }>)
   ).sort((a, b) => a.month.localeCompare(b.month));
-
-  // Ministry breakdown
-  const ministryData = Object.entries(
-    data.reduce((acc, item) => {
-      const ministryName = config.getMinistry(item);
-      if (!acc[ministryName]) {
-        acc[ministryName] = { count: 0, amount: 0 };
-      }
-      acc[ministryName].count += 1;
-      acc[ministryName].amount += config.getAmount(item);
-      return acc;
-    }, {} as Record<string, { count: number; amount: number }>)
-  )
-    .map(([name, data]) => ({
-      name: name.length > 20 ? name.substring(0, 20) + "..." : name,
-      fullName: name,
-      amount: data.amount,
-      count: data.count,
-    }))
-    .sort((a, b) => b.amount - a.amount);
 
   // Approval rate
   const totalRequests = data.length;
@@ -503,67 +481,6 @@ const BudgetSection = ({
         </Card>
       )}
 
-      {/* Ministry Breakdown Table - Only show for admins (not contributors) */}
-      {showMinistryBreakdown && (
-        <Card>
-          <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="text-base sm:text-lg">Ministry Summary</CardTitle>
-            <CardDescription className="text-xs sm:text-sm">Breakdown by ministry</CardDescription>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-6 pt-0">
-            <div className="overflow-x-auto -mx-3 sm:mx-0">
-              <table className="w-full min-w-[400px]">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-2 sm:py-3 px-3 sm:px-4 font-medium text-xs sm:text-sm">Ministry</th>
-                    <th className="text-right py-2 sm:py-3 px-3 sm:px-4 font-medium text-xs sm:text-sm">Count</th>
-                    <th className="text-right py-2 sm:py-3 px-3 sm:px-4 font-medium text-xs sm:text-sm">
-                      Total Amount
-                    </th>
-                    <th className="text-right py-2 sm:py-3 px-3 sm:px-4 font-medium text-xs sm:text-sm hidden sm:table-cell">
-                      Avg. Amount
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ministryData.map((ministry) => {
-                    const avgAmount = ministry.amount / ministry.count;
-                    return (
-                      <tr
-                        key={ministry.fullName}
-                        className="border-b hover:bg-muted/50"
-                      >
-                        <td className="py-2 sm:py-3 px-3 sm:px-4 font-medium text-xs sm:text-sm">
-                          {ministry.fullName}
-                        </td>
-                        <td className="text-right py-2 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm">{ministry.count}</td>
-                        <td className="text-right py-2 sm:py-3 px-3 sm:px-4 font-medium text-blue-600 text-xs sm:text-sm">
-                          ${ministry.amount.toLocaleString()}
-                        </td>
-                        <td className="text-right py-2 sm:py-3 px-3 sm:px-4 text-muted-foreground text-xs sm:text-sm hidden sm:table-cell">
-                          ${avgAmount.toLocaleString()}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2 font-bold">
-                    <td className="py-2 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm">Total</td>
-                    <td className="text-right py-2 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm">{totalRequests}</td>
-                    <td className="text-right py-2 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm">
-                      ${totalAmount.toLocaleString()}
-                    </td>
-                    <td className="text-right py-2 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm hidden sm:table-cell">
-                      ${(totalAmount / totalRequests).toLocaleString()}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };

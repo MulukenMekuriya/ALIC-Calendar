@@ -13,11 +13,13 @@ import {
 import { Badge } from "@/shared/components/ui/badge";
 import { DollarSign, Wallet, TrendingUp, BarChart3 } from "lucide-react";
 import BudgetSection from "./BudgetSection";
+import { MinistryBudgetSummary } from "./MinistryBudgetSummary";
 import { ExpenseList } from "./ExpenseList";
 import { AllocationRequestList } from "./AllocationRequestList";
 import type {
   ExpenseRequestWithRelations,
   AllocationRequestWithRelations,
+  MinistryBudgetSummary as MinistryBudgetSummaryRow,
 } from "../types";
 
 interface BudgetOverviewProps {
@@ -30,6 +32,8 @@ interface BudgetOverviewProps {
   showDetailedLists?: boolean;
   // Hide ministry breakdown for contributors (they only see their own ministry)
   showMinistryBreakdown?: boolean;
+  /** Each ministry's approved budget for the year, for the Ministry Summary. */
+  ministryBudgets?: MinistryBudgetSummaryRow[];
   expenseListProps?: {
     isLoading?: boolean;
     userRole?: "admin" | "treasury" | "finance" | "requester";
@@ -50,6 +54,7 @@ const BudgetOverview = ({
   defaultView = "combined",
   showDetailedLists = false,
   showMinistryBreakdown = true,
+  ministryBudgets = [],
   expenseListProps = {},
   allocationListProps = {},
 }: BudgetOverviewProps) => {
@@ -234,8 +239,14 @@ const BudgetOverview = ({
                             type="expenses"
                             data={activeExpenses}
                             showHeader={false}
-                            showMinistryBreakdown={showMinistryBreakdown}
                           />
+
+                          {showMinistryBreakdown && (
+                            <MinistryBudgetSummary
+                              budgets={ministryBudgets}
+                              expenses={activeExpenses}
+                            />
+                          )}
 
                           {/* Detailed Expense List */}
                           {showDetailedLists && (
@@ -266,8 +277,14 @@ const BudgetOverview = ({
                             type="allocations"
                             data={activeAllocations}
                             showHeader={false}
-                            showMinistryBreakdown={showMinistryBreakdown}
                           />
+
+                          {showMinistryBreakdown && (
+                            <MinistryBudgetSummary
+                              budgets={ministryBudgets}
+                              expenses={activeExpenses}
+                            />
+                          )}
 
                           {/* Detailed Allocation List */}
                           {showDetailedLists && (
