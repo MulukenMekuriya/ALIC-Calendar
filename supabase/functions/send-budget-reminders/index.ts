@@ -125,7 +125,8 @@ serve(async (req) => {
           _provider_message_id: result.ok ? result.id : null,
           _error: result.ok ? null : result.error,
         });
-        result.ok ? sent++ : failed++;
+        if (result.ok) sent++;
+        else failed++;
       } catch (error) {
         // One bad row must not strand the rest in 'sending'.
         const message = error instanceof Error ? error.message : String(error);
