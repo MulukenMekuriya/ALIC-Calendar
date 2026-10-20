@@ -8,6 +8,7 @@ import type {
   FiscalYear,
   FiscalYearInsert,
   FiscalYearUpdate,
+  RequestSeason,
 } from "../types";
 
 // Helper to get the budget schema client
@@ -140,5 +141,18 @@ export const fiscalYearService = {
 
     if (error && error.code !== "PGRST116") throw error;
     return data;
+  },
+
+  /**
+   * Where budget requests stand for this branch: which year is in season,
+   * whether it is open, and whether the caller may work outside it.
+   */
+  async getRequestSeason(organizationId: string): Promise<RequestSeason | null> {
+    const { data, error } = await budgetSchema().rpc("request_season", {
+      _organization_id: organizationId,
+    });
+
+    if (error) throw error;
+    return (data?.[0] as RequestSeason | undefined) ?? null;
   },
 };

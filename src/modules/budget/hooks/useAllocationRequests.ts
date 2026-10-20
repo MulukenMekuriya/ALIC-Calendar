@@ -24,7 +24,10 @@ const ALLOCATION_REQUEST_HISTORY_KEY = "allocation-request-history";
 /**
  * Fetch all allocation requests for a fiscal year
  */
-export function useAllocationRequests(fiscalYearId?: string) {
+export function useAllocationRequests(
+  fiscalYearId?: string,
+  options: { enabled?: boolean } = {}
+) {
   return useQuery({
     queryKey: [ALLOCATION_REQUESTS_KEY, fiscalYearId],
     queryFn: async () => {
@@ -49,7 +52,7 @@ export function useAllocationRequests(fiscalYearId?: string) {
       if (error) throw error;
       return data as AllocationRequestWithRelations[];
     },
-    enabled: true,
+    enabled: options.enabled ?? true,
   });
 }
 

@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "13.0.5"
   }
   budget: {
     Tables: {
@@ -113,7 +113,9 @@ export type Database = {
           admin_notes: string | null
           approved_amount: number | null
           budget_breakdown: Json | null
+          carried_over_from: string | null
           created_at: string | null
+          excluded_from_carry_over: boolean
           fiscal_year_id: string
           id: string
           justification: string
@@ -132,7 +134,9 @@ export type Database = {
           admin_notes?: string | null
           approved_amount?: number | null
           budget_breakdown?: Json | null
+          carried_over_from?: string | null
           created_at?: string | null
+          excluded_from_carry_over?: boolean
           fiscal_year_id: string
           id?: string
           justification: string
@@ -151,7 +155,9 @@ export type Database = {
           admin_notes?: string | null
           approved_amount?: number | null
           budget_breakdown?: Json | null
+          carried_over_from?: string | null
           created_at?: string | null
+          excluded_from_carry_over?: boolean
           fiscal_year_id?: string
           id?: string
           justification?: string
@@ -167,6 +173,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "allocation_requests_carried_over_from_fkey"
+            columns: ["carried_over_from"]
+            isOneToOne: false
+            referencedRelation: "allocation_requests"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "allocation_requests_fiscal_year_id_fkey"
             columns: ["fiscal_year_id"]
@@ -536,11 +549,151 @@ export type Database = {
           },
         ]
       }
+      request_reminders: {
+        Row: {
+          attempts: number
+          claimed_at: string | null
+          created_at: string
+          error: string | null
+          fiscal_year: number
+          id: string
+          last_day: string
+          ministry_names: string[]
+          opens_on: string
+          organization_id: string
+          provider_message_id: string | null
+          recipient_email: string
+          recipient_name: string | null
+          send_on: string
+          sent_at: string | null
+          signed_by: string
+          stage: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          claimed_at?: string | null
+          created_at?: string
+          error?: string | null
+          fiscal_year: number
+          id?: string
+          last_day: string
+          ministry_names?: string[]
+          opens_on: string
+          organization_id: string
+          provider_message_id?: string | null
+          recipient_email: string
+          recipient_name?: string | null
+          send_on: string
+          sent_at?: string | null
+          signed_by: string
+          stage: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          claimed_at?: string | null
+          created_at?: string
+          error?: string | null
+          fiscal_year?: number
+          id?: string
+          last_day?: string
+          ministry_names?: string[]
+          opens_on?: string
+          organization_id?: string
+          provider_message_id?: string | null
+          recipient_email?: string
+          recipient_name?: string | null
+          send_on?: string
+          sent_at?: string | null
+          signed_by?: string
+          stage?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      request_season_policy: {
+        Row: {
+          carry_over: boolean
+          enforce_window: boolean
+          organization_id: string
+          send_reminders: boolean
+          signed_by: string
+          updated_at: string
+        }
+        Insert: {
+          carry_over?: boolean
+          enforce_window?: boolean
+          organization_id: string
+          send_reminders?: boolean
+          signed_by: string
+          updated_at?: string
+        }
+        Update: {
+          carry_over?: boolean
+          enforce_window?: boolean
+          organization_id?: string
+          send_reminders?: boolean
+          signed_by?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      assert_request_season: {
+        Args: { _fiscal_year_id: string; _organization_id: string }
+        Returns: undefined
+      }
+      carry_over_budget_requests: {
+        Args: { _organization_id: string; _year: number }
+        Returns: number
+      }
+      claim_request_reminders: {
+        Args: { _limit?: number }
+        Returns: {
+          attempts: number
+          claimed_at: string | null
+          created_at: string
+          error: string | null
+          fiscal_year: number
+          id: string
+          last_day: string
+          ministry_names: string[]
+          opens_on: string
+          organization_id: string
+          provider_message_id: string | null
+          recipient_email: string
+          recipient_name: string | null
+          send_on: string
+          sent_at: string | null
+          signed_by: string
+          stage: string
+          status: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "request_reminders"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      complete_request_reminder: {
+        Args: {
+          _error?: string
+          _id: string
+          _ok: boolean
+          _provider_message_id?: string
+        }
+        Returns: undefined
+      }
       ensure_next_fiscal_year: { Args: never; Returns: undefined }
       get_active_fiscal_year: {
         Args: { _organization_id: string }
@@ -577,6 +730,32 @@ export type Database = {
       is_treasury_user: {
         Args: { _organization_id: string; _user_id: string }
         Returns: boolean
+      }
+      queue_request_reminders: {
+        Args: { _on: string; _organization_id: string; _send_as?: string }
+        Returns: number
+      }
+      request_carry_over_sweep: { Args: never; Returns: number }
+      request_reminder_stage: { Args: { _on: string }; Returns: string }
+      request_reminder_sweep: { Args: never; Returns: number }
+      request_season: {
+        Args: { _organization_id: string }
+        Returns: {
+          can_bypass: boolean
+          closes_at: string
+          days_left: number
+          enforced: boolean
+          fiscal_year: number
+          fiscal_year_id: string
+          last_day: string
+          opens_at: string
+          opens_on: string
+          state: string
+        }[]
+      }
+      request_window: {
+        Args: { _year: number }
+        Returns: Record<string, unknown>
       }
     }
     Enums: {

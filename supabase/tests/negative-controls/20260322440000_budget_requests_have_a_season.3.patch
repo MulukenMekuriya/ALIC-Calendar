@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322440000_budget_requests_have_a_season.sql	2026-10-20 13:53:46
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/0f9e05a4-0b4e-451c-813d-dd3ffe358845/scratchpad/broken.sql	2026-10-20 13:56:00
+@@ -276,7 +276,7 @@
+   SELECT CASE
+     WHEN md IN (815, 822, 829) THEN 'upcoming'
+     WHEN md = 901 THEN 'opened'
+-    WHEN md IN (915, 1001, 1015, 1022) THEN 'reminder'
++    WHEN md IN (915, 1001, 1015) THEN 'reminder'
+     WHEN md IN (1028, 1029, 1030, 1031, 1101) THEN 'final'
+   END
+   FROM (SELECT (extract(month FROM _on) * 100 + extract(day FROM _on))::INTEGER AS md) d;

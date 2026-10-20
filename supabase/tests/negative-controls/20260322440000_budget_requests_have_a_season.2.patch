@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322440000_budget_requests_have_a_season.sql	2026-10-20 13:53:46
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/0f9e05a4-0b4e-451c-813d-dd3ffe358845/scratchpad/broken.sql	2026-10-20 13:56:00
+@@ -378,7 +378,7 @@
+     JOIN budget.fiscal_years fy ON fy.id = ar.fiscal_year_id
+     WHERE ar.organization_id = _organization_id
+       AND fy.year = _year
+-      AND ar.status NOT IN ('draft', 'cancelled')
++      AND ar.status NOT IN ('cancelled')
+   ),
+   owed AS (
+     SELECT c.user_id, c.name, c.email,

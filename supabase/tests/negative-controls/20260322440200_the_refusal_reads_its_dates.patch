@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322440200_the_refusal_reads_its_dates.sql	2026-10-20 15:17:32
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/0f9e05a4-0b4e-451c-813d-dd3ffe358845/scratchpad/broken.sql	2026-10-20 15:17:32
+@@ -44,7 +44,7 @@
+   -- Month, day and year, as Abel writes a date.
+   IF now() < _w.opens_at THEN
+     RAISE EXCEPTION 'Budget requests for % open on %.',
+-      _year, to_char(_w.opens_on, 'FMMonth FMDD, YYYY')
++      _year, to_char(_w.opens_on, 'FMMonth FMDD, YYYY') || ' (September 1)'
+       USING ERRCODE = 'P0001';
+   ELSIF now() >= _w.closes_at THEN
+     RAISE EXCEPTION 'Budget requests for % closed on %. Please ask an administrator to make any change.',

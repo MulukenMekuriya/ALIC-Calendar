@@ -39,6 +39,19 @@ export function useActiveFiscalYear(organizationId: string | undefined) {
 }
 
 /**
+ * Hook to fetch where budget requests stand for a branch. Rechecked every
+ * few minutes, so a page left open across midnight on 1 November locks.
+ */
+export function useRequestSeason(organizationId: string | undefined) {
+  return useQuery({
+    queryKey: [...fiscalYearKeys.all, "request-season", organizationId || ""],
+    queryFn: () => fiscalYearService.getRequestSeason(organizationId!),
+    enabled: !!organizationId,
+    refetchInterval: 5 * 60 * 1000,
+  });
+}
+
+/**
  * Hook to fetch a single fiscal year
  */
 export function useFiscalYear(fiscalYearId: string | undefined) {

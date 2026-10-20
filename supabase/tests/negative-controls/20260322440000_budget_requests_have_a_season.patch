@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322440000_budget_requests_have_a_season.sql	2026-10-20 13:53:46
++++ /private/tmp/claude-501/-Users-mulukenmekuriya-Library-Mobile-Documents-com-apple-CloudDocs-Documents-Coding-approval-agenda/0f9e05a4-0b4e-451c-813d-dd3ffe358845/scratchpad/broken.sql	2026-10-20 13:57:22
+@@ -122,7 +122,7 @@
+   IF EXISTS (SELECT 1 FROM public.user_organizations uo
+              WHERE uo.user_id = auth.uid()
+                AND uo.organization_id = _organization_id
+-               AND uo.role = 'admin') THEN
++               AND uo.role = 'admin' AND false) THEN
+     RETURN;
+   END IF;
+ 

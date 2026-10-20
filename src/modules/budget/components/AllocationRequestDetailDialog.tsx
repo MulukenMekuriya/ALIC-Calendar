@@ -32,7 +32,7 @@ import {
   Undo2,
 } from "lucide-react";
 import { format } from "date-fns";
-import { AllocationRequestStatusBadge } from "./AllocationRequestStatusBadge";
+import { AllocationRequestStatusBadge, CarriedOverBadge } from "./AllocationRequestStatusBadge";
 import type {
   AllocationRequestWithRelations,
   BudgetBreakdownItem,
@@ -136,7 +136,10 @@ export function AllocationRequestDetailDialog({
             <CardContent className="pt-6">
               <div className="flex items-start justify-between">
                 <div className="space-y-2">
-                  <AllocationRequestStatusBadge status={request.status} />
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <AllocationRequestStatusBadge status={request.status} />
+                    {request.carried_over_from && <CarriedOverBadge />}
+                  </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <CalendarDays className="h-4 w-4" />
                     {periodTypeLabel}
