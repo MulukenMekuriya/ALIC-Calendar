@@ -19,6 +19,16 @@ export function seasonDay(iso: string): string {
   });
 }
 
+/** "November 1", from a YYYY-MM-DD day. */
+export function seasonMonthDay(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 /**
  * Whether a request in this fiscal year is closed to the person looking.
  *

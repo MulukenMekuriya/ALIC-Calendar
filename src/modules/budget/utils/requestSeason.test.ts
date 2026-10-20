@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { RequestSeason } from "../types";
-import { canStartRequest, isRequestLocked, seasonDay, seasonNotice } from "./requestSeason";
+import {
+  canStartRequest,
+  isRequestLocked,
+  seasonDay,
+  seasonMonthDay,
+  seasonNotice,
+} from "./requestSeason";
 
 const season = (over: Partial<RequestSeason> = {}): RequestSeason => ({
   enforced: true,
@@ -20,6 +26,8 @@ describe("the budget request season", () => {
   it("names the day without moving it across a time zone", () => {
     expect(seasonDay("2026-11-01")).toBe("Sunday, November 1");
     expect(seasonDay("2026-09-01")).toBe("Tuesday, September 1");
+    expect(seasonDay("2027-11-01")).toBe("Monday, November 1");
+    expect(seasonMonthDay("2027-09-01")).toBe("September 1");
   });
 
   it("lets a contributor change only the year in season, while it is open", () => {

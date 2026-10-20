@@ -16,6 +16,20 @@ const row = (over: Partial<ReminderRow> = {}): ReminderRow => ({
 });
 
 describe("the budget request reminder", () => {
+  it("works every date out from the row, so next year needs no change", () => {
+    const next = row({
+      fiscal_year: 2028, send_on: "2027-10-28", stage: "final",
+      opens_on: "2027-09-01", last_day: "2027-11-01",
+    });
+    const c = compose(next);
+    expect(c.subject).toBe("4 days left: 2028 budget requests are due November 1");
+    // 1 November 2027 is a Monday.
+    expect(c.fact.value).toBe("Monday, November\u00a01");
+    expect(c.paragraphs.join(" ")).toContain("carried over for 2028");
+    expect(renderEmail(next)).toContain("Budget &amp; Calendar Requests · 2028");
+    expect(renderEmail(next)).not.toMatch(/2027 budget|2026|Sunday/);
+  });
+
   it("counts the days to the last day, which is day zero", () => {
     expect(daysLeft(row())).toBe(10);
     expect(daysLeft(row({ send_on: "2026-10-28" }))).toBe(4);

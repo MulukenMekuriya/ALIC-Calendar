@@ -60,6 +60,7 @@ import { PERIOD_AMOUNT_CATEGORY } from "../types";
 import {
   canStartRequest,
   isRequestLocked,
+  seasonMonthDay,
   seasonNotice,
 } from "../utils/requestSeason";
 import {
@@ -629,8 +630,9 @@ export function AllocationRequestForm({
             </DialogTitle>
             <DialogDescription>
               {season.state === "upcoming"
-                ? notice?.title ?? `Requests open on September 1.`
-                : "Budget requests can be made and changed from September 1 to November 1. Please ask an administrator to make any change now."}
+                ? notice?.title ??
+                  `Requests open on ${seasonMonthDay(season.opens_on)}.`
+                : `Budget requests can be made and changed from ${seasonMonthDay(season.opens_on)} to ${seasonMonthDay(season.last_day)}. Please ask an administrator to make any change now.`}
             </DialogDescription>
           </DialogHeader>
           <Button onClick={() => onOpenChange(false)} className="mt-4">

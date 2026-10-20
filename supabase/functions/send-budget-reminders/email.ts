@@ -64,11 +64,16 @@ export function monthDay(iso: string): string {
   return day(iso).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
 }
 
-/** "Sunday, November 1". */
+/**
+ * "Sunday, November 1", the day held to its month: on a phone the deadline
+ * box wrapped and left the "1" alone on a line.
+ */
 export function weekdayMonthDay(iso: string): string {
-  return day(iso).toLocaleDateString("en-US", {
-    weekday: "long", month: "long", day: "numeric", timeZone: "UTC",
-  });
+  return day(iso)
+    .toLocaleDateString("en-US", {
+      weekday: "long", month: "long", day: "numeric", timeZone: "UTC",
+    })
+    .replace(/ (\d+)$/, "\u00a0$1");
 }
 
 /** Days from the day it is sent to the last day: 0 on the last day itself. */

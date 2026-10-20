@@ -69,7 +69,7 @@ import { AllocationRequestList } from "../components/AllocationRequestList";
 import { MonthlyBudgetSummary } from "../components/MonthlyBudgetSummary";
 import { MinistryFlagBadge } from "../components/MinistryFlagBadge";
 import { RequestSeasonBanner } from "../components/RequestSeasonBanner";
-import { canStartRequest } from "../utils/requestSeason";
+import { canStartRequest, seasonMonthDay } from "../utils/requestSeason";
 import { format, parseISO } from "date-fns";
 
 const BudgetDashboard = () => {
@@ -330,8 +330,8 @@ const BudgetDashboard = () => {
                       {!canRequestBudget && season && (
                         <span className="text-xs text-muted-foreground">
                           {season.state === "upcoming"
-                            ? "Opens September 1"
-                            : "Closed since November 1"}
+                            ? `Opens ${seasonMonthDay(season.opens_on)}`
+                            : `Closed since ${seasonMonthDay(season.last_day)}`}
                         </span>
                       )}
                     </span>
