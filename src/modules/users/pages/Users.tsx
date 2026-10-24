@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/shared/components/layout/DashboardLayout";
@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/shared/hooks/use-toast";
 import { UserPlus, Shield, UserCog, Pencil, Trash2 } from "lucide-react";
 import { useOrganization } from "@/shared/contexts/OrganizationContext";
+import { errorMessage } from "@/shared/lib/errorMessage";
+import { EVERYONE, filterRoster, holdsAJob, rankByRole } from "../utils/roster";
 
 /**
  * Every public.app_role tier, most privileged first.
@@ -56,16 +58,12 @@ const APP_ROLES = [
   },
 ] as const;
 
+/** Ids per profiles request; 200 keeps the URL near 8,000 characters. */
+const PROFILE_BATCH = 200;
+
 const roleLabel = (role?: string | null) =>
   APP_ROLES.find((r) => r.value === role)?.label ?? "Member";
 
-/**
- * Reads the tier straight off the row.
- *
- * The two badges this replaces asked `some(r => r.role === 'admin')` and
- * printed "Contributor" for everything else, so treasury, finance and member
- * all displayed as Contributor.
- */
 const RoleBadge = ({
   role,
   className,
@@ -85,6 +83,11 @@ const Users = () => {
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
   const [newUser, setNewUser] = useState({ email: "", password: "", full_name: "", ministry_name: "", role: "member" });
+  // Most of MD's 656 logins hold 'member' — the whole Breeze import. This
+  // screen is for giving somebody a job, so it lists the people who have one
+  // and the members wait behind "Show members".
+  const [showMembers, setShowMembers] = useState(false);
+  const [search, setSearch] = useState("");
   const [editingUser, setEditingUser] = useState<{ id: string; email: string; full_name: string; phone_number?: string; ministry_name?: string; role: string } | null>(null);
 
   const { data: users, refetch: refetchUsers, error: usersError } = useQuery({
@@ -107,16 +110,25 @@ const Users = () => {
 
       const userIds = orgUsers.map(u => u.user_id);
 
-      // Get profiles for users in this organization
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("*")
-        .in("id", userIds);
+      // Get profiles for users in this organization, PROFILE_BATCH ids at a
+      // time. `.in()` puts every id in the URL, and at 656 MD logins that URL
+      // passed ~25,600 characters and the gateway answered a bare
+      // "400 Bad Request" — the page read "Error loading users: Unknown error".
+      const batches: string[][] = [];
+      for (let i = 0; i < userIds.length; i += PROFILE_BATCH) {
+        batches.push(userIds.slice(i, i + PROFILE_BATCH));
+      }
+      const results = await Promise.all(
+        batches.map((ids) => supabase.from("profiles").select("*").in("id", ids)),
+      );
+      const profilesError = results.find((r) => r.error)?.error;
 
       if (profilesError) {
         console.error("Error fetching profiles:", profilesError);
         throw profilesError;
       }
+
+      const profiles = results.flatMap((r) => r.data ?? []);
 
       // Manually join the data with org roles
       const usersWithRoles = profiles?.map(profile => {
@@ -133,6 +145,18 @@ const Users = () => {
     enabled: !!currentOrganization?.id,
   });
 
+
+  const { staff, members } = useMemo(() => {
+    const ranked = rankByRole(filterRoster(users, EVERYONE, search));
+    return {
+      staff: ranked.filter((u) => holdsAJob(u.user_roles?.[0]?.role)),
+      members: ranked.filter((u) => !holdsAJob(u.user_roles?.[0]?.role)),
+    };
+  }, [users, search]);
+  // A search looks through everyone: finding the member you are about to
+  // promote is the reason to search at all.
+  const membersShowing = showMembers || search.trim() !== "";
+  const visibleUsers = membersShowing ? [...staff, ...members] : staff;
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,14 +190,17 @@ const Users = () => {
         throw new Error(data.error);
       }
 
-      toast({ title: "User created successfully" });
+      toast({
+        title: "User created",
+        description: `${newUser.full_name} is ${roleLabel(newUser.role)} in ${currentOrganization.name}.`,
+      });
       setIsAddUserOpen(false);
       setNewUser({ email: "", password: "", full_name: "", ministry_name: "", role: "member" });
       refetchUsers();
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred",
+        description: errorMessage(error),
         variant: "destructive",
       });
     }
@@ -196,23 +223,38 @@ const Users = () => {
 
       if (profileError) throw profileError;
 
-      // Update role in user_organizations table
-      const { error: roleError } = await supabase
+      // Update role in user_organizations table.
+      //
+      // .select() is the point of this call, not decoration. Row-level
+      // security refuses by matching no rows rather than by erroring, and
+      // until 20260322440500 there was no admin policy here at all: every
+      // role change ran, changed nothing, and was reported as a success.
+      const { data: roleRows, error: roleError } = await supabase
         .from("user_organizations")
         .update({ role: editingUser.role as (typeof APP_ROLES)[number]["value"] })
         .eq("user_id", editingUser.id)
-        .eq("organization_id", currentOrganization.id);
+        .eq("organization_id", currentOrganization.id)
+        .select("user_id");
 
       if (roleError) throw roleError;
 
-      toast({ title: "User updated successfully" });
+      if (!roleRows || roleRows.length === 0) {
+        throw new Error(
+          "The role was not changed. You may not have permission to set roles in this branch.",
+        );
+      }
+
+      toast({
+        title: "User updated",
+        description: `${editingUser.full_name} is now ${roleLabel(editingUser.role)} in ${currentOrganization.name}.`,
+      });
       setIsEditUserOpen(false);
       setEditingUser(null);
       refetchUsers();
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred",
+        description: errorMessage(error),
         variant: "destructive",
       });
     }
@@ -248,7 +290,7 @@ const Users = () => {
       console.error("Delete user error:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred",
+        description: errorMessage(error),
         variant: "destructive",
       });
     }
@@ -289,7 +331,8 @@ const Users = () => {
             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-6">
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                 <UserCog className="h-4 w-4 sm:h-5 sm:w-5" />
-                Users ({users?.length || 0})
+                Users ({staff.length} staff
+                {members.length > 0 && ` \u00b7 ${members.length} ${members.length === 1 ? "member" : "members"}`})
               </CardTitle>
               <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
                 <DialogTrigger asChild>
@@ -429,20 +472,34 @@ const Users = () => {
               </Dialog>
             </CardHeader>
             <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                <Input
+                  placeholder="Search name, email or ministry"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="sm:max-w-xs"
+                />
+              </div>
               {usersError && (
                 <div className="text-sm text-destructive mb-4">
-                  Error loading users: {usersError instanceof Error ? usersError.message : "Unknown error"}
+                  Error loading users: {errorMessage(usersError, "Unknown error")}
                 </div>
               )}
-              {!users || users.length === 0 ? (
+              {visibleUsers.length === 0 ? (
                 <div className="text-center py-6 sm:py-8 text-sm sm:text-base text-muted-foreground">
-                  {usersError ? "Failed to load users." : "No users found. Add users using the 'Add User' button above."}
+                  {usersError
+                    ? "Failed to load users."
+                    : search.trim()
+                      ? "Nobody matches that search."
+                      : members.length > 0
+                        ? "Nobody here has a role yet. Show members to find someone to promote."
+                        : "No users found. Add users using the 'Add User' button above."}
                 </div>
               ) : (
                 <>
                   {/* Mobile Card View */}
                   <div className="md:hidden space-y-3">
-                    {users.map((user) => (
+                    {visibleUsers.map((user) => (
                       <div key={user.id} className="border rounded-lg p-3 space-y-3 bg-card">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
@@ -498,7 +555,7 @@ const Users = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {users.map((user) => (
+                        {visibleUsers.map((user) => (
                           <TableRow key={user.id}>
                             <TableCell className="font-medium">{user.full_name}</TableCell>
                             <TableCell>{user.email}</TableCell>
@@ -531,6 +588,15 @@ const Users = () => {
                     </Table>
                   </div>
                 </>
+              )}
+              {members.length > 0 && !search.trim() && (
+                <div className="flex justify-center pt-4">
+                  <Button variant="outline" size="sm" onClick={() => setShowMembers((v) => !v)}>
+                    {showMembers
+                      ? "Hide members"
+                      : `Show members (${members.length})`}
+                  </Button>
+                </div>
               )}
             </CardContent>
           </Card>
