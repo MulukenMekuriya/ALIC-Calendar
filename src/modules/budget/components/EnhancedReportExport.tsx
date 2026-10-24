@@ -21,7 +21,7 @@ import type {
   AllocationRequestWithRelations,
   AttachmentData,
 } from "../types";
-import { REIMBURSEMENT_TYPE_LABELS } from "../types";
+import { REIMBURSEMENT_TYPE_LABELS, isAwaitingDecision } from "../types";
 import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -109,7 +109,7 @@ export const EnhancedReportExport = ({
       .filter((a) => a.status === "approved")
       .reduce((sum, a) => sum + (a.approved_amount || a.requested_amount), 0);
     const allocationPending = allocations
-      .filter((a) => a.status === "pending")
+      .filter((a) => isAwaitingDecision(a.status))
       .reduce((sum, a) => sum + a.requested_amount, 0);
 
     return {

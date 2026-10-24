@@ -14,6 +14,50 @@ export type Database = {
   }
   budget: {
     Tables: {
+      allocation_board_feedback: {
+        Row: {
+          board_member_id: string
+          board_member_name: string
+          comment: string | null
+          created_at: string
+          id: string
+          organization_id: string
+          recommended_amount: number | null
+          request_id: string
+          updated_at: string
+        }
+        Insert: {
+          board_member_id: string
+          board_member_name: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          organization_id: string
+          recommended_amount?: number | null
+          request_id: string
+          updated_at?: string
+        }
+        Update: {
+          board_member_id?: string
+          board_member_name?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string
+          recommended_amount?: number | null
+          request_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "allocation_board_feedback_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "allocation_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       allocation_period_amounts: {
         Row: {
           allocation_request_id: string
@@ -651,6 +695,41 @@ export type Database = {
         Args: { _fiscal_year_id: string; _organization_id: string }
         Returns: undefined
       }
+      board_decide: {
+        Args: {
+          _approved_amount?: number
+          _decision: string
+          _notes?: string
+          _request_id: string
+        }
+        Returns: {
+          admin_notes: string | null
+          approved_amount: number | null
+          budget_breakdown: Json | null
+          carried_over_from: string | null
+          created_at: string | null
+          excluded_from_carry_over: boolean
+          fiscal_year_id: string
+          id: string
+          justification: string
+          ministry_id: string
+          organization_id: string
+          period_type: Database["budget"]["Enums"]["allocation_period_type"]
+          requested_amount: number
+          requester_id: string
+          requester_name: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["budget"]["Enums"]["allocation_request_status"]
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "allocation_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       carry_over_budget_requests: {
         Args: { _organization_id: string; _year: number }
         Returns: number
@@ -694,6 +773,37 @@ export type Database = {
         }
         Returns: undefined
       }
+      council_decide: {
+        Args: { _decision: string; _notes?: string; _request_id: string }
+        Returns: {
+          admin_notes: string | null
+          approved_amount: number | null
+          budget_breakdown: Json | null
+          carried_over_from: string | null
+          created_at: string | null
+          excluded_from_carry_over: boolean
+          fiscal_year_id: string
+          id: string
+          justification: string
+          ministry_id: string
+          organization_id: string
+          period_type: Database["budget"]["Enums"]["allocation_period_type"]
+          requested_amount: number
+          requester_id: string
+          requester_name: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["budget"]["Enums"]["allocation_request_status"]
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "allocation_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      current_actor_name: { Args: never; Returns: string }
       ensure_next_fiscal_year: { Args: never; Returns: undefined }
       get_active_fiscal_year: {
         Args: { _organization_id: string }
@@ -757,12 +867,16 @@ export type Database = {
         Args: { _year: number }
         Returns: Record<string, unknown>
       }
+      send_to_board: { Args: { _request_ids: string[] }; Returns: number }
     }
     Enums: {
       allocation_period_type: "annual" | "quarterly" | "monthly"
       allocation_request_status:
         | "draft"
         | "pending"
+        | "under_review"
+        | "conditionally_approved"
+        | "board_review"
         | "approved"
         | "partially_approved"
         | "denied"
@@ -8507,6 +8621,7 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_asset_manager: { Args: never; Returns: boolean }
+      is_board: { Args: { _organization_id: string }; Returns: boolean }
       is_ministry_leader: { Args: never; Returns: boolean }
       is_org_admin:
         | { Args: { _org_id: string; _user_id: string }; Returns: boolean }
@@ -8521,7 +8636,13 @@ export type Database = {
       user_has_role: { Args: { role_name: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "contributor" | "treasury" | "finance" | "member"
+      app_role:
+        | "admin"
+        | "contributor"
+        | "treasury"
+        | "finance"
+        | "member"
+        | "board"
       event_status:
         | "draft"
         | "pending_review"
@@ -8659,6 +8780,9 @@ export const Constants = {
       allocation_request_status: [
         "draft",
         "pending",
+        "under_review",
+        "conditionally_approved",
+        "board_review",
         "approved",
         "partially_approved",
         "denied",
@@ -8700,7 +8824,14 @@ export const Constants = {
   },
   public: {
     Enums: {
-      app_role: ["admin", "contributor", "treasury", "finance", "member"],
+      app_role: [
+        "admin",
+        "contributor",
+        "treasury",
+        "finance",
+        "member",
+        "board",
+      ],
       event_status: [
         "draft",
         "pending_review",

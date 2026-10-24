@@ -7,5 +7,6 @@ export * from "./useFiscalYears";
 export * from "./useBudgetAllocations";
 export * from "./useExpenses";
 export * from "./useAllocationRequests";
+export * from "./useBoardReview";
 export * from "./useBudgetAlerts";
 export * from "./useMinistryFlags";

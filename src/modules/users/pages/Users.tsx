@@ -36,6 +36,12 @@ const APP_ROLES = [
     description: "Everything in this branch, including children's medical data.",
   },
   {
+    value: "board",
+    label: "Board",
+    description:
+      "Gives final approval to budget requests the Leadership Council sends on. The Board signs in as board@alic.org; give it this role in each branch.",
+  },
+  {
     value: "treasury",
     label: "Treasury",
     description: "Approves expenses at the treasury stage.",

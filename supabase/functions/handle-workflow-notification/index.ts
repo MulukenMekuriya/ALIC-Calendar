@@ -25,6 +25,7 @@ import {
   type AllocationRecord,
   type ExpenseRecord,
   getAllocationNotificationContent,
+  getBoardDigestContent,
   getExpenseNotificationContent,
 } from "./content.ts";
 
@@ -37,6 +38,8 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API");
  */
 const RESEND_FROM_EMAIL = Deno.env.get("RESEND_FINANCE_FROM_EMAIL") || FINANCE_FROM_EMAIL;
 const CHURCH_LOGO_URL = Deno.env.get("CHURCH_LOGO_URL") || DEFAULT_LOGO_URL;
+/** Where "Sent for Board Review" goes: the Board's shared inbox. */
+const BOARD_EMAIL = Deno.env.get("BOARD_EMAIL") || "board@alic.org";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -51,6 +54,9 @@ interface TriggerPayload {
   record_id: string;
   old_status: string;
   new_status: string;
+  /** budget.send_to_board: one notice for a whole batch. */
+  kind?: "sent_to_board";
+  record_ids?: string[];
 }
 
 interface EmailRecipient {
@@ -328,6 +334,23 @@ serve(async (req) => {
     console.log("Workflow notification triggered:", JSON.stringify(payload));
 
     const { table, record_id, old_status, new_status } = payload;
+
+    // A batch sent to the Board: one email to the Board's inbox.
+    if (payload.kind === "sent_to_board" && table === "allocation_requests") {
+      const supabase = createAdminClient();
+      const records = (
+        await Promise.all((payload.record_ids || []).map((id) => getAllocationRecord(supabase, id)))
+      ).filter((r): r is AllocationRecord => r !== null);
+      const content = getBoardDigestContent(records);
+      const result = content
+        ? await sendAllEmails([addressed(BOARD_EMAIL, "Board", content)])
+        : { sent: [], failed: [] };
+
+      return new Response(
+        JSON.stringify({ success: true, sent: result.sent.length, failed: result.failed.length }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (!table || !record_id || !new_status) {
       return new Response(

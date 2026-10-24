@@ -11,7 +11,7 @@ interface CreateUserRequest {
   password: string;
   full_name: string;
   ministry_name?: string;
-  role: "admin" | "contributor" | "treasury" | "finance" | "member";
+  role: "admin" | "contributor" | "treasury" | "finance" | "member" | "board";
   organization_id: string;
 }
 

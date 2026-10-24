@@ -54,6 +54,7 @@ import {
   useCreateAllocationRequest,
   useUpdateAllocationRequest,
   useSubmitAllocationRequest,
+  useCouncilDecision,
 } from "../hooks";
 import type { AllocationRequest, BudgetBreakdownItem } from "../types";
 import { PERIOD_AMOUNT_CATEGORY } from "../types";
@@ -218,7 +219,7 @@ export function AllocationRequestForm({
   onSuccess,
 }: AllocationRequestFormProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { profile } = useUserProfile();
   const { currentOrganization } = useOrganization();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -260,6 +261,7 @@ export function AllocationRequestForm({
   const createRequest = useCreateAllocationRequest();
   const updateRequest = useUpdateAllocationRequest();
   const submitForReview = useSubmitAllocationRequest();
+  const councilDecision = useCouncilDecision();
 
   const isEditing = !!request;
 
@@ -551,11 +553,21 @@ export function AllocationRequestForm({
           });
         }
 
+        // The Leadership Council's first edit of a submitted request is what
+        // puts it Under Review. Not the ministry correcting its own request.
+        const startsReview =
+          !submit && isAdmin && request.status === "pending" && request.requester_id !== user.id;
+        if (startsReview) {
+          await councilDecision.mutateAsync({ requestId: request.id, decision: "review" });
+        }
+
         toast({
           title: submit ? "Request submitted" : "Request updated",
           description: submit
             ? "Your request has been submitted for review."
-            : "Your request has been saved.",
+            : startsReview
+              ? "Saved, and the request is now Under Review."
+              : "Your request has been saved.",
         });
       } else {
         const newRequest = await createRequest.mutateAsync({
@@ -676,9 +688,11 @@ export function AllocationRequestForm({
         {/* Header */}
         <div className="flex-shrink-0 bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-5 text-white">
           <DialogTitle className="text-xl font-semibold">
-            {isEditing
-              ? "Edit Budget Request"
-              : "Budget Request"}
+            {editingSubmitted
+              ? "Adjust Submitted Request"
+              : isEditing
+                ? "Edit Budget Request"
+                : "Budget Request"}
           </DialogTitle>
           <DialogDescription className="sr-only">
             {isEditing ? "Edit an existing budget request" : "Create a new budget request for your ministry"}

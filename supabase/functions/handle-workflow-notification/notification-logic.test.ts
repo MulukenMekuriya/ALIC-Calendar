@@ -12,6 +12,7 @@ import {
   type AllocationRecord,
   type ExpenseRecord,
   getAllocationNotificationContent,
+  getBoardDigestContent,
   getExpenseNotificationContent,
 } from "./content.ts";
 
@@ -140,7 +141,7 @@ describe("what a budget request notice says", () => {
   it("says how much of a partly approved request was granted", () => {
     const m = getAllocationNotificationContent("pending", "partially_approved", allocation).requesterContent!;
     expect(m.paragraphs[0]).toBe(
-      "The 2027 budget request for Worship Ministry has been approved for $1,500.00 of the $2,000.00 requested.",
+      "The Board has given final approval to the 2027 budget request for Worship Ministry, for $1,500.00 of the $2,000.00 requested.",
     );
     expect(m.fact.note).toBe("Approved, of $2,000.00 requested");
     expect(m.notes?.heading).toBe("Notes from Abebe Kebede");
@@ -188,5 +189,44 @@ describe("the finance notice as an email", () => {
     expect(html).toContain("&lt;b&gt;Chairs&lt;/b&gt;");
     expect(html).toContain("Use &quot;the&quot; form &amp; resend");
     expect(html).not.toContain("<b>Chairs</b>");
+  });
+});
+
+describe("the Board's steps", () => {
+  it("tells the ministry a conditional approval is not yet final", () => {
+    const plan = getAllocationNotificationContent("under_review", "conditionally_approved", allocation);
+    const m = plan.requesterContent!;
+    expect(m.subject).toBe("Budget request conditionally approved: Worship Ministry");
+    expect(m.paragraphs.join(" ")).toContain("the Board, which gives the final approval");
+    expect(m.fact.tone).toBe("amber");
+    expect(plan.reviewerContent).toBeNull();
+  });
+
+  it("says nothing per request for the internal steps", () => {
+    for (const [from, to] of [
+      ["pending", "under_review"],
+      ["conditionally_approved", "board_review"],
+      ["board_review", "under_review"],
+    ]) {
+      const plan = getAllocationNotificationContent(from, to, allocation);
+      expect(plan.requesterContent).toBeNull();
+      expect(plan.reviewerContent).toBeNull();
+    }
+  });
+
+  it("sends the Board one notice for a batch, biggest ask first, with the total", () => {
+    const m = getBoardDigestContent([
+      { ...allocation, ministryName: "Deacons", requestedAmount: 400 },
+      { ...allocation, ministryName: "Teaching", requestedAmount: 40000 },
+    ])!;
+    expect(m.subject).toBe("2027 budget: 2 requests sent for Board review");
+    expect(m.title).toBe("2 budget requests are ready for the Board");
+    expect(m.paragraphs[1]).toBe("Teaching: $40,000.00 · Deacons: $400.00");
+    expect(m.fact.value).toBe("$40,400.00");
+    expect(m.button?.url).toContain("tab=board");
+  });
+
+  it("sends nothing for an empty batch", () => {
+    expect(getBoardDigestContent([])).toBeNull();
   });
 });

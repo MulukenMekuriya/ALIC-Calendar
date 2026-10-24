@@ -24,3 +24,4 @@ export {
   MINISTRY_ROLES,
 } from "./capabilities";
 export type { Capability, MinistryRole, ModuleGrant } from "./capabilities";
+export { errorMessage } from "./errorMessage";
