@@ -27,6 +27,7 @@ const MD = "a0eebc99-md";
 let updateReturns: Array<{ user_id: string }> = [];
 let updateError: { message: string } | null = null;
 const updates = vi.fn();
+const profileUpdates = vi.fn();
 
 const roster = [
   { user_id: "u-abel", role: "admin" },
@@ -63,7 +64,16 @@ const makeBuilder = (table: string) => {
       }
       return { data: roster, error: null };
     }
-    if (state.table === "profiles") return { data: profiles, error: null };
+    if (state.table === "profiles") {
+      if (state.op === "update") {
+        profileUpdates(state.values);
+        return { data: null, error: null };
+      }
+      return { data: profiles, error: null };
+    }
+    if (state.table === "ministries") {
+      return { data: [{ name: "Alic MD Prayer" }, { name: "Alic MD Youth" }], error: null };
+    }
     return { data: [], error: null };
   };
 
@@ -84,6 +94,7 @@ const makeBuilder = (table: string) => {
     },
     eq: () => api,
     in: () => api,
+    order: () => api,
     then: (resolve: (value: unknown) => unknown) => Promise.resolve(result()).then(resolve),
   };
 
@@ -93,6 +104,7 @@ const makeBuilder = (table: string) => {
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: (table: string) => makeBuilder(table),
+    schema: () => ({ from: (table: string) => makeBuilder(table) }),
     functions: { invoke: vi.fn().mockResolvedValue({ data: { user: { id: "new" } }, error: null }) },
     auth: { getSession: vi.fn().mockResolvedValue({ data: { session: { access_token: "t" } } }) },
   },
@@ -156,6 +168,7 @@ beforeEach(() => {
   updateError = null;
   toast.mockClear();
   updates.mockClear();
+  profileUpdates.mockClear();
 });
 
 afterEach(cleanup);
@@ -273,6 +286,63 @@ describe("User Management, saving a role", () => {
         expect.objectContaining({
           description: expect.stringMatching(/last admin of this branch/i),
         }),
+      ),
+    );
+  });
+});
+
+describe("User Management, the ministry", () => {
+  it("offers the branch's ministries, not a text box", async () => {
+    renderPage();
+    const row = (await roll()).getByText("Abel Alic").closest("tr")!;
+    await userEvent.click(within(row).getAllByRole("button")[0]);
+
+    expect(screen.queryByRole("textbox", { name: /Ministry/i })).toBeNull();
+    await userEvent.click(screen.getByRole("combobox", { name: /Ministry/i }));
+    expect(await screen.findByRole("option", { name: "Alic MD Youth" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("option", { name: "Alic MD Youth" }));
+    await userEvent.click(screen.getByRole("button", { name: /Update User/i }));
+
+    await waitFor(() =>
+      expect(profileUpdates).toHaveBeenCalledWith(
+        expect.objectContaining({ ministry_name: "Alic MD Youth" }),
+      ),
+    );
+  });
+
+  it("keeps a name that is off the list, marked, rather than blanking it", async () => {
+    profiles[2].ministry_name = "ALIC Old Name";
+    try {
+      renderPage();
+      const row = (await roll()).getByText("Elias Adera").closest("tr")!;
+      await userEvent.click(within(row).getAllByRole("button")[0]);
+
+      expect(screen.getByRole("combobox", { name: /Ministry/i })).toHaveTextContent(
+        "ALIC Old Name (not on the list)",
+      );
+      await userEvent.click(screen.getByRole("button", { name: /Update User/i }));
+      await waitFor(() =>
+        expect(profileUpdates).toHaveBeenCalledWith(
+          expect.objectContaining({ ministry_name: "ALIC Old Name" }),
+        ),
+      );
+    } finally {
+      profiles[2].ministry_name = "Alic MD Prayer";
+    }
+  });
+
+  it("saves No ministry as empty, not as a blank string", async () => {
+    renderPage();
+    const row = (await roll()).getByText("Elias Adera").closest("tr")!;
+    await userEvent.click(within(row).getAllByRole("button")[0]);
+
+    await userEvent.click(screen.getByRole("combobox", { name: /Ministry/i }));
+    await userEvent.click(await screen.findByRole("option", { name: "No ministry" }));
+    await userEvent.click(screen.getByRole("button", { name: /Update User/i }));
+
+    await waitFor(() =>
+      expect(profileUpdates).toHaveBeenCalledWith(
+        expect.objectContaining({ ministry_name: null }),
       ),
     );
   });
