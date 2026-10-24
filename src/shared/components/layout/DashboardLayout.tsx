@@ -232,6 +232,13 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 adminOnly: true,
                 external: true,
               },
+              {
+                name: "Ministries - OLD",
+                href: "/branch-ministries",
+                icon: UserCheck,
+                description: "Manage ministries",
+                adminOnly: true,
+              },
             ],
           },
         ]
