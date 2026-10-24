@@ -380,17 +380,17 @@ export const MINISTRY_JUSTIFICATIONS: Record<string, string[]> = {
   ],
 
   // =====================================================
-  // ALIC VA Ministries (exact database names)
+  // VA Ministries (exact database names, as VA named them 24 Oct 2026)
   // =====================================================
 
-  "ALIC VA Bible Study": [
+  "Bible Study VA": [
     "Meeting & Fellowship with Bible Study Leaders",
     "Training Materials and Books",
     "Training New Bible Study Leaders",
     "All Bible Study Groups Fellowship",
   ],
 
-  "ALIC VA Children": [
+  "Children VA": [
     "Sunday School Material",
     "Children Verse Study",
     "Children's Choir",
@@ -404,17 +404,17 @@ export const MINISTRY_JUSTIFICATIONS: Record<string, string[]> = {
     "Resources for Foundation Class",
   ],
 
-  "ALIC VA Choir": [
+  "Choir VA": [
     "Musical Instrument Training for Talented Individuals",
     "Choirs' Refreshment",
   ],
 
-  "ALIC VA Coordination": [
+  "Coordination VA": [
     "Project Management Software License",
     "Cross Training with Other Ministry Leaders",
   ],
 
-  "ALIC VA Deacons": [
+  "Deacons VA": [
     "After Service Fellowship Snacks",
     "Holy Communion Preparation",
     "Church Vision Sharing for Newcomers Lunch",
@@ -422,20 +422,20 @@ export const MINISTRY_JUSTIFICATIONS: Record<string, string[]> = {
     "Thanksgiving and New Year Services",
   ],
 
-  "ALIC VA Discipleship": [
+  "Discipleship VA": [
     "Quarterly Fellowship (101)",
     "Quarterly Fellowship (102)",
     "Books for Class (101 & 102)",
     "Class Completion (102)",
   ],
 
-  "ALIC VA Evangelism": [
+  "Evangelism VA": [
     "Print Tracts / Flyers / Brochures",
     "Homeless Shelter Visit",
     "Training for Church Members",
   ],
 
-  "ALIC VA Family": [
+  "Family VA": [
     "Singles Program (with Young Adult)",
     "Couples Dinner",
     "Family Conference",
@@ -443,7 +443,7 @@ export const MINISTRY_JUSTIFICATIONS: Record<string, string[]> = {
     "Family Discussion Session",
   ],
 
-  "ALIC VA Leaders": [
+  "Leaders VA": [
     "Salvation Class Special Program",
     "Ministry Leaders Training (Quarterly)",
     "All Ministers Training",
@@ -451,9 +451,11 @@ export const MINISTRY_JUSTIFICATIONS: Record<string, string[]> = {
     "Conference",
   ],
 
-  "ALIC VA Media": ["Post-production", "Media Equipment"],
+  "Holistic VA": ["Support for Church Members in Need"],
 
-  "ALIC VA Men": [
+  "Media VA": ["Post-production", "Media Equipment"],
+
+  "Mens VA": [
     "Men's Special Workshop (Invited Guest)",
     "Men's Fellowship Session #1",
     "Annual ALIC Men's Retreat",
@@ -463,34 +465,34 @@ export const MINISTRY_JUSTIFICATIONS: Record<string, string[]> = {
     "Men's Dinner Night (Career Mentoring at Church)",
   ],
 
-  "ALIC VA Prayer": [
+  "Prayer VA": [
     "Prayer with Young Adult & Discussion Session",
     "Fasting and Prayer",
     "Love Gifts for Invited Guests",
   ],
 
-  "ALIC VA Welcome": [
+  "Welcome VA": [
     "Prayer and Discussion Sessions",
     "Welcoming Congregation for Holidays",
     "Fellowship After Service",
     "Welcoming Team Uniforms",
   ],
 
-  "ALIC VA Women": [
+  "Womens VA": [
     "Holistic Health Training for Women",
     "Weekend Retreat for Spiritual Renewal",
     "Fellowship & Relationship Building",
     "Strengthening Women's Spiritual Walk",
   ],
 
-  "ALIC VA Young Adult": [
+  "Young Adult VA": [
     "Young Adult Conference",
     "Retreat",
     "Concert",
     "Holiday Celebration Event",
   ],
 
-  "ALIC VA Youth": [
+  "Youth VA": [
     "Youth Fellowship",
     "Trainings / Discussions",
     "Bible for Students",
