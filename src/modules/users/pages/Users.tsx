@@ -61,6 +61,55 @@ const APP_ROLES = [
 /** Ids per profiles request; 200 keeps the URL near 8,000 characters. */
 const PROFILE_BATCH = 200;
 
+/** Radix Select will not take "" as a value, so "no ministry" needs a name. */
+const NO_MINISTRY = "__none__";
+
+/**
+ * The branch's ministries, from budget.ministries, as the only choices.
+ *
+ * profiles.ministry_name was free text, which is how "BibleStudy VA",
+ * "Bible Study<TAB>VA" and "Young Adults VA" got in: the finance forms match a
+ * person to their ministry by exact name, so a typo there is a login that
+ * cannot find its own budget. A name that is no longer on the list (an old
+ * "ALIC VA ..." one) is still shown, marked, so opening Edit never changes it
+ * silently; choosing anything else replaces it.
+ */
+const MinistrySelect = ({
+  id,
+  value,
+  ministries,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  ministries: string[];
+  onChange: (value: string) => void;
+}) => {
+  const offList = value !== "" && !ministries.includes(value);
+
+  return (
+    <Select
+      value={value === "" ? NO_MINISTRY : value}
+      onValueChange={(v) => onChange(v === NO_MINISTRY ? "" : v)}
+    >
+      <SelectTrigger id={id}>
+        <SelectValue placeholder="Choose a ministry" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={NO_MINISTRY}>No ministry</SelectItem>
+        {offList && (
+          <SelectItem value={value}>{value} (not on the list)</SelectItem>
+        )}
+        {ministries.map((name) => (
+          <SelectItem key={name} value={name}>
+            {name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+};
+
 const roleLabel = (role?: string | null) =>
   APP_ROLES.find((r) => r.value === role)?.label ?? "Member";
 
@@ -146,6 +195,23 @@ const Users = () => {
   });
 
 
+  const { data: ministries = [] } = useQuery({
+    queryKey: ["branch-ministry-names", currentOrganization?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .schema("budget")
+        .from("ministries")
+        .select("name")
+        .eq("organization_id", currentOrganization!.id)
+        .eq("is_active", true)
+        .order("name");
+
+      if (error) throw error;
+      return (data || []).map((m) => m.name);
+    },
+    enabled: !!currentOrganization?.id,
+  });
+
   const { staff, members } = useMemo(() => {
     const ranked = rankByRole(filterRoster(users, EVERYONE, search));
     return {
@@ -217,7 +283,7 @@ const Users = () => {
         .update({
           full_name: editingUser.full_name,
           phone_number: editingUser.phone_number,
-          ministry_name: editingUser.ministry_name,
+          ministry_name: editingUser.ministry_name || null,
         })
         .eq("id", editingUser.id);
 
@@ -377,11 +443,12 @@ const Users = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="ministry_name">Ministry Name</Label>
-                      <Input
+                      <Label htmlFor="ministry_name">Ministry</Label>
+                      <MinistrySelect
                         id="ministry_name"
                         value={newUser.ministry_name}
-                        onChange={(e) => setNewUser({ ...newUser, ministry_name: e.target.value })}
+                        ministries={ministries}
+                        onChange={(name) => setNewUser({ ...newUser, ministry_name: name })}
                       />
                     </div>
                     <div className="space-y-2">
@@ -441,11 +508,12 @@ const Users = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="edit_ministry">Ministry Name</Label>
-                      <Input
+                      <Label htmlFor="edit_ministry">Ministry</Label>
+                      <MinistrySelect
                         id="edit_ministry"
                         value={editingUser?.ministry_name || ""}
-                        onChange={(e) => setEditingUser(editingUser ? { ...editingUser, ministry_name: e.target.value } : null)}
+                        ministries={ministries}
+                        onChange={(name) => setEditingUser(editingUser ? { ...editingUser, ministry_name: name } : null)}
                       />
                     </div>
                     <div className="space-y-2">
