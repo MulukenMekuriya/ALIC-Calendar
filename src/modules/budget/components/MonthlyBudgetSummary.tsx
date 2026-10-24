@@ -1,6 +1,12 @@
 /**
  * MonthlyBudgetSummary - Admin view for consolidated monthly budget requests
  * Shows all ministries with their monthly budget breakdown in a professional format
+ *
+ * Annual requests are counted too. They carry no month-by-month split, so
+ * their requested amount sits in its own Annual column and in the totals.
+ * Until 24 Oct 2026 they were filtered out, and the summary read "5
+ * Ministries" while 8 had submitted (Teaching & Discipleship, Deacons and Ha
+ * Choir filed annual).
  */
 
 import {
@@ -66,6 +72,8 @@ interface MinistryMonthlyData {
     items: BudgetBreakdownItem[];
   }[];
   monthlyTotals: number[];
+  /** Requested amount of annual requests, which have no monthly split. */
+  annualTotal: number;
   grandTotal: number;
 }
 
@@ -80,23 +88,23 @@ export function MonthlyBudgetSummary({
   title = "Monthly Budget Summary",
   description = "Consolidated view of all ministry monthly budget requests",
 }: MonthlyBudgetSummaryProps) {
-  // Filter only monthly allocation requests
-  const monthlyAllocations = allocations.filter(
-    (a) => a.period_type === "monthly" && a.status !== "cancelled"
-  );
+  const summarised = allocations.filter((a) => a.status !== "cancelled");
 
-  if (monthlyAllocations.length === 0) {
+  if (summarised.length === 0) {
     return null;
   }
 
   // Group by ministry and aggregate monthly data
   const ministryDataMap = new Map<string, MinistryMonthlyData>();
 
-  monthlyAllocations.forEach((allocation) => {
+  summarised.forEach((allocation) => {
     const ministryId = allocation.ministry_id;
     const ministryName = allocation.ministry?.name || "Unknown Ministry";
     const breakdown = (allocation.budget_breakdown as BudgetBreakdownItem[]) || [];
-    const monthlyItems = breakdown.filter((item) => item.category === "monthly_budget_item");
+    const isMonthly = allocation.period_type === "monthly";
+    const monthlyItems = isMonthly
+      ? breakdown.filter((item) => item.category === "monthly_budget_item")
+      : [];
 
     if (!ministryDataMap.has(ministryId)) {
       ministryDataMap.set(ministryId, {
@@ -104,6 +112,7 @@ export function MonthlyBudgetSummary({
         ministryId,
         requests: [],
         monthlyTotals: new Array(12).fill(0),
+        annualTotal: 0,
         grandTotal: 0,
       });
     }
@@ -115,8 +124,15 @@ export function MonthlyBudgetSummary({
       requestId: allocation.id,
       status: allocation.status,
       requesterName: allocation.requester_name,
-      items: monthlyItems,
+      items: isMonthly ? monthlyItems : breakdown,
     });
+
+    if (!isMonthly) {
+      const amount = Number(allocation.requested_amount) || 0;
+      ministryData.annualTotal += amount;
+      ministryData.grandTotal += amount;
+      return;
+    }
 
     // Aggregate monthly totals from all items in this request
     monthlyItems.forEach((item) => {
@@ -137,14 +153,17 @@ export function MonthlyBudgetSummary({
 
   // Calculate overall totals
   const overallMonthlyTotals = new Array(12).fill(0);
+  let overallAnnualTotal = 0;
   let overallGrandTotal = 0;
 
   ministryDataList.forEach((ministry) => {
     ministry.monthlyTotals.forEach((total, index) => {
       overallMonthlyTotals[index] += total;
     });
+    overallAnnualTotal += ministry.annualTotal;
     overallGrandTotal += ministry.grandTotal;
   });
+  const hasAnnual = overallAnnualTotal > 0;
 
   // Find highest month for highlighting
   const maxMonthIndex = overallMonthlyTotals.indexOf(Math.max(...overallMonthlyTotals));
@@ -215,6 +234,14 @@ export function MonthlyBudgetSummary({
                     {month}
                   </TableHead>
                 ))}
+                {hasAnnual && (
+                  <TableHead
+                    className="text-right font-semibold min-w-[90px]"
+                    title="Requests filed as annual, with no month-by-month split"
+                  >
+                    Annual
+                  </TableHead>
+                )}
                 <TableHead className="text-right font-semibold min-w-[100px] bg-primary/5">
                   Total
                 </TableHead>
@@ -244,6 +271,15 @@ export function MonthlyBudgetSummary({
                             {formatCurrency(total)}
                           </TableCell>
                         ))}
+                        {hasAnnual && (
+                          <TableCell
+                            className={`text-right tabular-nums ${
+                              ministry.annualTotal === 0 ? "text-muted-foreground" : ""
+                            }`}
+                          >
+                            {formatCurrency(ministry.annualTotal)}
+                          </TableCell>
+                        )}
                         <TableCell className="text-right font-semibold tabular-nums bg-primary/5 text-primary">
                           ${ministry.grandTotal.toLocaleString()}
                         </TableCell>
@@ -287,6 +323,11 @@ export function MonthlyBudgetSummary({
                     {formatCurrency(total)}
                   </TableCell>
                 ))}
+                {hasAnnual && (
+                  <TableCell className="text-right tabular-nums">
+                    {formatCurrency(overallAnnualTotal)}
+                  </TableCell>
+                )}
                 <TableCell className="text-right tabular-nums bg-primary/10 text-primary text-lg">
                   ${overallGrandTotal.toLocaleString()}
                 </TableCell>
