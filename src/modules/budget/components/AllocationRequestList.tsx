@@ -43,13 +43,20 @@ import {
   CheckCircle,
   XCircle,
   Undo2,
+  Users,
+  ShieldCheck,
 } from "lucide-react";
 import { format } from "date-fns";
 import { AllocationRequestStatusBadge, CarriedOverBadge } from "./AllocationRequestStatusBadge";
 import { AllocationRequestForm } from "./AllocationRequestForm";
 import { AllocationRequestDetailDialog } from "./AllocationRequestDetailDialog";
-import { AllocationReviewDialog, RecallAllocationDialog } from "./AllocationReviewDialog";
+import {
+  AllocationReviewDialog,
+  RecallAllocationDialog,
+  type ReviewAction,
+} from "./AllocationReviewDialog";
 import { useToast } from "@/shared/hooks/use-toast";
+import { errorMessage } from "@/shared/lib/errorMessage";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useSearch } from "@/shared/contexts/SearchContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -60,6 +67,7 @@ import {
   useSubmitAllocationRequest,
   useCancelAllocationRequest,
   useRequestSeason,
+  useSendToBoard,
 } from "../hooks";
 import type {
   AllocationRequestWithRelations,
@@ -67,10 +75,17 @@ import type {
 } from "../types";
 import { ALLOCATION_REQUEST_STATUS_CONFIG } from "../types";
 
+/** Where the Leadership Council (an admin) can still adjust a request. */
+const OFFICE_EDITABLE: AllocationRequestStatus[] = [
+  "pending",
+  "under_review",
+  "conditionally_approved",
+];
+
 interface AllocationRequestListProps {
   requests: AllocationRequestWithRelations[];
   isLoading?: boolean;
-  userRole?: "admin" | "treasury" | "finance" | "requester";
+  userRole?: "admin" | "treasury" | "finance" | "board" | "requester";
   onRefresh?: () => void;
 }
 
@@ -93,9 +108,7 @@ export function AllocationRequestList({
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [isRecallDialogOpen, setIsRecallDialogOpen] = useState(false);
-  const [reviewAction, setReviewAction] = useState<"approve" | "deny">(
-    "approve"
-  );
+  const [reviewAction, setReviewAction] = useState<ReviewAction>("approve");
 
   // Global search from header
   const { searchQuery } = useSearch();
@@ -109,6 +122,7 @@ export function AllocationRequestList({
   const deleteRequest = useDeleteAllocationRequest();
   const submitRequest = useSubmitAllocationRequest();
   const cancelRequest = useCancelAllocationRequest();
+  const sendToBoard = useSendToBoard();
 
   // Filter requests (EXCLUDE cancelled requests completely)
   const filteredRequests = requests.filter((request) => {
@@ -130,6 +144,42 @@ export function AllocationRequestList({
     return matchesSearch && matchesStatus;
   });
 
+  const handleSendToBoard = async (request: AllocationRequestWithRelations) => {
+    try {
+      const moved = await sendToBoard.mutateAsync([request.id]);
+
+      // Only a conditionally approved request moves, so nothing moving means
+      // somebody else got there while the menu was open.
+      if (moved === 0) {
+        toast({
+          title: "Nothing moved",
+          description: "This request is no longer conditionally approved. Refresh to see where it is.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Sent for Board Review",
+        description: `${request.ministry?.name || "This ministry"}'s request is with the Board, and board@alic.org has been emailed.`,
+      });
+
+      onRefresh?.();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: errorMessage(error, "Failed to send the request to the Board"),
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openReview = (request: AllocationRequestWithRelations, action: ReviewAction) => {
+    setSelectedRequest(request);
+    setReviewAction(action);
+    setIsReviewDialogOpen(true);
+  };
+
   const handleDelete = async (request: AllocationRequestWithRelations) => {
     if (!confirm("Are you sure you want to delete this allocation request?"))
       return;
@@ -145,7 +195,7 @@ export function AllocationRequestList({
       toast({
         title: "Error",
         description:
-          error instanceof Error ? error.message : "Failed to delete request",
+          errorMessage(error, "Failed to delete request"),
         variant: "destructive",
       });
     }
@@ -169,7 +219,7 @@ export function AllocationRequestList({
       toast({
         title: "Error",
         description:
-          error instanceof Error ? error.message : "Failed to submit request",
+          errorMessage(error, "Failed to submit request"),
         variant: "destructive",
       });
     }
@@ -195,7 +245,7 @@ export function AllocationRequestList({
       toast({
         title: "Error",
         description:
-          error instanceof Error ? error.message : "Failed to cancel request",
+          errorMessage(error, "Failed to cancel request"),
         variant: "destructive",
       });
     }
@@ -209,16 +259,17 @@ export function AllocationRequestList({
   const locked = (request: AllocationRequestWithRelations) =>
     isRequestLocked(season, request.fiscal_year_id);
 
-  // A submitted request can be edited too, until the deadline: "You may
-  // review, edit, and update your submissions at any time before the
-  // deadline." Only by its requester or an admin, which is who the database
-  // lets change it.
+  // A submitted request can be edited by its requester until the deadline:
+  // "You may review, edit, and update your submissions at any time before the
+  // deadline." The Leadership Council (an admin) edits it at every review
+  // stage, before and after the Board, and that first edit is what moves it
+  // to Under Review.
   const canEdit = (request: AllocationRequestWithRelations) =>
-    !locked(request) &&
-    ((request.status === "draft" &&
-      (request.requester_id === user?.id || isReviewer)) ||
-      (request.status === "pending" &&
-        (request.requester_id === user?.id || userRole === "admin")));
+    (!locked(request) &&
+      ((request.status === "draft" &&
+        (request.requester_id === user?.id || isReviewer)) ||
+        (request.status === "pending" && request.requester_id === user?.id))) ||
+    (userRole === "admin" && OFFICE_EDITABLE.includes(request.status));
 
   const canDelete = (request: AllocationRequestWithRelations) =>
     !locked(request) &&
@@ -236,8 +287,71 @@ export function AllocationRequestList({
     request.status === "pending" &&
     (request.requester_id === user?.id || isReviewer);
 
-  const canReview = (request: AllocationRequestWithRelations) =>
-    request.status === "pending" && isReviewer;
+  // The Leadership Council is the branch's admins; the Board gives final
+  // approval, and an admin may act for it.
+  const councilStep = (request: AllocationRequestWithRelations) =>
+    userRole === "admin" &&
+    (request.status === "pending" || request.status === "under_review");
+
+  const readyForBoard = (request: AllocationRequestWithRelations) =>
+    userRole === "admin" && request.status === "conditionally_approved";
+
+  const boardStep = (request: AllocationRequestWithRelations) =>
+    (userRole === "board" || userRole === "admin") && request.status === "board_review";
+
+  /** The decisions for wherever this request is now. */
+  const decisionItems = (request: AllocationRequestWithRelations) => {
+    if (councilStep(request)) {
+      return (
+        <>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => openReview(request, "conditional")} className="text-teal-600">
+            <ShieldCheck className="mr-2 h-4 w-4" />
+            Conditional Approval
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => openReview(request, "deny")} className="text-red-600">
+            <XCircle className="mr-2 h-4 w-4" />
+            Deny
+          </DropdownMenuItem>
+        </>
+      );
+    }
+    if (readyForBoard(request)) {
+      return (
+        <>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => handleSendToBoard(request)} className="text-purple-600">
+            <Users className="mr-2 h-4 w-4" />
+            Send for Board Review
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => openReview(request, "deny")} className="text-red-600">
+            <XCircle className="mr-2 h-4 w-4" />
+            Deny
+          </DropdownMenuItem>
+        </>
+      );
+    }
+    if (boardStep(request)) {
+      return (
+        <>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => openReview(request, "approve")} className="text-green-600">
+            <CheckCircle className="mr-2 h-4 w-4" />
+            Final Approval
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => openReview(request, "return")}>
+            <Undo2 className="mr-2 h-4 w-4" />
+            Return to Council
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => openReview(request, "deny")} className="text-red-600">
+            <XCircle className="mr-2 h-4 w-4" />
+            Deny
+          </DropdownMenuItem>
+        </>
+      );
+    }
+    return null;
+  };
 
   const canRecallApproval = (request: AllocationRequestWithRelations) =>
     (request.status === "approved" || request.status === "partially_approved") &&
@@ -372,33 +486,8 @@ export function AllocationRequestList({
                               Submit for Review
                             </DropdownMenuItem>
                           )}
-                          {canReview(request) && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedRequest(request);
-                                  setReviewAction("approve");
-                                  setIsReviewDialogOpen(true);
-                                }}
-                                className="text-green-600"
-                              >
-                                <CheckCircle className="mr-2 h-4 w-4" />
-                                Approve
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedRequest(request);
-                                  setReviewAction("deny");
-                                  setIsReviewDialogOpen(true);
-                                }}
-                                className="text-red-600"
-                              >
-                                <XCircle className="mr-2 h-4 w-4" />
-                                Deny
-                              </DropdownMenuItem>
-                            </>
-                          )}
+                          {decisionItems(request)}
+
                           {canRecallApproval(request) && (
                             <>
                               <DropdownMenuSeparator />
@@ -549,33 +638,7 @@ export function AllocationRequestList({
                                 </DropdownMenuItem>
                               )}
 
-                              {canReview(request) && (
-                                <>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedRequest(request);
-                                      setReviewAction("approve");
-                                      setIsReviewDialogOpen(true);
-                                    }}
-                                    className="text-green-600"
-                                  >
-                                    <CheckCircle className="mr-2 h-4 w-4" />
-                                    Approve
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedRequest(request);
-                                      setReviewAction("deny");
-                                      setIsReviewDialogOpen(true);
-                                    }}
-                                    className="text-red-600"
-                                  >
-                                    <XCircle className="mr-2 h-4 w-4" />
-                                    Deny
-                                  </DropdownMenuItem>
-                                </>
-                              )}
+                              {decisionItems(request)}
 
                               {canRecallApproval(request) && (
                                 <>
@@ -637,14 +700,16 @@ export function AllocationRequestList({
         onOpenChange={setIsDetailDialogOpen}
         request={selectedRequest}
         userRole={userRole}
-        onApprove={() => {
-          setReviewAction("approve");
-          setIsReviewDialogOpen(true);
-        }}
-        onDeny={() => {
-          setReviewAction("deny");
-          setIsReviewDialogOpen(true);
-        }}
+        onApprove={() => selectedRequest && openReview(selectedRequest, "approve")}
+        onDeny={() => selectedRequest && openReview(selectedRequest, "deny")}
+        onConditionalApprove={() => selectedRequest && openReview(selectedRequest, "conditional")}
+        onReturn={() => selectedRequest && openReview(selectedRequest, "return")}
+        onSendToBoard={() => selectedRequest && handleSendToBoard(selectedRequest)}
+        onEdit={
+          selectedRequest && canEdit(selectedRequest)
+            ? () => setIsEditDialogOpen(true)
+            : undefined
+        }
         onRecallApproval={() => {
           setIsRecallDialogOpen(true);
         }}

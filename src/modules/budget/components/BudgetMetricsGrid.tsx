@@ -20,6 +20,7 @@ import type {
   ExpenseRequestWithRelations,
   AllocationRequestWithRelations,
 } from "../types";
+import { isAwaitingDecision } from "../types";
 import { useEffect, useState } from "react";
 
 interface BudgetMetricsGridProps {
@@ -154,7 +155,7 @@ const BudgetMetricsGrid = ({
   );
 
   const pendingAllocations = activeAllocations.filter(
-    (a) => a.status === "pending"
+    (a) => isAwaitingDecision(a.status)
   ).length;
 
   const approvedAllocations = activeAllocations.filter(

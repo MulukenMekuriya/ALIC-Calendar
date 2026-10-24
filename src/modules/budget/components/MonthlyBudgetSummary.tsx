@@ -172,9 +172,12 @@ export function MonthlyBudgetSummary({
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
       draft: { variant: "secondary", label: "Draft" },
-      pending: { variant: "outline", label: "Pending" },
-      approved: { variant: "default", label: "Approved" },
-      partially_approved: { variant: "default", label: "Partial" },
+      pending: { variant: "outline", label: "Submitted" },
+      under_review: { variant: "outline", label: "Under Review" },
+      conditionally_approved: { variant: "secondary", label: "Conditionally Approved" },
+      board_review: { variant: "secondary", label: "With the Board" },
+      approved: { variant: "default", label: "Final Approval" },
+      partially_approved: { variant: "default", label: "Final (Partial)" },
       denied: { variant: "destructive", label: "Denied" },
     };
     const config = statusConfig[status] || { variant: "secondary", label: status };

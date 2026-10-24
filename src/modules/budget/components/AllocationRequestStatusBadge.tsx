@@ -3,7 +3,7 @@
  */
 
 import { Badge } from "@/shared/components/ui/badge";
-import { FileEdit, Clock, CheckCircle, XCircle, Ban, History } from "lucide-react";
+import { FileEdit, Clock, CheckCircle, XCircle, Ban, History, Users } from "lucide-react";
 import type { AllocationRequestStatus } from "../types";
 import { ALLOCATION_REQUEST_STATUS_CONFIG } from "../types";
 
@@ -18,6 +18,7 @@ const iconMap = {
   CheckCircle,
   XCircle,
   Ban,
+  Users,
 };
 
 export function AllocationRequestStatusBadge({

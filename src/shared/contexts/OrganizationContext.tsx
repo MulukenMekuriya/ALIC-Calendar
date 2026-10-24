@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
 
@@ -25,7 +26,7 @@ export interface UserOrganization {
   id: string;
   user_id: string;
   organization_id: string;
-  role: "admin" | "contributor";
+  role: "admin" | "contributor" | "treasury" | "finance" | "member" | "board";
   is_primary: boolean;
   joined_at: string;
   email: string | null;
@@ -39,6 +40,20 @@ interface OrganizationContextType {
   loading: boolean;
   error: string | null;
   refetchOrganization: () => Promise<void>;
+  /**
+   * Look at a different branch.
+   *
+   * Until this existed the branch was decided for you — default_organization_id,
+   * then is_primary, then whichever membership came back first — and somebody
+   * who belonged to both branches could only ever see one of them. That is
+   * survivable for staff who work in one building. It is not survivable for
+   * the Board, which is appointed to read MD and VA together.
+   *
+   * The choice is written back to profiles.default_organization_id, so it
+   * survives a reload and a different device rather than being a thing you
+   * have to redo every morning.
+   */
+  switchOrganization: (organizationId: string) => Promise<void>;
 }
 
 const OrganizationContext = createContext<OrganizationContextType | undefined>(
@@ -51,6 +66,7 @@ export const OrganizationProvider = ({
   children: React.ReactNode;
 }) => {
   const { user, loading: authLoading } = useAuth();
+  const queryClient = useQueryClient();
   const [currentOrganization, setCurrentOrganization] =
     useState<Organization | null>(null);
   const [userOrganizations, setUserOrganizations] = useState<
@@ -196,6 +212,36 @@ export const OrganizationProvider = ({
     await fetchUserOrganizations();
   };
 
+  const switchOrganization = async (organizationId: string) => {
+    const membership = userOrganizations.find(
+      (m) => m.organization_id === organizationId,
+    );
+
+    // Not a branch this person belongs to. The policies would refuse every
+    // query that followed, so refusing here is the honest version.
+    if (!membership?.organization) return;
+
+    setCurrentOrganization(membership.organization);
+    setIsOrgAdmin(membership.role === "admin");
+
+    if (user) {
+      const { error: saveError } = await supabase
+        .from("profiles")
+        .update({ default_organization_id: organizationId })
+        .eq("id", user.id);
+
+      // Not fatal: the switch has already happened in this session, it just
+      // will not be remembered next time.
+      if (saveError) {
+        console.error("Could not remember the branch choice:", saveError);
+      }
+    }
+
+    // Almost every query in the app is keyed by the organisation id, so this
+    // is what actually repaints the screen with the other branch's data.
+    queryClient.invalidateQueries();
+  };
+
   return (
     <OrganizationContext.Provider
       value={{
@@ -205,6 +251,7 @@ export const OrganizationProvider = ({
         loading,
         error,
         refetchOrganization,
+        switchOrganization,
       }}
     >
       {children}

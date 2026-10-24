@@ -1,5 +1,13 @@
 /**
- * AllocationReviewDialog - Admin dialog to approve/deny allocation requests
+ * AllocationReviewDialog - every decision on a budget request.
+ *
+ *   conditional  the Leadership Council's conditional approval
+ *   approve      the Board's final approval (credits the ministry's budget)
+ *   return       the Board sends it back to the Council
+ *   deny         either, at their own step
+ *
+ * Each goes through a database function (20260322440700) that refuses a
+ * request no longer at the step it was opened on.
  */
 
 import { useState } from "react";
@@ -35,15 +43,17 @@ import {
   Building2,
   Calendar,
   Undo2,
+  ShieldCheck,
 } from "lucide-react";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import {
-  useApproveAllocationRequest,
-  useDenyAllocationRequest,
+  useBoardDecision,
+  useCouncilDecision,
   useRecallAllocationApproval,
 } from "../hooks";
+import { errorMessage } from "@/shared/lib/errorMessage";
 import type { AllocationRequestWithRelations } from "../types";
 import { getPeriodLabel } from "../types";
 
@@ -52,20 +62,55 @@ const approveFormSchema = z.object({
   admin_notes: z.string().optional(),
 });
 
-const denyFormSchema = z.object({
-  admin_notes: z
-    .string()
-    .min(10, "Please provide a reason for denial (at least 10 characters)"),
+const notesFormSchema = z.object({
+  admin_notes: z.string(),
 });
 
 type ApproveFormValues = z.infer<typeof approveFormSchema>;
-type DenyFormValues = z.infer<typeof denyFormSchema>;
+type NotesFormValues = z.infer<typeof notesFormSchema>;
+
+export type ReviewAction = "conditional" | "approve" | "return" | "deny";
+
+/** What each notes-only action is called, and whether it needs a reason. */
+const NOTES_ACTIONS: Record<
+  Exclude<ReviewAction, "approve">,
+  { title: string; description: string; label: string; placeholder: string; required: boolean; button: string; done: string }
+> = {
+  conditional: {
+    title: "Conditionally Approve",
+    description:
+      "Approve this request at the Leadership Council level. Nothing is credited yet: it goes to the Board for final approval.",
+    label: "Notes (Optional)",
+    placeholder: "Anything the Board or the ministry should know...",
+    required: false,
+    button: "Conditionally Approve",
+    done: "Conditionally approved. Send it to the Board when the Council is done.",
+  },
+  return: {
+    title: "Return to the Leadership Council",
+    description: "Send this request back to the Leadership Council to look at again.",
+    label: "What should the Council look at? *",
+    placeholder: "Explain what the Board wants reconsidered...",
+    required: true,
+    button: "Return to Council",
+    done: "Returned to the Leadership Council.",
+  },
+  deny: {
+    title: "Deny Budget Request",
+    description: "Deny this budget request. Please provide a reason.",
+    label: "Reason for Denial *",
+    placeholder: "Explain why this request is being denied...",
+    required: true,
+    button: "Deny Request",
+    done: "The budget request has been denied.",
+  },
+};
 
 interface AllocationReviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   request: AllocationRequestWithRelations | null;
-  action: "approve" | "deny";
+  action: ReviewAction;
   onSuccess?: () => void;
 }
 
@@ -81,8 +126,8 @@ export function AllocationReviewDialog({
   const { profile } = useUserProfile();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const approveRequest = useApproveAllocationRequest();
-  const denyRequest = useDenyAllocationRequest();
+  const councilDecision = useCouncilDecision();
+  const boardDecision = useBoardDecision();
 
   const approveForm = useForm<ApproveFormValues>({
     resolver: zodResolver(approveFormSchema),
@@ -92,8 +137,8 @@ export function AllocationReviewDialog({
     },
   });
 
-  const denyForm = useForm<DenyFormValues>({
-    resolver: zodResolver(denyFormSchema),
+  const denyForm = useForm<NotesFormValues>({
+    resolver: zodResolver(notesFormSchema),
     defaultValues: {
       admin_notes: "",
     },
@@ -117,22 +162,19 @@ export function AllocationReviewDialog({
 
     setIsSubmitting(true);
     try {
-      await approveRequest.mutateAsync({
+      await boardDecision.mutateAsync({
         requestId: request.id,
+        decision: "approve",
         approvedAmount: values.approved_amount,
-        adminNotes: values.admin_notes,
-        actorId: user.id,
-        actorName: profile.full_name,
+        notes: values.admin_notes,
       });
 
       toast({
-        title: "Request approved",
+        title: "Final approval given",
         description:
           values.approved_amount === request.requested_amount
-            ? "The allocation request has been approved in full."
-            : `The allocation request has been partially approved for $${values.approved_amount.toFixed(
-                2
-              )}.`,
+            ? "The budget request has final approval in full."
+            : `The budget request has final approval for $${values.approved_amount.toFixed(2)}.`,
       });
 
       onOpenChange(false);
@@ -140,8 +182,7 @@ export function AllocationReviewDialog({
     } catch (error) {
       toast({
         title: "Error",
-        description:
-          error instanceof Error ? error.message : "Failed to approve request",
+        description: errorMessage(error, "Failed to approve request"),
         variant: "destructive",
       });
     } finally {
@@ -149,30 +190,45 @@ export function AllocationReviewDialog({
     }
   };
 
-  const handleDeny = async (values: DenyFormValues) => {
-    if (!request || !user || !profile) return;
+  // conditional / return / deny: a decision and some words.
+  const handleNotes = async (values: NotesFormValues) => {
+    if (!request || !user || !profile || action === "approve") return;
+
+    const words = NOTES_ACTIONS[action];
+    const notes = values.admin_notes.trim();
+    if (words.required && notes.length < 10) {
+      denyForm.setError("admin_notes", {
+        message: "Please give a reason (at least 10 characters)",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
     try {
-      await denyRequest.mutateAsync({
-        requestId: request.id,
-        adminNotes: values.admin_notes,
-        actorId: user.id,
-        actorName: profile.full_name,
-      });
+      // The Board decides at its own step; everything before it is the
+      // Council's.
+      if (action === "return" || (action === "deny" && request.status === "board_review")) {
+        await boardDecision.mutateAsync({
+          requestId: request.id,
+          decision: action,
+          notes,
+        });
+      } else {
+        await councilDecision.mutateAsync({
+          requestId: request.id,
+          decision: action === "conditional" ? "conditional" : "deny",
+          notes: notes || null,
+        });
+      }
 
-      toast({
-        title: "Request denied",
-        description: "The allocation request has been denied.",
-      });
+      toast({ title: words.title, description: words.done });
 
       onOpenChange(false);
       onSuccess?.();
     } catch (error) {
       toast({
         title: "Error",
-        description:
-          error instanceof Error ? error.message : "Failed to deny request",
+        description: errorMessage(error),
         variant: "destructive",
       });
     } finally {
@@ -190,19 +246,29 @@ export function AllocationReviewDialog({
             {action === "approve" ? (
               <>
                 <CheckCircle className="h-5 w-5 text-green-600" />
-                Approve Budget Request
+                Final Approval
+              </>
+            ) : action === "conditional" ? (
+              <>
+                <ShieldCheck className="h-5 w-5 text-teal-600" />
+                {NOTES_ACTIONS.conditional.title}
+              </>
+            ) : action === "return" ? (
+              <>
+                <Undo2 className="h-5 w-5 text-orange-600" />
+                {NOTES_ACTIONS.return.title}
               </>
             ) : (
               <>
                 <XCircle className="h-5 w-5 text-red-600" />
-                Deny Budget Request
+                {NOTES_ACTIONS.deny.title}
               </>
             )}
           </DialogTitle>
           <DialogDescription>
             {action === "approve"
-              ? "Approve this budget request. You can adjust the approved amount if needed."
-              : "Deny this budget request. Please provide a reason."}
+              ? "The Board's final approval. The approved amount is added to the ministry's budget for the year. You can adjust it if needed."
+              : NOTES_ACTIONS[action].description}
           </DialogDescription>
         </DialogHeader>
 
@@ -310,7 +376,7 @@ export function AllocationReviewDialog({
                   ) : (
                     <CheckCircle className="mr-2 h-4 w-4" />
                   )}
-                  Approve Request
+                  Give Final Approval
                 </Button>
               </DialogFooter>
             </form>
@@ -318,7 +384,7 @@ export function AllocationReviewDialog({
         ) : (
           <Form {...denyForm}>
             <form
-              onSubmit={denyForm.handleSubmit(handleDeny)}
+              onSubmit={denyForm.handleSubmit(handleNotes)}
               className="space-y-4"
             >
               <FormField
@@ -326,17 +392,19 @@ export function AllocationReviewDialog({
                 name="admin_notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Reason for Denial *</FormLabel>
+                    <FormLabel>{NOTES_ACTIONS[action].label}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Explain why this request is being denied..."
+                        placeholder={NOTES_ACTIONS[action].placeholder}
                         className="resize-none"
                         rows={4}
                         {...field}
                       />
                     </FormControl>
                     <FormDescription>
-                      This will be shared with the requester.
+                      {action === "return"
+                        ? "The Leadership Council sees this."
+                        : "This will be shared with the requester."}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -355,14 +423,19 @@ export function AllocationReviewDialog({
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  variant="destructive"
+                  variant={action === "deny" ? "destructive" : "default"}
+                  className={action === "conditional" ? "bg-teal-600 hover:bg-teal-700" : undefined}
                 >
                   {isSubmitting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
+                  ) : action === "deny" ? (
                     <XCircle className="mr-2 h-4 w-4" />
+                  ) : action === "return" ? (
+                    <Undo2 className="mr-2 h-4 w-4" />
+                  ) : (
+                    <ShieldCheck className="mr-2 h-4 w-4" />
                   )}
-                  Deny Request
+                  {NOTES_ACTIONS[action].button}
                 </Button>
               </DialogFooter>
             </form>

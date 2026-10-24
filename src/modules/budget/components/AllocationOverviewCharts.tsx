@@ -26,6 +26,7 @@ import {
 } from "recharts";
 import { TrendingUp, DollarSign, AlertCircle, Wallet } from "lucide-react";
 import type { AllocationRequestWithRelations } from "../types";
+import { isAwaitingDecision } from "../types";
 
 interface AllocationOverviewChartsProps {
   allocations: AllocationRequestWithRelations[];
@@ -79,7 +80,7 @@ const AllocationOverviewCharts = ({
     .filter((a) => a.status === "approved" || a.status === "partially_approved")
     .reduce((sum, a) => sum + (a.approved_amount || a.requested_amount), 0);
   const pendingAmount = allocations
-    .filter((a) => a.status === "pending")
+    .filter((a) => isAwaitingDecision(a.status))
     .reduce((sum, a) => sum + a.requested_amount, 0);
   const deniedAmount = allocations
     .filter((a) => a.status === "denied")

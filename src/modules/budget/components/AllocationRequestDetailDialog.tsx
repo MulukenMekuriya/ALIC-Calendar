@@ -30,6 +30,9 @@ import {
   CalendarDays,
   XCircle,
   Undo2,
+  Edit,
+  ShieldCheck,
+  Send,
 } from "lucide-react";
 import { format } from "date-fns";
 import { AllocationRequestStatusBadge, CarriedOverBadge } from "./AllocationRequestStatusBadge";
@@ -67,10 +70,18 @@ interface AllocationRequestDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   request: AllocationRequestWithRelations | null;
-  userRole?: "admin" | "treasury" | "finance" | "requester";
+  userRole?: "admin" | "treasury" | "finance" | "board" | "requester";
+  /** Board: final approval. */
   onApprove?: () => void;
   onDeny?: () => void;
   onRecallApproval?: () => void;
+  /** Leadership Council: adjust the request. */
+  onEdit?: () => void;
+  /** Leadership Council: conditional approval. */
+  onConditionalApprove?: () => void;
+  onSendToBoard?: () => void;
+  /** Board: back to the Leadership Council. */
+  onReturn?: () => void;
 }
 
 export function AllocationRequestDetailDialog({
@@ -81,13 +92,28 @@ export function AllocationRequestDetailDialog({
   onApprove,
   onDeny,
   onRecallApproval,
+  onEdit,
+  onConditionalApprove,
+  onSendToBoard,
+  onReturn,
 }: AllocationRequestDetailDialogProps) {
   if (!request) return null;
 
-  // Admin, treasury, and finance can review pending allocation requests
-  const canReview =
-    request.status === "pending" &&
-    (userRole === "admin" || userRole === "treasury" || userRole === "finance");
+  // The Leadership Council is the branch's admins: it edits, conditionally
+  // approves or denies while the request is with it, and sends it on. The
+  // Board, or an admin acting for it, gives final approval.
+  const isCouncil = userRole === "admin";
+  const councilStep =
+    isCouncil && (request.status === "pending" || request.status === "under_review");
+  const readyForBoard = isCouncil && request.status === "conditionally_approved";
+  const boardStep =
+    (userRole === "board" || userRole === "admin") && request.status === "board_review";
+
+  /** Close this dialog, then open whatever the button asks for. */
+  const then = (next?: () => void) => () => {
+    onOpenChange(false);
+    next?.();
+  };
 
   const breakdown = (request.budget_breakdown as MonthlyBudgetItem[]) || [];
 
@@ -480,29 +506,77 @@ export function AllocationRequestDetailDialog({
             </>
           )}
 
-          {/* Action Buttons for Admin Review */}
-          {canReview && (
+          {/* The Leadership Council's step */}
+          {councilStep && (
             <>
               <Separator />
-              <div className="flex gap-3 pt-2">
+              <div className="flex flex-wrap gap-3 pt-2">
+                {onEdit && (
+                  <Button variant="outline" className="flex-1" onClick={then(onEdit)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                  </Button>
+                )}
+                <Button
+                  className="flex-1 bg-teal-600 hover:bg-teal-700"
+                  onClick={then(onConditionalApprove)}
+                >
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  Conditional Approval
+                </Button>
+                <Button variant="destructive" className="flex-1" onClick={then(onDeny)}>
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Deny
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* Conditionally approved: still the Council's to adjust or send on */}
+          {readyForBoard && (
+            <>
+              <Separator />
+              <div className="flex flex-wrap gap-3 pt-2">
+                {onEdit && (
+                  <Button variant="outline" className="flex-1" onClick={then(onEdit)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                  </Button>
+                )}
+                {onSendToBoard && (
+                  <Button
+                    className="flex-1 bg-purple-600 hover:bg-purple-700"
+                    onClick={then(onSendToBoard)}
+                  >
+                    <Send className="mr-2 h-4 w-4" />
+                    Send for Board Review
+                  </Button>
+                )}
+                <Button variant="destructive" className="flex-1" onClick={then(onDeny)}>
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Deny
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* The Board's step */}
+          {boardStep && (
+            <>
+              <Separator />
+              <div className="flex flex-wrap gap-3 pt-2">
                 <Button
                   className="flex-1 bg-green-600 hover:bg-green-700"
-                  onClick={() => {
-                    onOpenChange(false);
-                    onApprove?.();
-                  }}
+                  onClick={then(onApprove)}
                 >
                   <CheckCircle className="mr-2 h-4 w-4" />
-                  Approve
+                  Final Approval
                 </Button>
-                <Button
-                  variant="destructive"
-                  className="flex-1"
-                  onClick={() => {
-                    onOpenChange(false);
-                    onDeny?.();
-                  }}
-                >
+                <Button variant="outline" className="flex-1" onClick={then(onReturn)}>
+                  <Undo2 className="mr-2 h-4 w-4" />
+                  Return to Council
+                </Button>
+                <Button variant="destructive" className="flex-1" onClick={then(onDeny)}>
                   <XCircle className="mr-2 h-4 w-4" />
                   Deny
                 </Button>

@@ -370,7 +370,15 @@ export function useApproveAllocationRequest() {
           ? "approved"
           : "partially_approved";
 
-      // Update request
+      // Update request.
+      //
+      // GUARDED on the status it was read at. What follows this adds
+      // approvedAmount to the ministry's budget_allocations row, so an approval
+      // that runs twice credits the ministry twice — and there are now two
+      // screens and two steps (office review and board review) from which the
+      // same request can be approved. maybeSingle() rather than single(): if
+      // somebody else got there first the update matches nothing, and that is a
+      // message to the reviewer, not a crash.
       const { data: updated, error: updateError } = await supabase
         .schema("budget")
         .from("allocation_requests")
@@ -382,10 +390,17 @@ export function useApproveAllocationRequest() {
           reviewed_at: new Date().toISOString(),
         })
         .eq("id", requestId)
+        .eq("status", current.status)
         .select()
-        .single();
+        .maybeSingle();
 
       if (updateError) throw updateError;
+
+      if (!updated) {
+        throw new Error(
+          "This request was changed by somebody else while you were reviewing it. Refresh and look again before approving.",
+        );
+      }
 
       // Check if a budget allocation already exists for this ministry/fiscal year
       const { data: existingAllocation } = await supabase

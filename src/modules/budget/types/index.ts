@@ -332,13 +332,33 @@ export const REIMBURSEMENT_TYPE_LABELS: Record<ReimbursementType, string> = {
 
 export type AllocationPeriodType = "annual" | "quarterly" | "monthly";
 
+/**
+ * The budget year, as the finance office asked for it on 24 Oct 2026:
+ * Submitted (pending) -> Under Review -> Conditionally Approved (the
+ * Leadership Council) -> Sent for Board Review -> Final Approval (the Board:
+ * approved / partially_approved). Each step is a function in
+ * 20260322440700 that refuses a request not at the step before it.
+ */
 export type AllocationRequestStatus =
   | "draft"
   | "pending"
+  | "under_review"
+  | "conditionally_approved"
+  | "board_review"
   | "approved"
   | "partially_approved"
   | "denied"
   | "cancelled";
+
+/**
+ * Submitted and not yet decided, at any step: what a "pending" total means
+ * now that pending is only the first of four.
+ */
+export const isAwaitingDecision = (status: AllocationRequestStatus | string) =>
+  status === "pending" ||
+  status === "under_review" ||
+  status === "conditionally_approved" ||
+  status === "board_review";
 
 export interface AllocationRequest {
   id: string;
@@ -432,6 +452,36 @@ export interface AllocationRequestWithRelations extends AllocationRequest {
     id: string;
     full_name: string;
   } | null;
+}
+
+/**
+ * One board member's answer on one request.
+ *
+ * A board is a room of people, so this is a row per member rather than a
+ * verdict on the request: each of them can come back and revise their own line
+ * without overwriting anybody else's. recommended_amount is nullable because
+ * "no change" and "cut this to $4,000" are different answers, and saying
+ * something in words should not require inventing a figure.
+ */
+export interface AllocationBoardFeedback {
+  id: string;
+  request_id: string;
+  organization_id: string;
+  board_member_id: string;
+  board_member_name: string;
+  recommended_amount: number | null;
+  comment: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AllocationBoardFeedbackInsert {
+  request_id: string;
+  organization_id: string;
+  board_member_id: string;
+  board_member_name: string;
+  recommended_amount?: number | null;
+  comment?: string | null;
 }
 
 export interface AllocationRequestHistory {
@@ -586,23 +636,47 @@ export const ALLOCATION_REQUEST_STATUS_CONFIG: Record<
     description: "Not yet submitted",
   },
   pending: {
-    label: "Pending Review",
+    label: "Submitted",
     color: "text-yellow-600",
     bgColor: "bg-yellow-50",
     borderColor: "border-yellow-200",
     icon: "Clock",
-    description: "Awaiting admin review",
+    description: "Waiting for the Leadership Council",
+  },
+  under_review: {
+    label: "Under Review",
+    color: "text-orange-600",
+    bgColor: "bg-orange-50",
+    borderColor: "border-orange-200",
+    icon: "FileEdit",
+    description: "The Leadership Council is reviewing it",
+  },
+  conditionally_approved: {
+    label: "Conditionally Approved",
+    color: "text-teal-600",
+    bgColor: "bg-teal-50",
+    borderColor: "border-teal-200",
+    icon: "CheckCircle",
+    description: "Approved by the Leadership Council, ready for the Board",
+  },
+  board_review: {
+    label: "Sent for Board Review",
+    color: "text-purple-600",
+    bgColor: "bg-purple-50",
+    borderColor: "border-purple-200",
+    icon: "Users",
+    description: "With the Board for final approval",
   },
   approved: {
-    label: "Approved",
+    label: "Final Approval",
     color: "text-green-600",
     bgColor: "bg-green-50",
     borderColor: "border-green-200",
     icon: "CheckCircle",
-    description: "Request approved in full",
+    description: "Approved in full by the Board",
   },
   partially_approved: {
-    label: "Partially Approved",
+    label: "Final Approval (Partial)",
     color: "text-blue-600",
     bgColor: "bg-blue-50",
     borderColor: "border-blue-200",

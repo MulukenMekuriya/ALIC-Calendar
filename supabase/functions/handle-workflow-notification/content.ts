@@ -277,6 +277,31 @@ export function getAllocationNotificationContent(
         reviewerRole: "admin",
       };
 
+    // The Leadership Council's conditional approval. Nothing is promised yet,
+    // and the email says so: the Board gives the final approval.
+    case "conditionally_approved":
+      return {
+        requesterContent: {
+          subject: `Budget request conditionally approved: ${ministryName}`,
+          area,
+          title: `Your ${year}budget request was conditionally approved`,
+          paragraphs: [
+            `The Leadership Council has conditionally approved the ${year}budget request for ${ministryName}.`,
+            "It now goes to the Board, which gives the final approval. You will hear again once the Board has decided.",
+          ],
+          fact: { label, value: requested, note: "Conditionally approved · with the Board next", tone: "amber" },
+          notes,
+          button: OPEN_ALLOCATIONS,
+        },
+        reviewerContent: null,
+        reviewerRole: null,
+      };
+
+    // A request reaching 'board_review' says nothing on its own: the batch
+    // that sent it is announced once, to the Board, by getBoardDigestContent.
+    // 'under_review' (the Council starting, or the Board returning it) is
+    // internal and says nothing either; both fall through to NOTHING.
+
     case "approved":
     case "partially_approved": {
       const partly = newStatus === "partially_approved" && approvedAmount != null && approvedAmount < requestedAmount;
@@ -287,8 +312,8 @@ export function getAllocationNotificationContent(
           title: `Your ${year}budget request was approved`,
           paragraphs: [
             partly
-              ? `The ${year}budget request for ${ministryName} has been approved for ${granted} of the ${requested} requested.`
-              : `The ${year}budget request for ${ministryName} has been approved.`,
+              ? `The Board has given final approval to the ${year}budget request for ${ministryName}, for ${granted} of the ${requested} requested.`
+              : `The Board has given final approval to the ${year}budget request for ${ministryName}.`,
           ],
           fact: {
             label,
@@ -338,3 +363,41 @@ export function getAllocationNotificationContent(
       return NOTHING;
   }
 }
+
+/** board@alic.org unless the BOARD_EMAIL secret says otherwise. */
+export const BOARD_URL = `${BUDGET_URL}?tab=board`;
+
+/**
+ * One notice to the Board for a batch the Leadership Council has sent, rather
+ * than one per request: the Council sends the whole year's budget at once.
+ */
+export function getBoardDigestContent(records: AllocationRecord[]): FinanceMessage | null {
+  if (records.length === 0) return null;
+
+  const years = [...new Set(records.map((r) => r.fiscalYear).filter((y): y is number => y != null))];
+  const year = years.length === 1 ? `${years[0]} ` : "";
+  const total = records.reduce((sum, r) => sum + r.requestedAmount, 0);
+  const n = records.length;
+  const list = [...records]
+    .sort((a, b) => b.requestedAmount - a.requestedAmount)
+    .map((r) => `${r.ministryName}: ${formatCurrency(r.requestedAmount)}`);
+
+  return {
+    subject: `${year}budget: ${n} ${n === 1 ? "request" : "requests"} sent for Board review`.replace(/^budget/, "Budget"),
+    area: "Budget requests",
+    title: `${n} ${n === 1 ? "budget request is" : "budget requests are"} ready for the Board`,
+    paragraphs: [
+      `The Leadership Council has conditionally approved ${n === 1 ? "this request" : "these requests"} and sent ${n === 1 ? "it" : "them"} to the Board for final approval.`,
+      list.join(" · "),
+      "Open Board Review to read each request, comment, and give final approval, return it to the Council, or deny it.",
+    ],
+    fact: {
+      label: `Sent for Board review${year ? ` · ${year.trim()}` : ""}`,
+      value: formatCurrency(total),
+      note: `${n} ${n === 1 ? "request" : "requests"} awaiting final approval`,
+      tone: "amber",
+    },
+    button: { label: "Open Board Review", url: BOARD_URL },
+  };
+}
+
