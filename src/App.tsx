@@ -38,7 +38,7 @@ import { Dashboard, PublicCalendar } from "@/modules/calendar";
 import { Admin } from "@/modules/admin";
 import { Auth, ForgotPassword, ResetPassword, WelcomePage } from "@/modules/auth";
 import { Rooms } from "@/modules/rooms";
-import { Users } from "@/modules/users";
+import { Users, BranchMinistries } from "@/modules/users";
 import { InventoryDashboard } from "@/modules/inventory";
 import { BudgetDashboard } from "@/modules/budget";
 import {
@@ -347,6 +347,14 @@ const App = () => (
                   element={
                     <ProtectedRoute adminOnly>
                       <Users />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/branch-ministries"
+                  element={
+                    <ProtectedRoute adminOnly>
+                      <BranchMinistries />
                     </ProtectedRoute>
                   }
                 />
