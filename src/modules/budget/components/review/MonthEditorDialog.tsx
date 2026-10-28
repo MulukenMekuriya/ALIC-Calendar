@@ -78,42 +78,67 @@ export function MonthEditorDialog({ row, monthIndex, onClose }: MonthEditorDialo
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3 max-h-[50vh] overflow-y-auto">
-          {parsed.map(({ line, valid }) => (
-            <div key={line.index} className="grid grid-cols-[1fr_7rem] items-start gap-3">
-              <label htmlFor={`month-line-${line.index}`} className="text-sm">
-                {line.justification || "No justification given"}
+        <form
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (allValid && changed && !edit.isPending) void save();
+          }}
+        >
+          <div className="max-h-[50vh] space-y-4 overflow-y-auto pr-1">
+            {parsed.map(({ line, valid }, i) => (
+              <div key={line.index} className="space-y-1.5">
+                <label htmlFor={`month-line-${line.index}`} className="block text-sm font-medium leading-snug">
+                  {line.justification || "No justification given"}
+                </label>
                 {line.chartOfAccounts && (
-                  <span className="block text-xs text-muted-foreground">{line.chartOfAccounts}</span>
+                  <p className="text-xs text-muted-foreground">{line.chartOfAccounts}</p>
                 )}
-              </label>
-              <div>
-                <Input
-                  id={`month-line-${line.index}`}
-                  inputMode="decimal"
-                  className="text-right tabular-nums"
-                  value={values[line.index] ?? ""}
-                  aria-invalid={!valid}
-                  onChange={(e) => setValues((v) => ({ ...v, [line.index]: e.target.value }))}
-                />
-                {!valid && <p className="text-xs text-destructive mt-1">Enter $0 or more</p>}
+                <div className="flex items-center gap-3">
+                  <div className="relative w-44">
+                    <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-muted-foreground">$</span>
+                    <Input
+                      id={`month-line-${line.index}`}
+                      inputMode="decimal"
+                      autoFocus={i === 0}
+                      onFocus={(e) => e.currentTarget.select()}
+                      className="pl-7 text-right tabular-nums"
+                      value={values[line.index] ?? ""}
+                      aria-invalid={!valid}
+                      onChange={(e) => setValues((v) => ({ ...v, [line.index]: e.target.value }))}
+                    />
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    was {formatReviewAmount(line.months[monthIndex])}
+                  </span>
+                </div>
+                {!valid && <p className="text-xs text-destructive">Enter $0 or more</p>}
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        <p className="text-sm text-right">
-          {MONTH_LABELS[monthIndex]} total <strong className="tabular-nums">{formatReviewAmount(monthTotal)}</strong>
-        </p>
+          <div className="flex items-baseline justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">
+            <span className="text-muted-foreground">{MONTH_LABELS[monthIndex]} total</span>
+            <span>
+              <strong className="tabular-nums">{formatReviewAmount(monthTotal)}</strong>
+              {changed && (
+                <span className="ml-2 text-xs text-muted-foreground tabular-nums">
+                  ({monthTotal - row.months[monthIndex] >= 0 ? "+" : "−"}
+                  {formatReviewAmount(Math.abs(monthTotal - row.months[monthIndex]))})
+                </span>
+              )}
+            </span>
+          </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={edit.isPending}>
-            Cancel
-          </Button>
-          <Button onClick={save} disabled={!allValid || !changed || edit.isPending}>
-            {edit.isPending ? "Saving..." : "Save month"}
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose} disabled={edit.isPending}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!allValid || !changed || edit.isPending}>
+              {edit.isPending ? "Saving..." : "Save month"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
