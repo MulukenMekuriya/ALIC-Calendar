@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322441000_board_login_defaults.sql	2026-10-28 18:39:45
++++ /tmp/claude-501/m4.sql	2026-10-28 18:40:00
+@@ -48,7 +48,7 @@
+     RAISE NOTICE 'board@alic.org: % VA row(s) made board', _n;
+ 
+     UPDATE public.profiles
+-       SET default_organization_id = _md
++       SET default_organization_id = _va
+      WHERE id = _board AND default_organization_id = _va;
+     GET DIAGNOSTICS _n = ROW_COUNT;
+     RAISE NOTICE 'board@alic.org: % default(s) moved to MD', _n;

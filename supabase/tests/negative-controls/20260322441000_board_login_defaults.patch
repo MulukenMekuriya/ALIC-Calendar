@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322441000_board_login_defaults.sql	2026-10-28 18:39:45
++++ /tmp/claude-501/m3.sql	2026-10-28 18:40:00
+@@ -42,7 +42,7 @@
+     -- The Board holds the Board tier in the other branch too. Only a plain
+     -- member row is upgraded; anything else somebody set is left as it is.
+     UPDATE public.user_organizations
+-       SET role = 'board', is_primary = false
++       SET role = 'member', is_primary = false
+      WHERE user_id = _board AND organization_id = _va AND role = 'member';
+     GET DIAGNOSTICS _n = ROW_COUNT;
+     RAISE NOTICE 'board@alic.org: % VA row(s) made board', _n;

@@ -86,6 +86,13 @@ const BudgetDashboard = () => {
     string | null
   >(null);
   const [activeTab, setActiveTab] = useState("overview");
+
+  // A year picked in one branch is that branch's fiscal year id. Kept across a
+  // branch switch it points at the other branch's year, and the page went on
+  // showing the first branch's requests under the second branch's name.
+  useEffect(() => {
+    setSelectedFiscalYearId(null);
+  }, [currentOrganization?.id]);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(true);
 
   // Determine if user has elevated permissions (can see all data)
@@ -142,11 +149,12 @@ const BudgetDashboard = () => {
 
   // Fetch allocation requests
   const { data: allocationRequests, refetch: refetchAllocationRequests } =
-    useAllocationRequests(effectiveFiscalYearId);
+    useAllocationRequests(currentOrganization?.id, effectiveFiscalYearId);
 
   // Next year's budget requests: open from 1 September to 1 November.
   const { data: season } = useRequestSeason(currentOrganization?.id);
   const { data: seasonRequests } = useAllocationRequests(
+    currentOrganization?.id,
     season?.fiscal_year_id ?? undefined,
     { enabled: !!season?.enforced && !!season.fiscal_year_id }
   );
@@ -529,11 +537,15 @@ const BudgetDashboard = () => {
                       showDetailedLists={true}
                       expenseListProps={{
                         isLoading: expensesLoading,
+                        // A Board login is neither an approver nor a payer of
+                        // expenses; it used to fall through to "finance" here.
                         userRole: isAdmin
                           ? "admin"
                           : isTreasury
                           ? "treasury"
-                          : "finance",
+                          : isFinance
+                          ? "finance"
+                          : "requester",
                         onRefresh: handleRefresh,
                       }}
                       allocationListProps={{
@@ -542,7 +554,9 @@ const BudgetDashboard = () => {
                           ? "admin"
                           : isTreasury
                           ? "treasury"
-                          : "finance",
+                          : isFinance
+                          ? "finance"
+                          : "board",
                         onRefresh: handleRefresh,
                       }}
                     />
