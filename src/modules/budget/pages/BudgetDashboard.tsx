@@ -113,7 +113,6 @@ const StaffBudgetDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   // Allocations for the office: the by-month review first, the list one click away.
   const [allocationView, setAllocationView] = useState<"month" | "list">("month");
-  const [reviewYear, setReviewYear] = useState<number | null>(null);
 
   // A year picked in one branch is that branch's fiscal year id. Kept across a
   // branch switch it points at the other branch's year, and the page went on
@@ -132,6 +131,8 @@ const StaffBudgetDashboard = () => {
   const hasFullAccess = isAdmin || isTreasury || isFinance || isBoard;
   const isContributor = !hasFullAccess;
 
+  const { data: season } = useRequestSeason(currentOrganization?.id);
+
   // Fetch fiscal years
   const { data: fiscalYears, isLoading: fiscalYearsLoading } = useFiscalYears(
     currentOrganization?.id
@@ -143,8 +144,16 @@ const StaffBudgetDashboard = () => {
   // Get current year's fiscal year, or fallback to active fiscal year if it's not a past year
   const currentYear = new Date().getFullYear();
   const currentYearFiscal = fiscalYears?.find((fy) => fy.year === currentYear);
+  // The by-month review is about the budget being requested (2027 from
+  // September), so until a year is picked it opens on that year, and the year
+  // selector above says so. Picking a year changes the whole page, review included.
+  const seasonYearFiscal =
+    activeTab === "allocations" && allocationView === "month" && season?.fiscal_year
+      ? fiscalYears?.find((fy) => fy.year === season.fiscal_year)
+      : undefined;
   const effectiveFiscalYearId =
     selectedFiscalYearId ||
+    seasonYearFiscal?.id ||
     currentYearFiscal?.id ||
     (activeFiscalYear && activeFiscalYear.year >= currentYear
       ? activeFiscalYear.id
@@ -180,7 +189,6 @@ const StaffBudgetDashboard = () => {
     useAllocationRequests(currentOrganization?.id, effectiveFiscalYearId);
 
   // Next year's budget requests: open from 1 September to 1 November.
-  const { data: season } = useRequestSeason(currentOrganization?.id);
   const { data: seasonRequests } = useAllocationRequests(
     currentOrganization?.id,
     season?.fiscal_year_id ?? undefined,
@@ -745,26 +753,13 @@ const StaffBudgetDashboard = () => {
           <TabsContent value="allocations" className="mt-6">
             {hasFullAccess && allocationView === "month" ? (
               <div className="space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <AllocationViewSwitch value={allocationView} onChange={setAllocationView} />
-                  <Select
-                    value={String(reviewYear ?? season?.fiscal_year ?? currentYear)}
-                    onValueChange={(v) => setReviewYear(Number(v))}
-                  >
-                    <SelectTrigger className="w-32" aria-label="Budget year under review">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[currentYear + 1, currentYear, currentYear - 1, currentYear - 2].map((y) => (
-                        <SelectItem key={y} value={String(y)}>
-                          {y}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <AllocationViewSwitch value={allocationView} onChange={setAllocationView} />
                 <BudgetReviewSection
-                  year={reviewYear ?? season?.fiscal_year ?? currentYear}
+                  year={
+                    fiscalYears?.find((fy) => fy.id === effectiveFiscalYearId)?.year ??
+                    season?.fiscal_year ??
+                    currentYear
+                  }
                   organizationIds={[currentOrganization.id]}
                   onRefresh={handleRefresh}
                 />
