@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322441100_board_rounds_bulk_decisions_and_month_edits.sql	2026-10-28 18:57:33
++++ /var/folders/g0/9jmx0m5s5dz88yp30btrfcjc0000gn/T//nc/b.sql	2026-10-28 18:57:44
+@@ -227,7 +227,7 @@
+          auth.uid(), now(),
+          format('Board approved $%s', budget.money_text(_r.requested_amount)))
+       ON CONFLICT (fiscal_year_id, ministry_id) DO UPDATE
+-      SET allocated_amount = budget.budget_allocations.allocated_amount + EXCLUDED.allocated_amount,
++      SET allocated_amount = EXCLUDED.allocated_amount,
+           approved_by = EXCLUDED.approved_by,
+           approved_at = EXCLUDED.approved_at,
+           notes = EXCLUDED.notes;

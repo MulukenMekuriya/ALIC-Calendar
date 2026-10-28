@@ -401,3 +401,51 @@ export function getBoardDigestContent(records: AllocationRecord[]): FinanceMessa
   };
 }
 
+
+/**
+ * One notice to a branch's admins for a batch the Board has just decided: sent
+ * back for another look, or given final approval. The ministries themselves
+ * are not written to when the Board sends back; that conversation is with the
+ * local leaders.
+ */
+export function getBoardDecisionDigestContent(
+  kind: "board_returned" | "board_approved",
+  records: AllocationRecord[],
+  note: string | null,
+): FinanceMessage | null {
+  if (records.length === 0) return null;
+
+  const years = [...new Set(records.map((r) => r.fiscalYear).filter((y): y is number => y != null))];
+  const year = years.length === 1 ? `${years[0]} ` : "";
+  const total = records.reduce((sum, r) => sum + r.requestedAmount, 0);
+  const n = records.length;
+  const these = n === 1 ? "this request" : "these requests";
+  const list = [...records]
+    .sort((a, b) => b.requestedAmount - a.requestedAmount)
+    .map((r) => `${r.ministryName}: ${formatCurrency(r.requestedAmount)}`);
+  const returned = kind === "board_returned";
+
+  return {
+    subject: returned
+      ? `Board sent ${n} budget ${n === 1 ? "request" : "requests"} back`
+      : `Board approved ${n} budget ${n === 1 ? "request" : "requests"}`,
+    area: "Budget requests",
+    title: returned
+      ? `The Board sent ${n} ${year}budget ${n === 1 ? "request" : "requests"} back for another look`
+      : `The Board gave final approval to ${n} ${year}budget ${n === 1 ? "request" : "requests"}`,
+    paragraphs: [
+      returned
+        ? `Their remarks and recommended amounts are on the Allocations tab. Review ${these}, change what is needed, and send ${n === 1 ? "it" : "them"} to the Board again.`
+        : `The ministries have been told, and the approved amounts are now in their budgets.`,
+      list.join(" · "),
+    ],
+    notes: note ? { heading: "From the Board", text: note } : null,
+    fact: {
+      label: returned ? `Sent back${year ? ` · ${year.trim()}` : ""}` : `Final approval${year ? ` · ${year.trim()}` : ""}`,
+      value: formatCurrency(total),
+      note: returned ? "Waiting for the local leaders" : "Approved",
+      tone: returned ? "amber" : "green",
+    },
+    button: { label: "Open the Budget page", url: ALLOCATIONS_URL },
+  };
+}

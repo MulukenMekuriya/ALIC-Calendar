@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322441100_board_rounds_bulk_decisions_and_month_edits.sql	2026-10-28 18:57:33
++++ /var/folders/g0/9jmx0m5s5dz88yp30btrfcjc0000gn/T//nc/d.sql	2026-10-28 18:57:44
+@@ -78,7 +78,7 @@
+   END IF;
+ 
+   NEW.organization_id := _r.organization_id;
+-  NEW.round := _r.board_round;
++  NEW.round := NEW.round;
+   RETURN NEW;
+ END;
+ $$;

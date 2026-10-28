@@ -13,6 +13,7 @@ import {
   type ExpenseRecord,
   getAllocationNotificationContent,
   getBoardDigestContent,
+  getBoardDecisionDigestContent,
   getExpenseNotificationContent,
 } from "./content.ts";
 
@@ -228,5 +229,29 @@ describe("the Board's steps", () => {
 
   it("sends nothing for an empty batch", () => {
     expect(getBoardDigestContent([])).toBeNull();
+    expect(getBoardDecisionDigestContent("board_returned", [], null)).toBeNull();
+  });
+
+  it("tells the local leaders once when the Board sends a batch back, with its note", () => {
+    const m = getBoardDecisionDigestContent(
+      "board_returned",
+      [
+        { ...allocation, ministryName: "Deacons", requestedAmount: 400 },
+        { ...allocation, ministryName: "Teaching", requestedAmount: 40000 },
+      ],
+      "Please trim travel.",
+    )!;
+    expect(m.subject).toBe("Board sent 2 budget requests back");
+    expect(m.paragraphs[1]).toBe("Teaching: $40,000.00 · Deacons: $400.00");
+    expect(m.notes?.text).toBe("Please trim travel.");
+    expect(m.fact.tone).toBe("amber");
+    expect(m.button?.url).toContain("tab=allocations");
+  });
+
+  it("tells the local leaders once when the Board approves a batch", () => {
+    const m = getBoardDecisionDigestContent("board_approved", [allocation], null)!;
+    expect(m.subject).toBe("Board approved 1 budget request");
+    expect(m.notes).toBeNull();
+    expect(m.fact.tone).toBe("green");
   });
 });

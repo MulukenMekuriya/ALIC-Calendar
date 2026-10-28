@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322441200_numbers_are_frozen_while_with_the_board.sql	2026-10-28 18:58:59
++++ /var/folders/g0/9jmx0m5s5dz88yp30btrfcjc0000gn/T//nc2/a.sql	2026-10-28 18:59:43
+@@ -23,7 +23,7 @@
+ SET search_path = budget, public
+ AS $$
+ BEGIN
+-  IF OLD.status = 'board_review'
++  IF FALSE
+      AND (NEW.requested_amount IS DISTINCT FROM OLD.requested_amount
+        OR NEW.budget_breakdown IS DISTINCT FROM OLD.budget_breakdown
+        OR NEW.period_type IS DISTINCT FROM OLD.period_type

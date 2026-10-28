@@ -26,6 +26,7 @@ import {
   type ExpenseRecord,
   getAllocationNotificationContent,
   getBoardDigestContent,
+  getBoardDecisionDigestContent,
   getExpenseNotificationContent,
 } from "./content.ts";
 
@@ -55,8 +56,10 @@ interface TriggerPayload {
   old_status: string;
   new_status: string;
   /** budget.send_to_board: one notice for a whole batch. */
-  kind?: "sent_to_board";
+  kind?: "sent_to_board" | "board_returned" | "board_approved";
   record_ids?: string[];
+  /** The Board's note when it sends a batch back. */
+  note?: string | null;
 }
 
 interface EmailRecipient {
@@ -345,6 +348,35 @@ serve(async (req) => {
       const result = content
         ? await sendAllEmails([addressed(BOARD_EMAIL, "Board", content)])
         : { sent: [], failed: [] };
+
+      return new Response(
+        JSON.stringify({ success: true, sent: result.sent.length, failed: result.failed.length }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // The Board decided a batch: one digest per branch, to that branch's admins.
+    if (
+      (payload.kind === "board_returned" || payload.kind === "board_approved") &&
+      table === "allocation_requests"
+    ) {
+      const supabase = createAdminClient();
+      const records = (
+        await Promise.all((payload.record_ids || []).map((id) => getAllocationRecord(supabase, id)))
+      ).filter((r): r is AllocationRecord => r !== null);
+
+      const byOrg = new Map<string, AllocationRecord[]>();
+      for (const r of records) byOrg.set(r.organizationId, [...(byOrg.get(r.organizationId) ?? []), r]);
+
+      const pending: PendingEmail[] = [];
+      for (const [orgId, group] of byOrg) {
+        const content = getBoardDecisionDigestContent(payload.kind, group, payload.note ?? null);
+        if (!content) continue;
+        for (const admin of await getUsersByRole(supabase, orgId, "admin")) {
+          pending.push(addressed(admin.email, admin.name, content));
+        }
+      }
+      const result = await sendAllEmails(pending);
 
       return new Response(
         JSON.stringify({ success: true, sent: result.sent.length, failed: result.failed.length }),
