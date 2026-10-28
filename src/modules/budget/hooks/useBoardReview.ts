@@ -295,3 +295,120 @@ export function useDeleteBoardFeedback() {
     },
   });
 }
+
+export interface BulkDecisionResult {
+  moved: number;
+  skipped: { id: string; reason: string }[];
+}
+
+/**
+ * The Board's bulk "Final approval" / "Send back to local leaders".
+ *
+ * Final approval approves exactly the requested amounts. A request that is no
+ * longer with the Board is skipped with a reason and the rest go ahead.
+ */
+export function useBoardDecideMany() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      requestIds,
+      decision,
+      notes,
+    }: {
+      requestIds: string[];
+      decision: "approve" | "return";
+      notes?: string | null;
+    }) => {
+      const { data, error } = await supabase
+        .schema("budget")
+        .rpc("board_decide_many", {
+          _request_ids: requestIds,
+          _decision: decision,
+          _notes: notes ?? undefined,
+        });
+
+      if (error) throw error;
+      return data as unknown as BulkDecisionResult;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ALLOCATION_REQUESTS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [BOARD_FEEDBACK_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["budget-allocations"] });
+      queryClient.invalidateQueries({ queryKey: ["budget-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["ministry-budget-summary"] });
+    },
+  });
+}
+
+/**
+ * A local leader changes one month of a request. `amounts` names lines by
+ * their position in budget_breakdown. `expectedUpdatedAt` is the updated_at
+ * the screen was drawn from; if the request has changed since, the database
+ * refuses rather than overwriting the other change.
+ */
+export function useEditRequestMonth() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      requestId,
+      month,
+      amounts,
+      expectedUpdatedAt,
+    }: {
+      requestId: string;
+      month: string;
+      amounts: { index: number; amount: number }[];
+      expectedUpdatedAt?: string | null;
+    }) => {
+      const { data, error } = await supabase
+        .schema("budget")
+        .rpc("edit_request_month", {
+          _request_id: requestId,
+          _month: month,
+          _amounts: amounts,
+          _expected_updated_at: expectedUpdatedAt ?? undefined,
+        });
+
+      if (error) throw error;
+      return data as unknown as AllocationRequest;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ALLOCATION_REQUESTS_KEY] });
+    },
+  });
+}
+
+export interface MinistryBudgetTotals {
+  organization_id: string;
+  organization_name: string;
+  ministry_id: string;
+  ministry_name: string;
+  approved: number;
+  spent: number;
+}
+
+/**
+ * Approved budget against what has been paid, by ministry, for every branch
+ * the viewer works in. Totals only: the Board cannot read other people's
+ * expenses, and does not need to.
+ */
+export function useMinistryTotals(year?: number) {
+  return useQuery({
+    queryKey: ["ministry-budget-summary", year],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .schema("budget")
+        .rpc("ministry_budget_summary", { _year: year as number });
+
+      if (error) throw error;
+      return ((data ?? []) as MinistryBudgetTotals[]).map((r) => ({
+        ...r,
+        approved: Number(r.approved) || 0,
+        spent: Number(r.spent) || 0,
+      }));
+    },
+    enabled: !!year,
+  });
+}

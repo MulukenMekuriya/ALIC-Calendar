@@ -62,3 +62,18 @@ describe("the Ministry Summary", () => {
     expect(formatBudgetAmount(0)).toBe("$0.00");
   });
 });
+
+describe("ministryRowsFromTotals", () => {
+  it("builds the same rows the Home screen does, from the database's totals", async () => {
+    const { ministryRowsFromTotals } = await import("./ministryBudget");
+    const rows = ministryRowsFromTotals([
+      { ministry_id: "a", ministry_name: "Choir", approved: 100, spent: 40 },
+      { ministry_id: "b", ministry_name: "Deacons", approved: 500, spent: 600 },
+      { ministry_id: "c", ministry_name: "Idle", approved: 0, spent: 0 },
+    ]);
+    expect(rows.map((r) => [r.ministry, r.remaining])).toEqual([
+      ["Deacons", -100],
+      ["Choir", 60],
+    ]);
+  });
+});

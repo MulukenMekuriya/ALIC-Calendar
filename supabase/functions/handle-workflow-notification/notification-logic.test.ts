@@ -224,7 +224,7 @@ describe("the Board's steps", () => {
     expect(m.title).toBe("2 budget requests are ready for the Board");
     expect(m.paragraphs[1]).toBe("Teaching: $40,000.00 · Deacons: $400.00");
     expect(m.fact.value).toBe("$40,400.00");
-    expect(m.button?.url).toContain("tab=board");
+    expect(m.button?.url).not.toContain("tab=");
   });
 
   it("sends nothing for an empty batch", () => {

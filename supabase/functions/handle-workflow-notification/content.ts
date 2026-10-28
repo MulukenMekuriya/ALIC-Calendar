@@ -365,7 +365,7 @@ export function getAllocationNotificationContent(
 }
 
 /** board@alic.org unless the BOARD_EMAIL secret says otherwise. */
-export const BOARD_URL = `${BUDGET_URL}?tab=board`;
+export const BOARD_URL = BUDGET_URL;
 
 /**
  * One notice to the Board for a batch the Leadership Council has sent, rather
@@ -389,7 +389,7 @@ export function getBoardDigestContent(records: AllocationRecord[]): FinanceMessa
     paragraphs: [
       `The Leadership Council has conditionally approved ${n === 1 ? "this request" : "these requests"} and sent ${n === 1 ? "it" : "them"} to the Board for final approval.`,
       list.join(" · "),
-      "Open Board Review to read each request, comment, and give final approval, return it to the Council, or deny it.",
+      "Open the Budget page to read each request, add your recommended amount and comment, and give final approval or send it back to the local leaders.",
     ],
     fact: {
       label: `Sent for Board review${year ? ` · ${year.trim()}` : ""}`,
@@ -397,7 +397,7 @@ export function getBoardDigestContent(records: AllocationRecord[]): FinanceMessa
       note: `${n} ${n === 1 ? "request" : "requests"} awaiting final approval`,
       tone: "amber",
     },
-    button: { label: "Open Board Review", url: BOARD_URL },
+    button: { label: "Open the Budget page", url: BOARD_URL },
   };
 }
 

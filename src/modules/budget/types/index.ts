@@ -378,6 +378,8 @@ export interface AllocationRequest {
   approved_amount: number | null;
   /** Copied from last year's because nothing was submitted by the deadline. */
   carried_over_from?: string | null;
+  /** How many times the branch's admins have sent it to the Board. */
+  board_round?: number;
   created_at: string;
   updated_at: string;
 }
@@ -471,6 +473,8 @@ export interface AllocationBoardFeedback {
   board_member_name: string;
   recommended_amount: number | null;
   comment: string | null;
+  /** The request's board_round when this was written. */
+  round?: number;
   created_at: string;
   updated_at: string;
 }

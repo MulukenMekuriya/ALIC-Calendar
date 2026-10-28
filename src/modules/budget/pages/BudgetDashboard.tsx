@@ -67,14 +67,39 @@ import {
 } from "../components";
 import { AllocationRequestForm } from "../components/AllocationRequestForm";
 import { AllocationRequestList } from "../components/AllocationRequestList";
-import { BoardReviewPanel } from "../components/BoardReviewPanel";
+import { BudgetReviewSection } from "../components/review/BudgetReviewSection";
+import BoardBudgetPage from "./BoardBudgetPage";
 import { MonthlyBudgetSummary } from "../components/MonthlyBudgetSummary";
 import { MinistryFlagBadge } from "../components/MinistryFlagBadge";
 import { RequestSeasonBanner } from "../components/RequestSeasonBanner";
 import { canStartRequest, seasonMonthDay } from "../utils/requestSeason";
 import { format, parseISO } from "date-fns";
 
-const BudgetDashboard = () => {
+function AllocationViewSwitch({
+  value,
+  onChange,
+}: {
+  value: "month" | "list";
+  onChange: (v: "month" | "list") => void;
+}) {
+  return (
+    <div role="group" aria-label="Allocations view" className="inline-flex rounded-lg bg-muted/50 p-1 gap-1">
+      {(["month", "list"] as const).map((v) => (
+        <Button
+          key={v}
+          size="sm"
+          variant={value === v ? "default" : "ghost"}
+          aria-pressed={value === v}
+          onClick={() => onChange(v)}
+        >
+          {v === "month" ? "By month" : "List"}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
+const StaffBudgetDashboard = () => {
   const { user, isAdmin, isTreasury, isFinance, isBoard } = useAuth();
   const { currentOrganization } = useOrganization();
   const { profile } = useUserProfile();
@@ -86,6 +111,9 @@ const BudgetDashboard = () => {
     string | null
   >(null);
   const [activeTab, setActiveTab] = useState("overview");
+  // Allocations for the office: the by-month review first, the list one click away.
+  const [allocationView, setAllocationView] = useState<"month" | "list">("month");
+  const [reviewYear, setReviewYear] = useState<number | null>(null);
 
   // A year picked in one branch is that branch's fiscal year id. Kept across a
   // branch switch it points at the other branch's year, and the page went on
@@ -178,9 +206,11 @@ const BudgetDashboard = () => {
     const tab = searchParams.get("tab");
     if (request !== "budget" && !tab) return;
     if (request === "budget") setIsAllocationFormOpen(true);
-    if (tab === "overview" || tab === "expenses" || tab === "allocations" || tab === "board") {
+    if (tab === "overview" || tab === "expenses" || tab === "allocations") {
       setActiveTab(tab);
     }
+    // The old Board Review tab is the by-month review inside Allocations now.
+    if (tab === "board") setActiveTab("allocations");
     const next = new URLSearchParams(searchParams);
     next.delete("request");
     next.delete("tab");
@@ -226,10 +256,6 @@ const BudgetDashboard = () => {
     expenses?.filter((e) => e.status !== "cancelled") || [];
   const activeAllocationRequests =
     allocationRequests?.filter((r) => r.status !== "cancelled") || [];
-
-  const boardReviewCount = activeAllocationRequests.filter(
-    (r) => r.status === "board_review",
-  ).length;
 
   // Get ministry name from user's profile (from DB)
   const userMinistryName =
@@ -446,7 +472,7 @@ const BudgetDashboard = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList
             className={`grid ${
-              hasFullAccess ? "grid-cols-4" : "grid-cols-3"
+              "grid-cols-3"
             } w-full sm:w-auto sm:inline-flex h-auto gap-1 sm:gap-2 bg-muted/50 p-1 rounded-lg`}
           >
             <TabsTrigger
@@ -497,21 +523,6 @@ const BudgetDashboard = () => {
                     </span>
                   )}
             </TabsTrigger>
-            {hasFullAccess && (
-              <TabsTrigger
-                value="board"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-2 sm:px-4 py-2 text-xs sm:text-sm"
-              >
-                <Users className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden sm:inline">Board Review</span>
-                <span className="sm:hidden">Board</span>
-                {boardReviewCount > 0 && (
-                  <span className="ml-1 sm:ml-2 bg-muted text-muted-foreground rounded-full px-1.5 sm:px-2 text-[10px] sm:text-xs">
-                    {boardReviewCount}
-                  </span>
-                )}
-              </TabsTrigger>
-            )}
           </TabsList>
 
           {/* Overview Tab - World Class Analytics */}
@@ -732,55 +743,79 @@ const BudgetDashboard = () => {
 
           {/* Allocations Tab */}
           <TabsContent value="allocations" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Wallet className="h-5 w-5" />
-                  {hasFullAccess
-                    ? "All Organization Allocations"
-                    : `${userMinistryName} Allocations`}
-                </CardTitle>
-                <CardDescription>
-                  {hasFullAccess
-                    ? `View and manage all allocation requests across ${currentOrganization.name}`
-                    : `View and manage your ${userMinistryName} allocation requests`}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <AllocationRequestList
-                  requests={
-                    hasFullAccess
-                      ? activeAllocationRequests || []
-                      : myAllocationRequests
-                  }
-                  isLoading={false}
-                  userRole={
-                    isAdmin
-                      ? "admin"
-                      : isTreasury
-                      ? "treasury"
-                      : isFinance
-                      ? "finance"
-                      : isBoard
-                      ? "board"
-                      : "requester"
-                  }
+            {hasFullAccess && allocationView === "month" ? (
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <AllocationViewSwitch value={allocationView} onChange={setAllocationView} />
+                  <Select
+                    value={String(reviewYear ?? season?.fiscal_year ?? currentYear)}
+                    onValueChange={(v) => setReviewYear(Number(v))}
+                  >
+                    <SelectTrigger className="w-32" aria-label="Budget year under review">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[currentYear + 1, currentYear, currentYear - 1, currentYear - 2].map((y) => (
+                        <SelectItem key={y} value={String(y)}>
+                          {y}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <BudgetReviewSection
+                  year={reviewYear ?? season?.fiscal_year ?? currentYear}
+                  organizationIds={[currentOrganization.id]}
                   onRefresh={handleRefresh}
                 />
-              </CardContent>
-            </Card>
+              </div>
+            ) : (
+              <>
+                {hasFullAccess && (
+                  <div className="mb-3">
+                    <AllocationViewSwitch value={allocationView} onChange={setAllocationView} />
+                  </div>
+                )}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Wallet className="h-5 w-5" />
+                      {hasFullAccess
+                        ? "All Organization Allocations"
+                        : `${userMinistryName} Allocations`}
+                    </CardTitle>
+                    <CardDescription>
+                      {hasFullAccess
+                        ? `View and manage all allocation requests across ${currentOrganization.name}`
+                        : `View and manage your ${userMinistryName} allocation requests`}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <AllocationRequestList
+                      requests={
+                        hasFullAccess
+                          ? activeAllocationRequests || []
+                          : myAllocationRequests
+                      }
+                      isLoading={false}
+                      userRole={
+                        isAdmin
+                          ? "admin"
+                          : isTreasury
+                          ? "treasury"
+                          : isFinance
+                          ? "finance"
+                          : isBoard
+                          ? "board"
+                          : "requester"
+                      }
+                      onRefresh={handleRefresh}
+                    />
+                  </CardContent>
+                </Card>
+              </>
+            )}
           </TabsContent>
-
-          {hasFullAccess && (
-            <TabsContent value="board" className="mt-6">
-              <BoardReviewPanel
-                year={
-                  fiscalYears?.find((fy) => fy.id === effectiveFiscalYearId)?.year
-                }
-                onRefresh={handleRefresh}
-              />
-            </TabsContent>
-          )}
         </Tabs>
       </div>
 
@@ -799,6 +834,18 @@ const BudgetDashboard = () => {
       />
     </DashboardLayout>
   );
+};
+
+/**
+ * A login that is only the Board gets its own cut-down page, so the staff
+ * queries (expenses, metrics, flags) are never made for it.
+ */
+const BudgetDashboard = () => {
+  const { userOrganizations, loading } = useOrganization();
+  const roles = userOrganizations.map((m) => m.role);
+  const boardOnly = roles.includes("board") && roles.every((r) => r === "board" || r === "member");
+  if (loading) return null;
+  return boardOnly ? <BoardBudgetPage /> : <StaffBudgetDashboard />;
 };
 
 export default BudgetDashboard;

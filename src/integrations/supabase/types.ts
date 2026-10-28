@@ -868,6 +868,30 @@ export type Database = {
         Returns: Record<string, unknown>
       }
       send_to_board: { Args: { _request_ids: string[] }; Returns: number }
+      board_decide_many: {
+        Args: { _request_ids: string[]; _decision: string; _notes?: string }
+        Returns: Json
+      }
+      edit_request_month: {
+        Args: {
+          _amounts: Json
+          _expected_updated_at?: string
+          _month: string
+          _request_id: string
+        }
+        Returns: Database["budget"]["Tables"]["allocation_requests"]["Row"]
+      }
+      ministry_budget_summary: {
+        Args: { _year: number }
+        Returns: {
+          approved: number
+          ministry_id: string
+          ministry_name: string
+          organization_id: string
+          organization_name: string
+          spent: number
+        }[]
+      }
     }
     Enums: {
       allocation_period_type: "annual" | "quarterly" | "monthly"
