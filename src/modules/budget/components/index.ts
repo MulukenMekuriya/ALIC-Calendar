@@ -38,6 +38,7 @@ export { ResolveMinistryFlagDialog } from "./ResolveMinistryFlagDialog";
 export { default as FlaggedMinistriesPanel } from "./FlaggedMinistriesPanel";
 
 // Budget Overview & Analytics
+export { CollapsibleListSection } from "./CollapsibleListSection";
 export { default as BudgetOverviewCharts } from "./BudgetOverviewCharts";
 export { default as BudgetMetricsGrid } from "./BudgetMetricsGrid";
 export { BudgetReportExport } from "./BudgetReportExport";

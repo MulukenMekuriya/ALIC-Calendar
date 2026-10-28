@@ -4,6 +4,7 @@
  */
 
 import { useState } from "react";
+import type { ComponentProps } from "react";
 import {
   Tabs,
   TabsContent,
@@ -11,10 +12,12 @@ import {
   TabsTrigger,
 } from "@/shared/components/ui/tabs";
 import { Badge } from "@/shared/components/ui/badge";
+import { useSearch } from "@/shared/contexts/SearchContext";
 import { DollarSign, Wallet, TrendingUp, BarChart3 } from "lucide-react";
 import BudgetSection from "./BudgetSection";
 import { MinistryBudgetSummary } from "./MinistryBudgetSummary";
 import { ExpenseList } from "./ExpenseList";
+import { CollapsibleListSection } from "./CollapsibleListSection";
 import { AllocationRequestList } from "./AllocationRequestList";
 import type {
   ExpenseRequestWithRelations,
@@ -45,6 +48,21 @@ interface BudgetOverviewProps {
     onRefresh?: () => void;
   };
 }
+
+/**
+ * The fold, held open while the header search has text: the search filters
+ * the expense list, so a folded list would answer it with nothing.
+ *
+ * Its own component so that only this subtree listens to the search. Read in
+ * BudgetOverview, every keystroke re-rendered the whole Overview and replayed
+ * all its chart animations.
+ */
+const ExpenseListSection = (
+  props: Omit<ComponentProps<typeof CollapsibleListSection>, "forceOpen">,
+) => {
+  const { searchQuery } = useSearch();
+  return <CollapsibleListSection {...props} forceOpen={searchQuery.trim() !== ""} />;
+};
 
 const BudgetOverview = ({
   expenses,
@@ -248,13 +266,17 @@ const BudgetOverview = ({
                             />
                           )}
 
-                          {/* Detailed Expense List */}
+                          {/* Detailed Expense List: one row per request, so it
+                              folds away. */}
                           {showDetailedLists && (
-                            <div>
-                              <h3 className="text-base sm:text-xl font-semibold mb-3 sm:mb-4 flex items-center gap-2">
-                                <DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />
-                                All Expense Requests
-                              </h3>
+                            <ExpenseListSection
+                              title="All Expense Requests"
+                              icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
+                              summary={`${activeExpenses.length} ${
+                                activeExpenses.length === 1 ? "request" : "requests"
+                              } \u00b7 $${expenseTotal.toLocaleString()}`}
+                              storageKey="budget.all-expenses"
+                            >
                               <ExpenseList
                                 expenses={activeExpenses}
                                 isLoading={expenseListProps.isLoading || false}
@@ -263,7 +285,7 @@ const BudgetOverview = ({
                                   expenseListProps.onRefresh || (() => {})
                                 }
                               />
-                            </div>
+                            </ExpenseListSection>
                           )}
                         </div>
                       </TabsContent>
