@@ -9,7 +9,8 @@
 
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
-import { Check, Pencil, X } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Pencil, X } from "lucide-react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { AllocationBoardFeedback } from "../../types";
 import { getReviewStage, getRowPermissions, STAGE_LABEL, type ReviewRole } from "../../utils/reviewStage";
@@ -45,23 +46,45 @@ function RowActions({ row, props }: { row: ReviewRow; props: ReviewTableProps })
   const busy = props.busyRequestId === row.request.id;
   if (!perms.canEdit && !perms.canApproveForBoard && !perms.canDeny) return null;
   return (
-    <div className="flex flex-wrap justify-end gap-1">
+    <div className="flex flex-nowrap items-center justify-end gap-1">
       {perms.canEdit && (
-        <Button size="sm" variant="outline" disabled={busy} onClick={() => props.onEditRequest(row)} aria-label={`Edit ${row.ministryName}`}>
-          <Pencil className="h-3.5 w-3.5 sm:mr-1" />
-          <span className="hidden sm:inline">Edit</span>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8"
+          disabled={busy}
+          title="Edit this request"
+          onClick={() => props.onEditRequest(row)}
+          aria-label={`Edit ${row.ministryName}`}
+        >
+          <Pencil className="h-4 w-4" />
         </Button>
       )}
       {perms.canApproveForBoard && (
-        <Button size="sm" variant="outline" disabled={busy} onClick={() => props.onApproveForBoard(row)} aria-label={`Approve ${row.ministryName} for the Board`}>
-          <Check className="h-3.5 w-3.5 sm:mr-1" />
-          <span className="hidden sm:inline">Approve</span>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 border-emerald-600/60 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+          disabled={busy}
+          title="Approve, ready to send to the Board"
+          onClick={() => props.onApproveForBoard(row)}
+          aria-label={`Approve ${row.ministryName} for the Board`}
+        >
+          <Check className="mr-1 h-4 w-4" />
+          Approve
         </Button>
       )}
       {perms.canDeny && (
-        <Button size="sm" variant="outline" className="text-destructive" disabled={busy} onClick={() => props.onDeny(row)} aria-label={`Deny ${row.ministryName}`}>
-          <X className="h-3.5 w-3.5 sm:mr-1" />
-          <span className="hidden sm:inline">Deny</span>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+          disabled={busy}
+          title="Deny this request"
+          onClick={() => props.onDeny(row)}
+          aria-label={`Deny ${row.ministryName}`}
+        >
+          <X className="h-4 w-4" />
         </Button>
       )}
     </div>
@@ -120,7 +143,7 @@ export function ReviewTable(props: ReviewTableProps) {
           <thead>
             <tr className="border-b bg-muted/50">
               <th className={cn(th, "w-8")} />
-              <th className={cn(th, "text-left sticky left-0 bg-muted/50 min-w-[170px]")}>Ministry</th>
+              <th className={cn(th, "text-left sticky left-0 z-10 bg-muted min-w-[170px]")}>Ministry</th>
               {MONTH_LABELS.map((m) => (
                 <th key={m} className={cn(th, "text-right min-w-[64px]")}>{m}</th>
               ))}
@@ -128,7 +151,7 @@ export function ReviewTable(props: ReviewTableProps) {
               <th className={cn(th, "text-right")}>Total</th>
               {showFeedback && <th className={cn(th, "text-right")}>{anyReadOnlyFeedback ? "Board remarks" : "Recommended"}</th>}
               {showFeedback && !anyReadOnlyFeedback && <th className={cn(th, "text-left")}>Comment</th>}
-              <th className={cn(th, "text-right")}>Actions</th>
+              <th className={cn(th, "text-right min-w-[190px]")}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -137,7 +160,7 @@ export function ReviewTable(props: ReviewTableProps) {
             ))}
             <tr className="border-t-2 bg-muted/60 font-bold">
               <td />
-              <td className={cn(td, "sticky left-0 bg-muted/60")}>Total</td>
+              <td className={cn(td, "sticky left-0 z-10 bg-muted")}>Total</td>
               {grand.months.map((v, i) => (
                 <td key={i} className={cn(td, "text-right tabular-nums")}>{v > 0 ? formatReviewAmount(v) : "-"}</td>
               ))}
@@ -153,8 +176,8 @@ export function ReviewTable(props: ReviewTableProps) {
 
       {/* Phone */}
       <div className="md:hidden divide-y">
-        {groups.flatMap((g) => g.rows).map((row) => (
-          <ReviewCard key={row.request.id} row={row} props={props} />
+        {groups.map((g) => (
+          <GroupCards key={g.key} group={g} props={props} />
         ))}
         <div className="flex justify-between p-3 font-bold">
           <span>Total</span>
@@ -165,6 +188,12 @@ export function ReviewTable(props: ReviewTableProps) {
   );
 }
 
+/**
+ * A ministry with several requests is one row: the months and total added up,
+ * with a chevron that opens the individual requests, which is where Edit,
+ * Approve, Deny and the line-by-line months live. A ministry with one request
+ * is just that request.
+ */
 function GroupRows({
   group,
   props,
@@ -177,54 +206,108 @@ function GroupRows({
   anyReadOnlyFeedback: boolean;
 }) {
   const { showFeedback } = props;
+  const [open, setOpen] = useState(false);
+  const merged = group.rows.length > 1;
+
+  const requestRow = (row: ReviewRow, nested: boolean) => {
+    const perms = getRowPermissions(row.request, props.roleFor(row.organizationId));
+    const stage = getReviewStage(row.request);
+    return (
+      <tr key={row.request.id} className={cn("border-b hover:bg-muted/30", nested && "bg-muted/10")}>
+        <td className={td}><SelectBox row={row} props={props} /></td>
+        <td className={cn(td, "sticky left-0 z-10", nested ? "bg-muted pl-6" : "bg-background")}>
+          <div className={nested ? "text-sm" : "font-medium"}>{row.ministryName}</div>
+          <div className="text-xs text-muted-foreground">
+            {branchOf(props, row) && <>{branchOf(props, row)} · </>}
+            {STAGE_LABEL[stage]}
+          </div>
+        </td>
+        {row.isMonthly ? (
+          row.months.map((_, i) => (
+            <td key={i} className={cn(td, "text-right")}>
+              <ReviewMonthCell row={row} monthIndex={i} canEdit={perms.canEdit} onEdit={props.onEditMonth} />
+            </td>
+          ))
+        ) : (
+          <td colSpan={12} className={cn(td, "text-center text-muted-foreground italic")}>Annual only</td>
+        )}
+        {hasAnnual && <td className={cn(td, "text-right tabular-nums")}>{row.annual > 0 ? formatReviewAmount(row.annual) : "-"}</td>}
+        <td className={cn(td, "text-right tabular-nums font-semibold")}>{formatReviewAmount(row.total)}</td>
+        {showFeedback && <td className={cn(td, "text-right")}><FeedbackCell row={row} props={props} part="amount" /></td>}
+        {showFeedback && !anyReadOnlyFeedback && <td className={td}><FeedbackCell row={row} props={props} part="comment" /></td>}
+        <td className={td}><RowActions row={row} props={props} /></td>
+      </tr>
+    );
+  };
+
+  if (!merged) return requestRow(group.rows[0], false);
+
+  const selectable = group.rows.filter((r) => {
+    const p = getRowPermissions(r.request, props.roleFor(r.organizationId));
+    return p.canSend || p.canBoardDecide;
+  });
+  const ticked = selectable.filter((r) => props.selected.has(r.request.id)).length;
+  const stages = [...new Set(group.rows.map((r) => STAGE_LABEL[getReviewStage(r.request)]))];
+
+  // The month figures of all the requests, so the hover shows every line behind the sum.
+  const combined: ReviewRow = {
+    ...group.rows[0],
+    isMonthly: true,
+    lines: group.rows.flatMap((r) => r.lines),
+    months: group.months,
+    annual: group.annual,
+    total: group.total,
+  };
+  const toggle = () => setOpen((o) => !o);
+
   return (
     <>
-      {group.rows.map((row) => {
-        const perms = getRowPermissions(row.request, props.roleFor(row.organizationId));
-        const stage = getReviewStage(row.request);
-        return (
-          <tr key={row.request.id} className="border-b hover:bg-muted/30">
-            <td className={td}><SelectBox row={row} props={props} /></td>
-            <td className={cn(td, "sticky left-0 bg-background")}>
-              <div className="font-medium">{row.ministryName}</div>
-              <div className="text-xs text-muted-foreground">
-                {branchOf(props, row) && <>{branchOf(props, row)} · </>}
-                {STAGE_LABEL[stage]}
-              </div>
-            </td>
-            {row.isMonthly ? (
-              row.months.map((_, i) => (
-                <td key={i} className={cn(td, "text-right")}>
-                  <ReviewMonthCell row={row} monthIndex={i} canEdit={perms.canEdit} onEdit={props.onEditMonth} />
-                </td>
-              ))
-            ) : (
-              <td colSpan={12} className={cn(td, "text-center text-muted-foreground italic")}>Annual only</td>
-            )}
-            {hasAnnual && <td className={cn(td, "text-right tabular-nums")}>{row.annual > 0 ? formatReviewAmount(row.annual) : "-"}</td>}
-            <td className={cn(td, "text-right tabular-nums font-semibold")}>{formatReviewAmount(row.total)}</td>
-            {showFeedback && <td className={cn(td, "text-right")}><FeedbackCell row={row} props={props} part="amount" /></td>}
-            {showFeedback && !anyReadOnlyFeedback && <td className={td}><FeedbackCell row={row} props={props} part="comment" /></td>}
-            <td className={td}><RowActions row={row} props={props} /></td>
-          </tr>
-        );
-      })}
-      {group.rows.length > 1 && (
-        <tr className="border-b bg-muted/20 text-xs">
-          <td />
-          <td className={cn(td, "sticky left-0 bg-muted/20 italic")}>{group.ministryName} subtotal</td>
-          {group.months.map((v, i) => (
-            <td key={i} className={cn(td, "text-right tabular-nums")}>{v > 0 ? formatReviewAmount(v) : "-"}</td>
-          ))}
-          {hasAnnual && <td className={cn(td, "text-right tabular-nums")}>{group.annual > 0 ? formatReviewAmount(group.annual) : "-"}</td>}
-          <td className={cn(td, "text-right tabular-nums font-semibold")}>{formatReviewAmount(group.total)}</td>
-          {showFeedback && <td />}
-          {showFeedback && !anyReadOnlyFeedback && <td />}
-          <td />
-        </tr>
-      )}
+      <tr className="border-b bg-muted/20 hover:bg-muted/40 font-medium">
+        <td className={td}>
+          {selectable.length > 0 && (
+            <Checkbox
+              aria-label={`Select all of ${group.ministryName}`}
+              checked={ticked === 0 ? false : ticked === selectable.length ? true : "indeterminate"}
+              onCheckedChange={(c) => selectable.forEach((r) => props.onToggle(r.request.id, c === true))}
+            />
+          )}
+        </td>
+        <td className="sticky left-0 z-10 bg-muted px-2 py-2 align-top text-sm">
+          <button
+            type="button"
+            onClick={toggle}
+            aria-expanded={open}
+            aria-label={`${open ? "Hide" : "Show"} the ${group.rows.length} requests of ${group.ministryName}`}
+            className="flex items-start gap-1 text-left"
+          >
+            {open ? <ChevronDown className="mt-0.5 h-4 w-4 shrink-0" /> : <ChevronRight className="mt-0.5 h-4 w-4 shrink-0" />}
+            <span>
+              <span className="block font-medium">{group.ministryName}</span>
+              <span className="block text-xs font-normal text-muted-foreground">
+                {branchNames(props, group)}{group.rows.length} requests · {stages.join(", ")}
+              </span>
+            </span>
+          </button>
+        </td>
+        {group.months.map((v, i) => (
+          <td key={i} className={cn(td, "text-right")} onClick={toggle}>
+            <ReviewMonthCell row={combined} monthIndex={i} canEdit={false} onEdit={props.onEditMonth} />
+          </td>
+        ))}
+        {hasAnnual && <td className={cn(td, "text-right tabular-nums")}>{group.annual > 0 ? formatReviewAmount(group.annual) : "-"}</td>}
+        <td className={cn(td, "text-right tabular-nums font-semibold")}>{formatReviewAmount(group.total)}</td>
+        {showFeedback && <td />}
+        {showFeedback && !anyReadOnlyFeedback && <td />}
+        <td />
+      </tr>
+      {open && group.rows.map((row) => requestRow(row, true))}
     </>
   );
+}
+
+function branchNames(props: ReviewTableProps, group: ReviewGroup) {
+  const name = props.branchNames?.[group.organizationId];
+  return name ? `${name} · ` : "";
 }
 
 function ReviewCard({ row, props }: { row: ReviewRow; props: ReviewTableProps }) {
@@ -282,6 +365,39 @@ function ReviewCard({ row, props }: { row: ReviewRow; props: ReviewTableProps })
         ))}
 
       <RowActions row={row} props={props} />
+    </div>
+  );
+}
+
+/** Phone: a ministry with several requests is one card that opens into them. */
+function GroupCards({ group, props }: { group: ReviewGroup; props: ReviewTableProps }) {
+  const [open, setOpen] = useState(false);
+  if (group.rows.length === 1) return <ReviewCard row={group.rows[0]} props={props} />;
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-label={`${open ? "Hide" : "Show"} the ${group.rows.length} requests of ${group.ministryName}`}
+        className="flex w-full items-center gap-2 bg-muted/20 p-3 text-left"
+      >
+        {open ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
+        <span className="min-w-0 flex-1">
+          <span className="block font-medium">{group.ministryName}</span>
+          <span className="block text-xs text-muted-foreground">
+            {branchNames(props, group)}{group.rows.length} requests
+          </span>
+        </span>
+        <span className="font-semibold tabular-nums">{formatReviewAmount(group.total)}</span>
+      </button>
+      {open && (
+        <div className="divide-y border-l-4 border-muted">
+          {group.rows.map((row) => (
+            <ReviewCard key={row.request.id} row={row} props={props} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
