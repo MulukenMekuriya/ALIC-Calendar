@@ -1,0 +1,14 @@
+--- supabase/migrations/20260322441400_final_approval_is_what_was_requested.sql	2026-10-28 19:09:44
++++ /var/folders/g0/9jmx0m5s5dz88yp30btrfcjc0000gn/T//nc3/x.sql	2026-10-28 19:09:55
+@@ -42,10 +42,7 @@
+     public.is_board(_r.organization_id)
+     OR (
+       public.is_org_admin(_r.organization_id)
+-      AND NOT EXISTS (
+-        SELECT 1 FROM public.user_organizations uo
+-        WHERE uo.organization_id = _r.organization_id AND uo.role = 'board'
+-      )
++      AND TRUE
+     )
+   ) THEN
+     RAISE EXCEPTION 'Only the Board can give final approval.' USING ERRCODE = 'insufficient_privilege';

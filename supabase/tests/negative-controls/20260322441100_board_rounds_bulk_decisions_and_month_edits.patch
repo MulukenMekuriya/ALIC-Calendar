@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322441100_board_rounds_bulk_decisions_and_month_edits.sql	2026-10-28 18:57:33
++++ /var/folders/g0/9jmx0m5s5dz88yp30btrfcjc0000gn/T//nc/a.sql	2026-10-28 18:57:44
+@@ -198,7 +198,7 @@
+     ORDER BY id
+     FOR UPDATE
+   LOOP
+-    IF NOT public.is_board(_r.organization_id) THEN
++    IF FALSE THEN
+       _skipped := _skipped || jsonb_build_object(
+         'id', _r.id, 'reason', 'You are not on the Board of that branch.');
+       CONTINUE;

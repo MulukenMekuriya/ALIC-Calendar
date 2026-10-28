@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322441200_numbers_are_frozen_while_with_the_board.sql	2026-10-28 18:58:59
++++ /var/folders/g0/9jmx0m5s5dz88yp30btrfcjc0000gn/T//nc2/b.sql	2026-10-28 18:59:43
+@@ -59,7 +59,7 @@
+ DECLARE
+   _request uuid := coalesce(NEW.allocation_request_id, OLD.allocation_request_id);
+ BEGIN
+-  IF EXISTS (SELECT 1 FROM budget.allocation_requests WHERE id = _request AND status = 'board_review') THEN
++  IF EXISTS (SELECT 1 FROM budget.allocation_requests WHERE id = _request AND FALSE) THEN
+     RAISE EXCEPTION 'This request is with the Board, so its figures cannot change. Ask the Board to send it back first.'
+       USING ERRCODE = 'check_violation';
+   END IF;

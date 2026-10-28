@@ -1,0 +1,10 @@
+--- supabase/migrations/20260322441200_numbers_are_frozen_while_with_the_board.sql	2026-10-28 18:58:59
++++ /var/folders/g0/9jmx0m5s5dz88yp30btrfcjc0000gn/T//nc2/d.sql	2026-10-28 18:59:43
+@@ -77,6 +77,6 @@
+   ON budget.allocation_requests
+   AS RESTRICTIVE
+   FOR INSERT
+-  WITH CHECK (status IN ('draft', 'pending'));
++  WITH CHECK (status IN ('draft', 'pending', 'approved'));
+ 
+ NOTIFY pgrst, 'reload schema';

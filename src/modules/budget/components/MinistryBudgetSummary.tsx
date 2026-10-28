@@ -13,28 +13,40 @@ import {
 import { cn } from "@/lib/utils";
 import type { ExpenseRequestWithRelations, MinistryBudgetSummary as MinistryBudget } from "../types";
 import {
+  type MinistryBudgetRow,
   formatBudgetAmount,
   ministryBudgetRows,
   ministryBudgetTotals,
 } from "../utils/ministryBudget";
 
 interface MinistryBudgetSummaryProps {
-  budgets: MinistryBudget[];
-  expenses: ExpenseRequestWithRelations[];
+  budgets?: MinistryBudget[];
+  expenses?: ExpenseRequestWithRelations[];
+  /** Ready-made rows, for a viewer who is given totals rather than expenses. */
+  rows?: MinistryBudgetRow[];
+  /** Names the branch in the title when several are shown together. */
+  branchLabel?: string;
 }
 
 const cell = "py-2 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm";
 const amount = `${cell} text-right tabular-nums whitespace-nowrap`;
 
-export function MinistryBudgetSummary({ budgets, expenses }: MinistryBudgetSummaryProps) {
-  const rows = ministryBudgetRows(budgets, expenses);
+export function MinistryBudgetSummary({
+  budgets = [],
+  expenses = [],
+  rows: given,
+  branchLabel,
+}: MinistryBudgetSummaryProps) {
+  const rows = given ?? ministryBudgetRows(budgets, expenses);
   if (rows.length === 0) return null;
   const totals = ministryBudgetTotals(rows);
 
   return (
     <Card>
       <CardHeader className="p-3 sm:p-6">
-        <CardTitle className="text-base sm:text-lg">Ministry Summary</CardTitle>
+        <CardTitle className="text-base sm:text-lg">
+          Ministry Summary{branchLabel ? ` · ${branchLabel}` : ""}
+        </CardTitle>
         <CardDescription className="text-xs sm:text-sm">
           Approved budget against what has been paid, by ministry
         </CardDescription>

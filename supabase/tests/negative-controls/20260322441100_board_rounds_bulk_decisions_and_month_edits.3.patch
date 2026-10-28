@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322441100_board_rounds_bulk_decisions_and_month_edits.sql	2026-10-28 18:57:33
++++ /var/folders/g0/9jmx0m5s5dz88yp30btrfcjc0000gn/T//nc/c.sql	2026-10-28 18:57:44
+@@ -353,7 +353,7 @@
+     RAISE EXCEPTION 'That budget request does not exist.' USING ERRCODE = 'no_data_found';
+   END IF;
+ 
+-  IF NOT public.is_org_admin(_r.organization_id) THEN
++  IF FALSE THEN
+     RAISE EXCEPTION 'Only the local leaders (an admin of this branch) can edit a request.'
+       USING ERRCODE = 'insufficient_privilege';
+   END IF;

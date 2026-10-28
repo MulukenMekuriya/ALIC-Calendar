@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322441100_board_rounds_bulk_decisions_and_month_edits.sql	2026-10-28 18:57:33
++++ /var/folders/g0/9jmx0m5s5dz88yp30btrfcjc0000gn/T//nc/e.sql	2026-10-28 18:57:44
+@@ -72,7 +72,7 @@
+     RAISE EXCEPTION 'That budget request does not exist.' USING ERRCODE = 'no_data_found';
+   END IF;
+ 
+-  IF _r.status <> 'board_review' THEN
++  IF FALSE THEN
+     RAISE EXCEPTION 'Feedback can only be given while a request is with the Board.'
+       USING ERRCODE = 'check_violation';
+   END IF;

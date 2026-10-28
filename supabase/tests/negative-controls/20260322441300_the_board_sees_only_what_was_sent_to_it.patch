@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322441300_the_board_sees_only_what_was_sent_to_it.sql	2026-10-28 19:08:57
++++ /var/folders/g0/9jmx0m5s5dz88yp30btrfcjc0000gn/T//nc3/x.sql	2026-10-28 19:09:54
+@@ -22,7 +22,7 @@
+   FOR SELECT
+   USING (
+     NOT public.is_board(organization_id)
+-    OR status IN ('board_review', 'approved', 'partially_approved', 'denied')
++    OR status IN ('board_review', 'approved', 'partially_approved', 'denied', 'pending')
+   );
+ 
+ DROP POLICY IF EXISTS "The Board reads only what was sent to it" ON budget.allocation_period_amounts;

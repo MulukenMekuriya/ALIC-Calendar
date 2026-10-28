@@ -83,3 +83,25 @@ export function formatBudgetAmount(amount: number): string {
   );
   return amount < 0 ? `−${formatted}` : formatted;
 }
+
+/**
+ * Rows from the totals the database worked out (budget.ministry_budget_summary),
+ * for a viewer who may not read the expenses themselves, such as the Board.
+ */
+export function ministryRowsFromTotals(
+  totals: { ministry_id: string; ministry_name: string; approved: number; spent: number }[],
+): MinistryBudgetRow[] {
+  return totals
+    .map((t) => ({
+      ministryId: t.ministry_id,
+      ministry: t.ministry_name,
+      approved: t.approved,
+      spent: t.spent,
+      remaining: t.approved - t.spent,
+    }))
+    .filter((r) => r.approved !== 0 || r.spent !== 0)
+    .sort(
+      (a, b) =>
+        b.approved - a.approved || b.spent - a.spent || a.ministry.localeCompare(b.ministry),
+    );
+}

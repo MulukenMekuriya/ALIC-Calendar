@@ -24,6 +24,7 @@ export type Database = {
           organization_id: string
           recommended_amount: number | null
           request_id: string
+          round: number
           updated_at: string
         }
         Insert: {
@@ -35,6 +36,7 @@ export type Database = {
           organization_id: string
           recommended_amount?: number | null
           request_id: string
+          round?: number
           updated_at?: string
         }
         Update: {
@@ -46,6 +48,7 @@ export type Database = {
           organization_id?: string
           recommended_amount?: number | null
           request_id?: string
+          round?: number
           updated_at?: string
         }
         Relationships: [
@@ -156,6 +159,7 @@ export type Database = {
         Row: {
           admin_notes: string | null
           approved_amount: number | null
+          board_round: number
           budget_breakdown: Json | null
           carried_over_from: string | null
           created_at: string | null
@@ -177,6 +181,7 @@ export type Database = {
         Insert: {
           admin_notes?: string | null
           approved_amount?: number | null
+          board_round?: number
           budget_breakdown?: Json | null
           carried_over_from?: string | null
           created_at?: string | null
@@ -198,6 +203,7 @@ export type Database = {
         Update: {
           admin_notes?: string | null
           approved_amount?: number | null
+          board_round?: number
           budget_breakdown?: Json | null
           carried_over_from?: string | null
           created_at?: string | null
@@ -705,6 +711,7 @@ export type Database = {
         Returns: {
           admin_notes: string | null
           approved_amount: number | null
+          board_round: number
           budget_breakdown: Json | null
           carried_over_from: string | null
           created_at: string | null
@@ -729,6 +736,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      board_decide_many: {
+        Args: { _decision: string; _notes?: string; _request_ids: string[] }
+        Returns: Json
       }
       carry_over_budget_requests: {
         Args: { _organization_id: string; _year: number }
@@ -778,6 +789,7 @@ export type Database = {
         Returns: {
           admin_notes: string | null
           approved_amount: number | null
+          board_round: number
           budget_breakdown: Json | null
           carried_over_from: string | null
           created_at: string | null
@@ -804,6 +816,42 @@ export type Database = {
         }
       }
       current_actor_name: { Args: never; Returns: string }
+      edit_request_month: {
+        Args: {
+          _amounts: Json
+          _expected_updated_at?: string
+          _month: string
+          _request_id: string
+        }
+        Returns: {
+          admin_notes: string | null
+          approved_amount: number | null
+          board_round: number
+          budget_breakdown: Json | null
+          carried_over_from: string | null
+          created_at: string | null
+          excluded_from_carry_over: boolean
+          fiscal_year_id: string
+          id: string
+          justification: string
+          ministry_id: string
+          organization_id: string
+          period_type: Database["budget"]["Enums"]["allocation_period_type"]
+          requested_amount: number
+          requester_id: string
+          requester_name: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["budget"]["Enums"]["allocation_request_status"]
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "allocation_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       ensure_next_fiscal_year: { Args: never; Returns: undefined }
       get_active_fiscal_year: {
         Args: { _organization_id: string }
@@ -841,6 +889,18 @@ export type Database = {
         Args: { _organization_id: string; _user_id: string }
         Returns: boolean
       }
+      ministry_budget_summary: {
+        Args: { _year: number }
+        Returns: {
+          approved: number
+          ministry_id: string
+          ministry_name: string
+          organization_id: string
+          organization_name: string
+          spent: number
+        }[]
+      }
+      money_text: { Args: { _amount: number }; Returns: string }
       queue_request_reminders: {
         Args: { _on: string; _organization_id: string; _send_as?: string }
         Returns: number
