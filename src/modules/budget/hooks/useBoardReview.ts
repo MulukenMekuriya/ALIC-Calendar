@@ -219,9 +219,10 @@ export function useBoardDecision() {
 /**
  * One board member's answer, written or revised.
  *
- * Upsert on (request_id, board_member_id): a board member who changes their
- * mind replaces their own line rather than adding a second one, and nobody
- * else's is touched.
+ * Upsert on (request_id, board_member_id, round): a board member who changes
+ * their mind replaces their own line for this round rather than adding a
+ * second one, and nobody else's is touched. The database fills in the round
+ * from the request.
  */
 export function useSaveBoardFeedback() {
   const queryClient = useQueryClient();
@@ -254,7 +255,7 @@ export function useSaveBoardFeedback() {
             recommended_amount: recommendedAmount,
             comment: comment,
           },
-          { onConflict: "request_id,board_member_id" },
+          { onConflict: "request_id,board_member_id,round" },
         )
         .select()
         .single();

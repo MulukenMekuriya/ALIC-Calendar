@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322441400_final_approval_is_what_was_requested.sql	2026-10-28 19:09:44
++++ /var/folders/g0/9jmx0m5s5dz88yp30btrfcjc0000gn/T//nc3/x.sql	2026-10-28 19:09:55
+@@ -61,7 +61,7 @@
+     _to := 'approved';
+ 
+     UPDATE budget.allocation_requests
+-    SET status = _to, approved_amount = requested_amount,
++    SET status = _to, approved_amount = coalesce(_approved_amount, requested_amount),
+         admin_notes = coalesce(_notes_clean, admin_notes),
+         reviewed_by = auth.uid(), reviewed_at = now()
+     WHERE id = _request_id
