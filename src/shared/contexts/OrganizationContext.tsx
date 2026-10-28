@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
+import { pickCurrentMembership } from "@/shared/lib/currentMembership";
 
 export interface Organization {
   id: string;
@@ -162,28 +163,14 @@ export const OrganizationProvider = ({
 
       setUserOrganizations(transformedMemberships);
 
-      // Determine current organization:
-      // 1. Use default_organization_id from profile
-      // 2. Fall back to primary organization
-      // 3. Fall back to first organization
+      // Determine current organization: the profile's default, unless the
+      // login is only a member there but has a role elsewhere; then primary,
+      // then first. See pickCurrentMembership.
       let currentOrg: Organization | null = null;
-      let currentMembership: UserOrganization | null = null;
-
-      if (profile?.default_organization_id) {
-        currentMembership =
-          transformedMemberships.find(
-            (m) => m.organization_id === profile.default_organization_id,
-          ) || null;
-      }
-
-      if (!currentMembership) {
-        currentMembership =
-          transformedMemberships.find((m) => m.is_primary) || null;
-      }
-
-      if (!currentMembership && transformedMemberships.length > 0) {
-        currentMembership = transformedMemberships[0];
-      }
+      const currentMembership = pickCurrentMembership(
+        transformedMemberships,
+        profile?.default_organization_id,
+      );
 
       if (currentMembership?.organization) {
         currentOrg = currentMembership.organization;

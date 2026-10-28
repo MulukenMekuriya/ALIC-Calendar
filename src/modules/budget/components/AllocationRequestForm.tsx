@@ -59,6 +59,12 @@ import {
 import type { AllocationRequest, BudgetBreakdownItem } from "../types";
 import { PERIOD_AMOUNT_CATEGORY } from "../types";
 import {
+  MONTH_KEYS,
+  monthlyItemsFromBreakdown,
+  monthlyItemsToBreakdown,
+  nonMonthlyBreakdown,
+} from "../utils/monthlyItems";
+import {
   canStartRequest,
   isRequestLocked,
   seasonMonthDay,
@@ -105,8 +111,6 @@ const monthlyItemSchema = z.object({
   dec: z.coerce.number().min(0).optional(),
 });
 
-// Month keys for iteration
-const MONTH_KEYS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"] as const;
 const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const allocationRequestFormSchema = z.object({
@@ -133,7 +137,8 @@ type AllocationRequestFormValues = z.infer<typeof allocationRequestFormSchema>;
 interface AllocationRequestFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  request?: AllocationRequest | null;
+  /** The ministry relation is optional: it names the justification list to use when editing. */
+  request?: (AllocationRequest & { ministry?: { name: string } | null }) | null;
   onSuccess?: () => void;
 }
 
@@ -365,8 +370,12 @@ export function AllocationRequestForm({
         (item) => item.category === PERIOD_AMOUNT_CATEGORY
       );
 
+      // The ministry is a required field and was never loaded, so Edit on
+      // anyone's request but the signed-in user's own ministry refused to
+      // save until the ministry was picked again.
       if (request.period_type === "annual") {
         form.reset({
+          ministry_id: request.ministry_id,
           period_type: request.period_type,
           annual_amount: request.requested_amount,
           period_amounts: [],
@@ -383,6 +392,7 @@ export function AllocationRequestForm({
           return { ...q, amount: found?.amount || 0 };
         });
         form.reset({
+          ministry_id: request.ministry_id,
           period_type: request.period_type,
           annual_amount: 0,
           period_amounts: quarterAmounts,
@@ -399,13 +409,19 @@ export function AllocationRequestForm({
           return { ...m, amount: found?.amount || 0 };
         });
         form.reset({
+          ministry_id: request.ministry_id,
           period_type: request.period_type,
           annual_amount: 0,
           period_amounts: monthAmounts,
-          justification: request.justification,
-          budget_breakdown: breakdown.filter(
-            (item) => item.category !== PERIOD_AMOUNT_CATEGORY
+          // The saved lines, back in the fields they were entered in, and out
+          // of the generic breakdown so a save does not store them twice.
+          monthly_items: monthlyItemsFromBreakdown(
+            breakdown,
+            getJustificationsForMinistry(request.ministry?.name ?? ""),
+            OTHER_JUSTIFICATION_VALUE,
           ),
+          justification: request.justification,
+          budget_breakdown: nonMonthlyBreakdown(breakdown),
         });
       }
     } else {
@@ -490,27 +506,10 @@ export function AllocationRequestForm({
       }));
 
     // For monthly, convert monthly_items to budget_breakdown format
-    const monthlyItemsAsBreakdown = values.period_type === "monthly"
-      ? (values.monthly_items || []).map((item) => {
-          const itemTotal = MONTH_KEYS.reduce((sum, month) => sum + Number(item[month] || 0), 0);
-          const justification = item.justification_category === OTHER_JUSTIFICATION_VALUE
-            ? item.custom_justification
-            : item.justification_category;
-          return {
-            category: "monthly_budget_item",
-            description: justification || "",
-            amount: itemTotal,
-            // Store full monthly item data for detailed view
-            monthly_data: {
-              chart_of_accounts: item.chart_of_accounts,
-              description: item.description,
-              jan: item.jan, feb: item.feb, mar: item.mar, apr: item.apr,
-              may: item.may, jun: item.jun, jul: item.jul, aug: item.aug,
-              sep: item.sep, oct: item.oct, nov: item.nov, dec: item.dec,
-            },
-          };
-        })
-      : [];
+    const monthlyItemsAsBreakdown =
+      values.period_type === "monthly"
+        ? monthlyItemsToBreakdown(values.monthly_items || [], OTHER_JUSTIFICATION_VALUE)
+        : [];
 
     const combinedBreakdown = [
       ...periodAmountsAsBreakdown,

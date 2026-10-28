@@ -1,0 +1,29 @@
+--- supabase/migrations/20260322440900_only_contributors_are_locked_out_after_the_season.sql	2026-10-28 18:28:07
++++ /tmp/claude-501/mod2.sql	2026-10-28 18:29:18
+@@ -110,3 +110,26 @@
+ $$;
+ 
+ NOTIFY pgrst, 'reload schema';
++-- NEGATIVE CONTROL: the Board is left out of the exemption.
++CREATE OR REPLACE FUNCTION budget.assert_request_season(
++  _organization_id UUID, _fiscal_year_id UUID)
++RETURNS VOID LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = budget, public
++AS $$
++DECLARE _year INTEGER; _w RECORD;
++BEGIN
++  IF auth.uid() IS NULL THEN RETURN; END IF;
++  IF NOT EXISTS (SELECT 1 FROM budget.request_season_policy p
++                 WHERE p.organization_id = _organization_id AND p.enforce_window) THEN RETURN; END IF;
++  IF EXISTS (SELECT 1 FROM public.user_organizations uo
++             WHERE uo.user_id = auth.uid() AND uo.organization_id = _organization_id
++               AND uo.role IN ('admin','treasury','finance')) THEN RETURN; END IF;
++  SELECT fy.year INTO _year FROM budget.fiscal_years fy WHERE fy.id = _fiscal_year_id;
++  IF _year IS NULL THEN RETURN; END IF;
++  SELECT * INTO _w FROM budget.request_window(_year);
++  IF now() < _w.opens_at THEN
++    RAISE EXCEPTION 'Budget requests for % open on %.', _year, to_char(_w.opens_on, 'FMMonth FMDD, YYYY') USING ERRCODE = 'P0001';
++  ELSIF now() >= _w.closes_at THEN
++    RAISE EXCEPTION 'Budget requests for % closed on %. Please ask an administrator to make any change.', _year, to_char(_w.last_day, 'FMMonth FMDD, YYYY') USING ERRCODE = 'P0001';
++  END IF;
++END;
++$$;

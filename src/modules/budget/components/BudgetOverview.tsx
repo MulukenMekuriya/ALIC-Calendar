@@ -44,7 +44,7 @@ interface BudgetOverviewProps {
   };
   allocationListProps?: {
     isLoading?: boolean;
-    userRole?: "admin" | "treasury" | "finance" | "requester";
+    userRole?: "admin" | "treasury" | "finance" | "board" | "requester";
     onRefresh?: () => void;
   };
 }

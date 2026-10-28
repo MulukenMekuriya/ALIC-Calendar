@@ -22,16 +22,24 @@ const ALLOCATION_REQUEST_HISTORY_KEY = "allocation-request-history";
 // =====================================================
 
 /**
- * Fetch all allocation requests for a fiscal year
+ * Fetch all allocation requests for one branch's fiscal year.
+ *
+ * Both ids are required, and the query does not run without them. It used to
+ * take the year alone and add the filter only when there was one, so a year
+ * that had not been worked out yet (the branch had none, or the user was
+ * looking at a branch that hid it from them) fetched EVERY request the user
+ * could read, across branches: a Board login opening on VA was shown MD's
+ * requests under VA's name.
  */
 export function useAllocationRequests(
+  organizationId?: string,
   fiscalYearId?: string,
   options: { enabled?: boolean } = {}
 ) {
   return useQuery({
-    queryKey: [ALLOCATION_REQUESTS_KEY, fiscalYearId],
+    queryKey: [ALLOCATION_REQUESTS_KEY, organizationId, fiscalYearId],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .schema("budget")
         .from("allocation_requests")
         .select(
@@ -41,18 +49,14 @@ export function useAllocationRequests(
           fiscal_year:fiscal_years(*)
         `
         )
+        .eq("organization_id", organizationId!)
+        .eq("fiscal_year_id", fiscalYearId!)
         .order("created_at", { ascending: false });
-
-      if (fiscalYearId) {
-        query = query.eq("fiscal_year_id", fiscalYearId);
-      }
-
-      const { data, error } = await query;
 
       if (error) throw error;
       return data as AllocationRequestWithRelations[];
     },
-    enabled: options.enabled ?? true,
+    enabled: !!organizationId && !!fiscalYearId && (options.enabled ?? true),
   });
 }
 
