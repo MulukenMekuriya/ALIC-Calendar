@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322441500_every_board_member_is_board_in_every_branch.sql	2026-10-28 19:45:55
++++ /var/folders/g0/9jmx0m5s5dz88yp30btrfcjc0000gn/T//nc4/x.sql	2026-10-28 19:46:06
+@@ -50,7 +50,7 @@
+       ELSIF _existing = 'member' THEN
+         UPDATE public.user_organizations SET role = 'board'
+          WHERE user_id = _user AND organization_id = _org.id;
+-      ELSIF _existing <> 'board' THEN
++      ELSIF _existing <> 'board' AND FALSE THEN
+         RAISE EXCEPTION 'This person is already % in %. A Board member cannot also hold a branch role: change that first.',
+           _existing, _org.name
+           USING ERRCODE = 'check_violation';

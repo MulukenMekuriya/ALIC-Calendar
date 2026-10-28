@@ -39,7 +39,7 @@ const APP_ROLES = [
     value: "board",
     label: "Board",
     description:
-      "Gives final approval to budget requests the Leadership Council sends on. The Board signs in as board@alic.org; give it this role in each branch.",
+      "Gives final approval to budget requests the local leaders send on. Board is for every branch: setting it here sets it in all of them, and it cannot be combined with a branch role.",
   },
   {
     value: "treasury",

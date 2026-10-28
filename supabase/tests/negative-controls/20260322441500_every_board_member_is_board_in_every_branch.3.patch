@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322441500_every_board_member_is_board_in_every_branch.sql	2026-10-28 19:45:55
++++ /var/folders/g0/9jmx0m5s5dz88yp30btrfcjc0000gn/T//nc4/x.sql	2026-10-28 19:46:06
+@@ -63,7 +63,7 @@
+   IF (TG_OP = 'DELETE' AND OLD.role = 'board')
+      OR (TG_OP = 'UPDATE' AND OLD.role = 'board' AND NEW.role <> 'board') THEN
+     UPDATE public.user_organizations SET role = 'member'
+-     WHERE user_id = _user AND organization_id <> OLD.organization_id AND role = 'board';
++     WHERE user_id = _user AND organization_id <> OLD.organization_id AND role = 'board' AND FALSE;
+   END IF;
+ 
+   RETURN coalesce(NEW, OLD);

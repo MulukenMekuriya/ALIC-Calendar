@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322441500_every_board_member_is_board_in_every_branch.sql	2026-10-28 19:45:55
++++ /var/folders/g0/9jmx0m5s5dz88yp30btrfcjc0000gn/T//nc4/x.sql	2026-10-28 19:46:06
+@@ -94,7 +94,7 @@
+ 
+ DROP TRIGGER IF EXISTS trg_board_joins_new_branch ON public.organizations;
+ CREATE TRIGGER trg_board_joins_new_branch
+-  AFTER INSERT ON public.organizations
++  AFTER DELETE ON public.organizations
+   FOR EACH ROW EXECUTE FUNCTION public.board_joins_new_branch();
+ 
+ REVOKE ALL ON FUNCTION public.keep_board_in_every_branch() FROM PUBLIC, anon, authenticated;
