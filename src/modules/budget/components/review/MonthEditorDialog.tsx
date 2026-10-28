@@ -35,20 +35,30 @@ export function MonthEditorDialog({ row, monthIndex, onClose }: MonthEditorDialo
   const { toast } = useToast();
   const open = !!row && monthIndex !== null;
 
+  // Only the lines that have something in this month. A month with nothing in
+  // it has no such lines, so all of them are offered to put an amount on.
+  const lines = row && monthIndex !== null
+    ? (row.lines.some((l) => l.months[monthIndex] > 0)
+        ? row.lines.filter((l) => l.months[monthIndex] > 0)
+        : row.lines)
+    : [];
+
   useEffect(() => {
     if (!row || monthIndex === null) return;
-    setValues(Object.fromEntries(row.lines.map((l) => [l.index, String(l.months[monthIndex] || "")])));
+    setValues(Object.fromEntries(lines.map((l) => [l.index, String(l.months[monthIndex] || "")])));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [row, monthIndex]);
 
   if (!row || monthIndex === null) return <Dialog open={false} />;
 
-  const parsed = row.lines.map((l) => {
+  const parsed = lines.map((l) => {
     const raw = (values[l.index] ?? "").trim();
     const n = raw === "" ? 0 : Number(raw);
     return { line: l, n, valid: Number.isFinite(n) && n >= 0 };
   });
   const allValid = parsed.every((p) => p.valid);
   const monthTotal = parsed.reduce((sum, p) => sum + (p.valid ? p.n : 0), 0);
+  const wasTotal = lines.reduce((sum, l) => sum + l.months[monthIndex], 0);
   const changed = parsed.some((p) => p.n !== p.line.months[monthIndex]);
 
   const save = async () => {
@@ -85,17 +95,19 @@ export function MonthEditorDialog({ row, monthIndex, onClose }: MonthEditorDialo
             if (allValid && changed && !edit.isPending) void save();
           }}
         >
-          <div className="max-h-[50vh] space-y-4 overflow-y-auto pr-1">
+          <div className="max-h-[50vh] space-y-3 overflow-y-auto pr-1">
             {parsed.map(({ line, valid }, i) => (
-              <div key={line.index} className="space-y-1.5">
-                <label htmlFor={`month-line-${line.index}`} className="block text-sm font-medium leading-snug">
-                  {line.justification || "No justification given"}
-                </label>
-                {line.chartOfAccounts && (
-                  <p className="text-xs text-muted-foreground">{line.chartOfAccounts}</p>
-                )}
-                <div className="flex items-center gap-3">
-                  <div className="relative w-44">
+              <div key={line.index} className="rounded-lg border p-3">
+                <div className="flex items-center justify-between gap-4">
+                  <label htmlFor={`month-line-${line.index}`} className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium leading-snug">
+                      {line.justification || "No justification given"}
+                    </span>
+                    {line.chartOfAccounts && (
+                      <span className="block text-xs text-muted-foreground">{line.chartOfAccounts}</span>
+                    )}
+                  </label>
+                  <div className="relative w-36 shrink-0">
                     <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-muted-foreground">$</span>
                     <Input
                       id={`month-line-${line.index}`}
@@ -108,11 +120,11 @@ export function MonthEditorDialog({ row, monthIndex, onClose }: MonthEditorDialo
                       onChange={(e) => setValues((v) => ({ ...v, [line.index]: e.target.value }))}
                     />
                   </div>
-                  <span className="text-xs text-muted-foreground">
-                    was {formatReviewAmount(line.months[monthIndex])}
-                  </span>
                 </div>
-                {!valid && <p className="text-xs text-destructive">Enter $0 or more</p>}
+                <div className="mt-1 flex justify-between text-xs text-muted-foreground">
+                  <span>was {formatReviewAmount(line.months[monthIndex])}</span>
+                  {!valid && <span className="text-destructive">Enter $0 or more</span>}
+                </div>
               </div>
             ))}
           </div>
@@ -123,8 +135,8 @@ export function MonthEditorDialog({ row, monthIndex, onClose }: MonthEditorDialo
               <strong className="tabular-nums">{formatReviewAmount(monthTotal)}</strong>
               {changed && (
                 <span className="ml-2 text-xs text-muted-foreground tabular-nums">
-                  ({monthTotal - row.months[monthIndex] >= 0 ? "+" : "−"}
-                  {formatReviewAmount(Math.abs(monthTotal - row.months[monthIndex]))})
+                  ({monthTotal - wasTotal >= 0 ? "+" : "−"}
+                  {formatReviewAmount(Math.abs(monthTotal - wasTotal))})
                 </span>
               )}
             </span>
