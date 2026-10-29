@@ -268,7 +268,10 @@ export function AllocationRequestList({
     (!locked(request) &&
       ((request.status === "draft" &&
         (request.requester_id === user?.id || isReviewer)) ||
-        (request.status === "pending" && request.requester_id === user?.id))) ||
+        // A ministry keeps its right to change its own request after review
+        // has begun, until the deadline (the lock above closes it).
+        (["pending", "under_review", "conditionally_approved"].includes(request.status) &&
+          request.requester_id === user?.id))) ||
     (userRole === "admin" && OFFICE_EDITABLE.includes(request.status));
 
   const canDelete = (request: AllocationRequestWithRelations) =>

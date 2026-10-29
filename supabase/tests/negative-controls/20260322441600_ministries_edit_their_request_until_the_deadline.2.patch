@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322441600_ministries_edit_their_request_until_the_deadline.sql	2026-10-28 20:00:52
++++ /var/folders/g0/9jmx0m5s5dz88yp30btrfcjc0000gn/T//nc5/x.sql	2026-10-28 20:01:12
+@@ -50,7 +50,7 @@
+     RETURN NEW;
+   END IF;
+ 
+-  IF NEW.approved_amount IS DISTINCT FROM OLD.approved_amount
++  IF FALSE AND NEW.approved_amount IS DISTINCT FROM OLD.approved_amount
+      OR NEW.admin_notes IS DISTINCT FROM OLD.admin_notes
+      OR NEW.reviewed_by IS DISTINCT FROM OLD.reviewed_by
+      OR NEW.reviewed_at IS DISTINCT FROM OLD.reviewed_at THEN

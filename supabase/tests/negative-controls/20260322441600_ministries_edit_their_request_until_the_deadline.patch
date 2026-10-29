@@ -1,0 +1,13 @@
+--- supabase/migrations/20260322441600_ministries_edit_their_request_until_the_deadline.sql	2026-10-28 20:00:52
++++ /var/folders/g0/9jmx0m5s5dz88yp30btrfcjc0000gn/T//nc5/x.sql	2026-10-28 20:01:12
+@@ -22,8 +22,8 @@
+ CREATE POLICY "Requesters can edit their request until the deadline"
+   ON budget.allocation_requests
+   FOR UPDATE
+-  USING (requester_id = auth.uid() AND status IN ('under_review', 'conditionally_approved'))
+-  WITH CHECK (requester_id = auth.uid() AND status IN ('under_review', 'conditionally_approved'));
++  USING (requester_id = auth.uid() AND status IN ('under_review', 'conditionally_approved', 'board_review'))
++  WITH CHECK (requester_id = auth.uid() AND status IN ('under_review', 'conditionally_approved', 'board_review'));
+ 
+ DROP POLICY IF EXISTS "Requesters can edit their period amounts until the deadline" ON budget.allocation_period_amounts;
+ CREATE POLICY "Requesters can edit their period amounts until the deadline"
