@@ -141,3 +141,31 @@ describe("AllocationRequestForm, editing a monthly request", () => {
     expect(councilMutate).toHaveBeenCalledWith({ requestId: "req-1", decision: "review" });
   });
 });
+
+describe("AllocationRequestForm, the period choice", () => {
+  const period = (name: string) => screen.getByRole("button", { name });
+
+  it("starts a new request as monthly, with annual and quarterly switched off", async () => {
+    render(<AllocationRequestForm open onOpenChange={() => {}} />);
+
+    await waitFor(() => expect(period("Monthly")).toBeInTheDocument());
+    expect(period("Annual")).toBeDisabled();
+    expect(period("Quarterly")).toBeDisabled();
+    expect(period("Monthly")).toBeEnabled();
+    expect(screen.getAllByPlaceholderText("e.g. 53130")).toHaveLength(1);
+  });
+
+  it("still lets a request already filed as annual be opened and changed", async () => {
+    open(
+      monthlyRequest({
+        period_type: "annual",
+        budget_breakdown: [],
+        requested_amount: 4000,
+      } as Partial<AllocationRequest>),
+    );
+
+    await waitFor(() => expect(period("Annual")).toBeEnabled());
+    expect(period("Monthly")).toBeEnabled();
+    expect(period("Quarterly")).toBeDisabled();
+  });
+});

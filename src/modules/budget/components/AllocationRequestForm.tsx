@@ -269,12 +269,16 @@ export function AllocationRequestForm({
   const councilDecision = useCouncilDecision();
 
   const isEditing = !!request;
+  // New requests are monthly. Annual and quarterly are switched off, like
+  // quarterly was: ministries kept filing annual by mistake. A request already
+  // filed as annual can still be opened and changed (to monthly).
+  const keepsAnnual = isEditing && request?.period_type === "annual";
 
   const form = useForm<AllocationRequestFormValues>({
     resolver: zodResolver(allocationRequestFormSchema),
     defaultValues: {
       ministry_id: "",
-      period_type: "annual",
+      period_type: "monthly",
       annual_amount: 0,
       period_amounts: [],
       monthly_items: [{ justification_category: "", custom_justification: "", chart_of_accounts: "", description: "", jan: 0, feb: 0, mar: 0, apr: 0, may: 0, jun: 0, jul: 0, aug: 0, sep: 0, oct: 0, nov: 0, dec: 0 }],
@@ -426,9 +430,10 @@ export function AllocationRequestForm({
       }
     } else {
       form.reset({
-        period_type: "annual",
+        period_type: "monthly",
         annual_amount: 0,
         period_amounts: [],
+        monthly_items: [{ justification_category: "", custom_justification: "", chart_of_accounts: "", description: "", jan: 0, feb: 0, mar: 0, apr: 0, may: 0, jun: 0, jul: 0, aug: 0, sep: 0, oct: 0, nov: 0, dec: 0 }],
         justification: "",
         budget_breakdown: [],
       });
@@ -764,7 +769,7 @@ export function AllocationRequestForm({
                 </FormLabel>
                 <div className="grid grid-cols-3 gap-2">
                   {(["annual", "quarterly", "monthly"] as const).map((type) => {
-                    const isDisabled = type === "quarterly";
+                    const isDisabled = type === "quarterly" || (type === "annual" && !keepsAnnual);
                     return (
                       <button
                         key={type}
