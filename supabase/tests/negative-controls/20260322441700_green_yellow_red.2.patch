@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322441700_green_yellow_red.sql	2026-11-21 17:47:57
++++ /var/folders/g0/9jmx0m5s5dz88yp30btrfcjc0000gn/T//nc2/b2.sql	2026-11-21 17:48:53
+@@ -572,7 +572,7 @@
+       WHERE id = _r.id
+       RETURNING * INTO _r;
+ 
+-      PERFORM budget.credit_green(_r, _g, format('Board approved $%s', budget.money_text(_g)));
++      PERFORM budget.credit_green(_r, _r.requested_amount, format('Board approved $%s', budget.money_text(_g)));
+     ELSE
+       _to := 'under_review';
+       UPDATE budget.allocation_requests

@@ -62,6 +62,12 @@ if [ "$MODE" != head ] && [ -z "$FILTER" ]; then
   exit 2
 fi
 
+# The CLI asks before running SQL on production, and an agent run cannot
+# answer. Everything here is rolled back, but the consent is still a person's:
+# SQL_TESTS_CONSENT=yes passes --yes, and nothing else does.
+CONSENT=()
+[ "${SQL_TESTS_CONSENT:-}" = yes ] && CONSENT=(--yes)
+
 pass=0; fail=0; skip=0; failed=()
 
 run_one() {  # $1 label, $2 composed sql, $3 "invert" to require failure
@@ -72,7 +78,7 @@ run_one() {  # $1 label, $2 composed sql, $3 "invert" to require failure
     echo "REFUSED $label — composed file does not end in a rollback" >&2; exit 3
   fi
 
-  supabase db query --linked -f "$sql" >"$TMP/out" 2>&1
+  supabase db query --linked ${CONSENT[@]+"${CONSENT[@]}"} -f "$sql" >"$TMP/out" 2>&1
   local rc=$?
 
   # An assertion that says SKIP is telling you the production data it needs is
@@ -151,7 +157,7 @@ for test in "$TESTS"/*.test.sql; do
       # nothing at all. That is worse than no control, because it reads as
       # confirmation.
       compose "$TMP/clean.sql" "$test" "$mig"
-      if ! supabase db query --linked -f "$TMP/clean.sql" >"$TMP/cleanout" 2>&1; then
+      if ! supabase db query --linked ${CONSENT[@]+"${CONSENT[@]}"} -f "$TMP/clean.sql" >"$TMP/cleanout" 2>&1; then
         echo "SKIP  $name  (superseded — the unbroken migration no longer replays,"
         echo "                so a failure here would prove nothing)"
         skip=$((skip+1)); continue

@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322441700_green_yellow_red.sql	2026-11-21 17:47:57
++++ /var/folders/g0/9jmx0m5s5dz88yp30btrfcjc0000gn/T//nc2/b4.sql	2026-11-21 17:48:53
+@@ -149,7 +149,7 @@
+     IF _g < 0 OR _y < 0 THEN
+       RAISE EXCEPTION 'Green and Yellow cannot be less than $0.' USING ERRCODE = 'check_violation';
+     END IF;
+-    IF _g + _y > _c.amount THEN
++    IF false THEN
+       RAISE EXCEPTION 'Green and Yellow ($%) are more than the $% in % of line %.',
+         budget.money_text(_g + _y), budget.money_text(_c.amount), initcap(_c.month), _c.idx + 1
+         USING ERRCODE = 'check_violation';

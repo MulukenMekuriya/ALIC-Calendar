@@ -78,7 +78,7 @@ const AllocationOverviewCharts = ({
   );
   const approvedAmount = allocations
     .filter((a) => a.status === "approved" || a.status === "partially_approved")
-    .reduce((sum, a) => sum + (a.approved_amount || a.requested_amount), 0);
+    .reduce((sum, a) => sum + (a.approved_amount ?? a.requested_amount), 0);
   const pendingAmount = allocations
     .filter((a) => isAwaitingDecision(a.status))
     .reduce((sum, a) => sum + a.requested_amount, 0);

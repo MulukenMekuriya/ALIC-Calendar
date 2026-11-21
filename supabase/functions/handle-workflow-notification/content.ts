@@ -35,6 +35,10 @@ export interface AllocationRecord {
   requesterEmail: string | null;
   requestedAmount: number;
   approvedAmount: number | null;
+  /** Green / Yellow / Red (20260322441700). Null until the Council proposes a split. */
+  greenAmount?: number | null;
+  yellowAmount?: number | null;
+  yellowReason?: string | null;
   adminNotes: string | null;
   /** The fiscal year asked for: "your 2027 budget request". */
   fiscalYear: number | null;
@@ -48,6 +52,28 @@ export interface NotificationPlan {
 }
 
 const NOTHING: NotificationPlan = { requesterContent: null, reviewerContent: null, reviewerRole: null };
+
+/** Green, Yellow and Red for a record, or null when it has no split. */
+export function splitOf(r: AllocationRecord): { green: number; yellow: number; red: number } | null {
+  if (r.greenAmount == null && r.yellowAmount == null) return null;
+  const green = Number(r.greenAmount ?? 0);
+  const yellow = Number(r.yellowAmount ?? 0);
+  return { green, yellow, red: Math.max(0, Math.round((r.requestedAmount - green - yellow) * 100) / 100) };
+}
+
+/** "Green $800 · Yellow $400 · Red $0" when the split is anything but all Green. */
+export function splitLine(r: AllocationRecord): string | null {
+  const s = splitOf(r);
+  if (!s || (s.yellow === 0 && s.red === 0)) return null;
+  return `Green (approved) ${formatCurrency(s.green)} · Yellow (justified, waiting on giving) ${formatCurrency(s.yellow)} · Red (not approved) ${formatCurrency(s.red)}`;
+}
+
+/** A list entry for a digest: the amount, and the split when there is one. */
+function digestEntry(r: AllocationRecord): string {
+  const s = splitOf(r);
+  if (!s || (s.yellow === 0 && s.red === 0)) return `${r.ministryName}: ${formatCurrency(r.requestedAmount)}`;
+  return `${r.ministryName}: ${formatCurrency(r.requestedAmount)} (G ${formatCurrency(s.green)} / Y ${formatCurrency(s.yellow)} / R ${formatCurrency(s.red)})`;
+}
 
 const EXPENSES_URL = `${BUDGET_URL}?tab=expenses`;
 const ALLOCATIONS_URL = `${BUDGET_URL}?tab=allocations`;
@@ -240,7 +266,10 @@ export function getAllocationNotificationContent(
   const year = fiscalYear ? `${fiscalYear} ` : "";
   const label = fiscalYear ? `Budget request · ${fiscalYear}` : "Budget request";
   const requested = formatCurrency(requestedAmount);
-  const granted = formatCurrency(approvedAmount || requestedAmount);
+  const granted = formatCurrency(approvedAmount ?? requestedAmount);
+  const split = splitOf(record);
+  const line = splitLine(record);
+  const yellowWhy = split && split.yellow > 0 && record.yellowReason ? `Why some is Yellow: ${record.yellowReason}` : null;
   const notes = adminNotes ? { heading: notesFrom(reviewerName), text: adminNotes } : null;
   const area = "Budget requests";
 
@@ -287,6 +316,8 @@ export function getAllocationNotificationContent(
           title: `Your ${year}budget request was conditionally approved`,
           paragraphs: [
             `The Leadership Council has conditionally approved the ${year}budget request for ${ministryName}.`,
+            ...(line ? [`Proposed: ${line}.`] : []),
+            ...(yellowWhy ? [yellowWhy] : []),
             "It now goes to the Board, which gives the final approval. You will hear again once the Board has decided.",
           ],
           fact: { label, value: requested, note: "Conditionally approved · with the Board next", tone: "amber" },
@@ -304,6 +335,37 @@ export function getAllocationNotificationContent(
 
     case "approved":
     case "partially_approved": {
+      if (split && line) {
+        const allYellow = split.green === 0;
+        return {
+          requesterContent: {
+            subject: allYellow
+              ? `Budget request justified, waiting on giving: ${ministryName}`
+              : `Budget request approved in part: ${ministryName}`,
+            area,
+            title: allYellow
+              ? `Your ${year}budget request is justified and waiting on giving`
+              : `Your ${year}budget request was approved in part`,
+            paragraphs: [
+              `The Board has decided the ${year}budget request for ${ministryName} (${requested} requested): ${line}.`,
+              ...(split.yellow > 0
+                ? ["Yellow money is reasonable and justified; whether it is released depends on the church's giving and available funds. You will be told when it moves."]
+                : []),
+              ...(yellowWhy ? [yellowWhy] : []),
+            ],
+            fact: {
+              label,
+              value: formatCurrency(split.green),
+              note: split.yellow > 0 ? `Green, with ${formatCurrency(split.yellow)} Yellow pending funds` : `Green, of ${requested} requested`,
+              tone: split.green > 0 ? "green" : "amber",
+            },
+            notes,
+            button: OPEN_ALLOCATIONS,
+          },
+          reviewerContent: null,
+          reviewerRole: null,
+        };
+      }
       const partly = newStatus === "partially_approved" && approvedAmount != null && approvedAmount < requestedAmount;
       return {
         requesterContent: {
@@ -364,6 +426,42 @@ export function getAllocationNotificationContent(
   }
 }
 
+/**
+ * Yellow money moved later, when the status did not change (some is still
+ * Yellow). When the last of it moves the status email goes instead.
+ */
+export function getYellowReleasedContent(
+  record: AllocationRecord,
+  toGreen: number,
+  toRed: number,
+  note: string | null,
+): FinanceMessage | null {
+  const split = splitOf(record);
+  if (!split) return null;
+  const year = record.fiscalYear ? `${record.fiscalYear} ` : "";
+  const moved = [
+    toGreen > 0 ? `${formatCurrency(toGreen)} moved from Yellow to Green (approved)` : null,
+    toRed > 0 ? `${formatCurrency(toRed)} moved from Yellow to Red (not approved)` : null,
+  ].filter(Boolean).join(" and ");
+  return {
+    subject: toGreen > 0 ? `More of your budget is approved: ${record.ministryName}` : `Budget request update: ${record.ministryName}`,
+    area: "Budget requests",
+    title: toGreen > 0 ? `More of your ${year}budget request is approved` : `An update on your ${year}budget request`,
+    paragraphs: [
+      `For ${record.ministryName}: ${moved}.`,
+      `It now stands at ${splitLine(record) ?? `Green ${formatCurrency(split.green)}`}.`,
+    ],
+    fact: {
+      label: record.fiscalYear ? `Budget request · ${record.fiscalYear}` : "Budget request",
+      value: formatCurrency(split.green),
+      note: split.yellow > 0 ? `Green, with ${formatCurrency(split.yellow)} still Yellow` : "Green",
+      tone: "green",
+    },
+    notes: note ? { heading: notesFrom(record.reviewerName), text: note } : null,
+    button: OPEN_ALLOCATIONS,
+  };
+}
+
 /** board@alic.org unless the BOARD_EMAIL secret says otherwise. */
 export const BOARD_URL = BUDGET_URL;
 
@@ -380,7 +478,7 @@ export function getBoardDigestContent(records: AllocationRecord[]): FinanceMessa
   const n = records.length;
   const list = [...records]
     .sort((a, b) => b.requestedAmount - a.requestedAmount)
-    .map((r) => `${r.ministryName}: ${formatCurrency(r.requestedAmount)}`);
+    .map(digestEntry);
 
   return {
     subject: `${year}budget: ${n} ${n === 1 ? "request" : "requests"} sent for Board review`.replace(/^budget/, "Budget"),
@@ -422,7 +520,7 @@ export function getBoardDecisionDigestContent(
   const these = n === 1 ? "this request" : "these requests";
   const list = [...records]
     .sort((a, b) => b.requestedAmount - a.requestedAmount)
-    .map((r) => `${r.ministryName}: ${formatCurrency(r.requestedAmount)}`);
+    .map(digestEntry);
   const returned = kind === "board_returned";
 
   return {
@@ -436,7 +534,7 @@ export function getBoardDecisionDigestContent(
     paragraphs: [
       returned
         ? `Their remarks and recommended amounts are on the Allocations tab. Review ${these}, change what is needed, and send ${n === 1 ? "it" : "them"} to the Board again.`
-        : `The ministries have been told, and the approved amounts are now in their budgets.`,
+        : `The ministries have been told. Green amounts are now in their budgets; Yellow waits on giving and can be moved to Green or Red from the Allocations tab.`,
       list.join(" · "),
     ],
     notes: note ? { heading: "From the Board", text: note } : null,

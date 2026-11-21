@@ -11,7 +11,38 @@
  */
 
 import { MONTH_KEYS, MONTHLY_ITEM_CATEGORY } from "./monthlyItems";
+import { monthSplitOf, splitOf, type SplitState } from "./split";
 import type { AllocationRequestWithRelations } from "../types";
+
+/**
+ * Green / Yellow / Red sums. `final*` count what the Board has approved;
+ * `proposed*` the local leaders' marking not yet with Board approval;
+ * `undecided` what nobody has marked. The Total column is Green of both
+ * (the leaders asked for the Council's approval to count).
+ */
+export interface SplitTotals {
+  finalGreen: number;
+  finalYellow: number;
+  finalRed: number;
+  proposedGreen: number;
+  proposedYellow: number;
+  proposedRed: number;
+  undecided: number;
+}
+
+const zeroSplit = (): SplitTotals => ({
+  finalGreen: 0,
+  finalYellow: 0,
+  finalRed: 0,
+  proposedGreen: 0,
+  proposedYellow: 0,
+  proposedRed: 0,
+  undecided: 0,
+});
+
+function addSplit(into: SplitTotals, from: SplitTotals) {
+  (Object.keys(into) as (keyof SplitTotals)[]).forEach((k) => (into[k] += from[k]));
+}
 
 export interface ReviewLine {
   /** Position in the request's budget_breakdown. */
@@ -30,7 +61,18 @@ export interface ReviewRow {
   lines: ReviewLine[];
   months: number[];
   annual: number;
+  /** What was requested. */
   total: number;
+  /** This request's split, as the colour columns show it. */
+  green: number;
+  yellow: number;
+  red: number;
+  splitState: SplitState;
+  /** Green approved by the local leaders or the Board: what the Total column shows. */
+  approved: number;
+  /** Green / Yellow / Red per month, to tint the month columns. */
+  monthSplit: { green: number; yellow: number; red: number }[];
+  split: SplitTotals;
 }
 
 export interface ReviewGroup {
@@ -41,6 +83,8 @@ export interface ReviewGroup {
   months: number[];
   annual: number;
   total: number;
+  approved: number;
+  split: SplitTotals;
 }
 
 const zeros = () => new Array<number>(12).fill(0);
@@ -76,6 +120,20 @@ export function buildReviewRow(request: AllocationRequestWithRelations): ReviewR
   const annual = isMonthly ? 0 : num(request.requested_amount);
   const total = isMonthly ? months.reduce((a, b) => a + b, 0) : annual;
 
+  const s = splitOf(request);
+  const split = zeroSplit();
+  if (s.state === "final") {
+    split.finalGreen = s.green;
+    split.finalYellow = s.yellow;
+    split.finalRed = s.red;
+  } else if (s.state === "proposed") {
+    split.proposedGreen = s.green;
+    split.proposedYellow = s.yellow;
+    split.proposedRed = s.red;
+  } else {
+    split.undecided = num(request.requested_amount);
+  }
+
   return {
     request,
     organizationId: request.organization_id,
@@ -86,6 +144,13 @@ export function buildReviewRow(request: AllocationRequestWithRelations): ReviewR
     months,
     annual,
     total,
+    green: s.green,
+    yellow: s.yellow,
+    red: s.red,
+    splitState: s.state,
+    approved: split.finalGreen + split.proposedGreen,
+    monthSplit: monthSplitOf(request),
+    split,
   };
 }
 
@@ -106,6 +171,8 @@ export function groupByMinistry(rows: ReviewRow[]): ReviewGroup[] {
         months: zeros(),
         annual: 0,
         total: 0,
+        approved: 0,
+        split: zeroSplit(),
       };
       map.set(key, g);
     }
@@ -113,20 +180,24 @@ export function groupByMinistry(rows: ReviewRow[]): ReviewGroup[] {
     row.months.forEach((v, i) => (g!.months[i] += v));
     g.annual += row.annual;
     g.total += row.total;
+    g.approved += row.approved;
+    addSplit(g.split, row.split);
   }
   return [...map.values()].sort((a, b) => b.total - a.total || a.ministryName.localeCompare(b.ministryName));
 }
 
-export function totalsOf(rows: Pick<ReviewRow, "months" | "annual" | "total">[]) {
+export function totalsOf(rows: (Pick<ReviewRow, "months" | "annual" | "total"> & Partial<Pick<ReviewRow, "split">>)[]) {
   const months = zeros();
   let annual = 0;
   let total = 0;
+  const split = zeroSplit();
   for (const r of rows) {
     r.months.forEach((v, i) => (months[i] += v));
     annual += r.annual;
     total += r.total;
+    if (r.split) addSplit(split, r.split);
   }
-  return { months, annual, total };
+  return { months, annual, total, split, approved: split.finalGreen + split.proposedGreen };
 }
 
 /** "$1,234", or "$1,234.50" when there are cents. Table cells have little room. */

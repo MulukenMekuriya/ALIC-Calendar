@@ -19,13 +19,15 @@ import {
 } from "@/shared/components/ui/alert-dialog";
 import { formatReviewAmount, type ReviewRow } from "../../utils/reviewMatrix";
 
-export type BulkAction = "send" | "approve" | "return";
+export type BulkAction = "send" | "approve" | "return" | "release";
 
 interface ReviewActionBarProps {
   mode: "leaders" | "board";
   /** The ticked rows each button acts on. */
   sendRows: ReviewRow[];
   boardRows: ReviewRow[];
+  /** Decided requests with Yellow waiting, ticked for "Move Yellow to Green". */
+  releaseRows: ReviewRow[];
   busy: boolean;
   onConfirm: (action: BulkAction, note: string | null) => Promise<void>;
 }
@@ -39,7 +41,14 @@ const COPY: Record<BulkAction, { title: string; verb: string; detail: string }> 
   approve: {
     title: "Final approval",
     verb: "Give final approval",
-    detail: "Each request is approved for exactly the amount requested, and the ministry is told.",
+    detail:
+      "Each request is approved as the local leaders marked it: Green is added to the ministry's budget now, Yellow waits on giving, Red is denied. To change a marking, send it back to the local leaders instead. The ministry is told.",
+  },
+  release: {
+    title: "Move Yellow to Green",
+    verb: "Move to Green",
+    detail:
+      "All the Yellow money of these requests becomes Green and is added to the ministries' budgets now. To move only part of one, use Move Yellow on its row.",
   },
   return: {
     title: "Send back to local leaders",
@@ -48,12 +57,12 @@ const COPY: Record<BulkAction, { title: string; verb: string; detail: string }> 
   },
 };
 
-export function ReviewActionBar({ mode, sendRows, boardRows, busy, onConfirm }: ReviewActionBarProps) {
+export function ReviewActionBar({ mode, sendRows, boardRows, releaseRows, busy, onConfirm }: ReviewActionBarProps) {
   const [action, setAction] = useState<BulkAction | null>(null);
   const [note, setNote] = useState("");
 
-  const rows = action === "send" ? sendRows : boardRows;
-  const total = rows.reduce((s, r) => s + r.total, 0);
+  const rows = action === "send" ? sendRows : action === "release" ? releaseRows : boardRows;
+  const total = rows.reduce((s, r) => s + (action === "release" ? r.yellow : r.total), 0);
   const needsNote = action === "return";
   const copy = action ? COPY[action] : null;
 
@@ -72,9 +81,21 @@ export function ReviewActionBar({ mode, sendRows, boardRows, busy, onConfirm }: 
     <>
       <div className="flex flex-wrap items-center justify-end gap-2 border-t p-3 sm:p-4">
         {mode === "leaders" ? (
-          <Button onClick={() => setAction("send")} disabled={busy || sendRows.length === 0}>
-            Send for Board Review ({sendRows.length})
-          </Button>
+          <>
+            {releaseRows.length > 0 && (
+              <Button
+                variant="outline"
+                className="border-amber-500/70 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
+                onClick={() => setAction("release")}
+                disabled={busy}
+              >
+                Move Yellow to Green ({releaseRows.length})
+              </Button>
+            )}
+            <Button onClick={() => setAction("send")} disabled={busy || sendRows.length === 0}>
+              Send for Board Review ({sendRows.length})
+            </Button>
+          </>
         ) : (
           <>
             <Button variant="outline" onClick={() => setAction("return")} disabled={busy || boardRows.length === 0}>
@@ -100,7 +121,14 @@ export function ReviewActionBar({ mode, sendRows, boardRows, busy, onConfirm }: 
             {rows.map((r) => (
               <li key={r.request.id} className="flex justify-between gap-3">
                 <span>{r.ministryName}</span>
-                <span className="tabular-nums">{formatReviewAmount(r.total)}</span>
+                <span className="tabular-nums text-right">
+                  {formatReviewAmount(action === "release" ? r.yellow : r.total)}
+                  {action === "approve" && r.splitState === "proposed" && (r.yellow > 0 || r.red > 0) && (
+                    <span className="block text-xs text-muted-foreground">
+                      G {formatReviewAmount(r.green)} · Y {formatReviewAmount(r.yellow)} · R {formatReviewAmount(r.red)}
+                    </span>
+                  )}
+                </span>
               </li>
             ))}
           </ul>

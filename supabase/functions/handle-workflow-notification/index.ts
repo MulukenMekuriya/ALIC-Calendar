@@ -28,6 +28,7 @@ import {
   getBoardDigestContent,
   getBoardDecisionDigestContent,
   getExpenseNotificationContent,
+  getYellowReleasedContent,
 } from "./content.ts";
 
 // ─── Configuration ───────────────────────────────────────────────────────────
@@ -56,10 +57,13 @@ interface TriggerPayload {
   old_status: string;
   new_status: string;
   /** budget.send_to_board: one notice for a whole batch. */
-  kind?: "sent_to_board" | "board_returned" | "board_approved";
+  kind?: "sent_to_board" | "board_returned" | "board_approved" | "yellow_released";
   record_ids?: string[];
   /** The Board's note when it sends a batch back. */
   note?: string | null;
+  /** budget.release_yellow: what moved. */
+  to_green?: number;
+  to_red?: number;
 }
 
 interface EmailRecipient {
@@ -204,7 +208,10 @@ async function getAllocationRecord(
     requesterName: allocation.requester_name || requesterProfile?.full_name || "Unknown",
     requesterEmail: requesterProfile?.email || null,
     requestedAmount: Number(allocation.requested_amount),
-    approvedAmount: allocation.approved_amount ? Number(allocation.approved_amount) : null,
+    approvedAmount: allocation.approved_amount != null ? Number(allocation.approved_amount) : null,
+    greenAmount: allocation.green_amount != null ? Number(allocation.green_amount) : null,
+    yellowAmount: allocation.yellow_amount != null ? Number(allocation.yellow_amount) : null,
+    yellowReason: allocation.yellow_reason ?? null,
     adminNotes: allocation.admin_notes,
     fiscalYear: allocation.fiscal_years?.year ?? null,
     reviewerName,
@@ -377,6 +384,25 @@ serve(async (req) => {
         }
       }
       const result = await sendAllEmails(pending);
+
+      return new Response(
+        JSON.stringify({ success: true, sent: result.sent.length, failed: result.failed.length }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Yellow money moved without the status changing: tell the ministry.
+    if (payload.kind === "yellow_released" && table === "allocation_requests") {
+      const supabase = createAdminClient();
+      const record = (payload.record_ids || [])[0]
+        ? await getAllocationRecord(supabase, payload.record_ids![0])
+        : null;
+      const content = record
+        ? getYellowReleasedContent(record, Number(payload.to_green ?? 0), Number(payload.to_red ?? 0), payload.note ?? null)
+        : null;
+      const result = content && record?.requesterEmail
+        ? await sendAllEmails([addressed(record.requesterEmail, record.requesterName, content)])
+        : { sent: [], failed: [] };
 
       return new Response(
         JSON.stringify({ success: true, sent: result.sent.length, failed: result.failed.length }),

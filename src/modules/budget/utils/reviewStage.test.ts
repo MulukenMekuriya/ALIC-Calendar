@@ -50,8 +50,8 @@ describe("getRowPermissions", () => {
 
   it("lets the Board give feedback and decide only while it is with them, and never edit", () => {
     expect(getRowPermissions(req("board_review", 1), "board")).toEqual({
-      canEdit: false, canApproveForBoard: false, canDeny: false, canSend: false,
-      canBoardDecide: true, canGiveFeedback: true,
+      canEdit: false, canApproveForBoard: false, canSplit: false, canDeny: false, canSend: false,
+      canBoardDecide: true, canGiveFeedback: true, canReleaseYellow: false,
     });
     for (const s of ["pending", "under_review", "conditionally_approved", "approved", "denied"]) {
       expect(Object.values(getRowPermissions(req(s), "board")).some(Boolean)).toBe(false);
@@ -69,5 +69,31 @@ describe("isVisibleToBoard", () => {
   it("shows the Board only what was sent to it and what came of it", () => {
     expect(["pending", "under_review", "conditionally_approved", "draft", "cancelled"].some((s) => isVisibleToBoard(req(s)))).toBe(false);
     expect(["board_review", "approved", "partially_approved", "denied"].every((s) => isVisibleToBoard(req(s)))).toBe(true);
+  });
+});
+
+describe("Green, Yellow and Red", () => {
+  const decided = (status: string, green: number, yellow: number) => ({
+    status, board_round: 2, period_type: "monthly", requested_amount: 1200, approved_amount: green,
+    green_amount: green, yellow_amount: yellow,
+  });
+
+  it("lets the Council split anything still with it, and re-mark a conditional approval", () => {
+    for (const s of ["pending", "under_review", "conditionally_approved"]) {
+      expect(getRowPermissions(req(s), "admin").canSplit).toBe(true);
+    }
+  });
+
+  it("lets only the local leaders move Yellow money once decided; the Board does not mark", () => {
+    const waiting = decided("partially_approved", 800, 400);
+    expect(getRowPermissions(waiting, "admin").canReleaseYellow).toBe(true);
+    expect(getRowPermissions(waiting, "board").canReleaseYellow).toBe(false);
+    expect(getRowPermissions(waiting, "other").canReleaseYellow).toBe(false);
+    expect(getRowPermissions(decided("partially_approved", 800, 0), "admin").canReleaseYellow).toBe(false);
+  });
+
+  it("names Yellow still waiting in the stage", () => {
+    expect(getReviewStage(decided("partially_approved", 800, 400))).toBe("yellow_waiting");
+    expect(getReviewStage(decided("approved", 1200, 0))).toBe("approved");
   });
 });

@@ -1,0 +1,23 @@
+--- supabase/migrations/20260322441700_green_yellow_red.sql	2026-11-21 17:47:57
++++ /var/folders/g0/9jmx0m5s5dz88yp30btrfcjc0000gn/T//nc2/b1.sql	2026-11-21 17:48:53
+@@ -88,10 +88,6 @@
+ 
+ ALTER TABLE budget.allocation_requests
+   DROP CONSTRAINT IF EXISTS chk_allocation_request_yellow_reason;
+-ALTER TABLE budget.allocation_requests
+-  ADD CONSTRAINT chk_allocation_request_yellow_reason CHECK (
+-    coalesce(yellow_amount, 0) = 0 OR nullif(btrim(yellow_reason), '') IS NOT NULL
+-  );
+ 
+ -- The cells a monthly request has: every line and month with money in it.
+ CREATE OR REPLACE FUNCTION budget.request_cells(_breakdown JSONB)
+@@ -344,9 +340,6 @@
+       RAISE EXCEPTION 'Nothing is Green or Yellow. To refuse the whole request, deny it.'
+         USING ERRCODE = 'check_violation';
+     END IF;
+-    IF _y > 0 AND _reason IS NULL THEN
+-      RAISE EXCEPTION 'Give a reason for the Yellow amount.' USING ERRCODE = 'check_violation';
+-    END IF;
+     _history := budget.split_text(_r.requested_amount, _g, _y)
+              || CASE WHEN _y > 0 THEN '. Yellow: ' || _reason ELSE '' END
+              || coalesce('. ' || _note, '');

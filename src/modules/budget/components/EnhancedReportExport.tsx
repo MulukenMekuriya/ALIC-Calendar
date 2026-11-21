@@ -107,7 +107,7 @@ export const EnhancedReportExport = ({
     );
     const allocationApproved = allocations
       .filter((a) => a.status === "approved")
-      .reduce((sum, a) => sum + (a.approved_amount || a.requested_amount), 0);
+      .reduce((sum, a) => sum + (a.approved_amount ?? a.requested_amount), 0);
     const allocationPending = allocations
       .filter((a) => isAwaitingDecision(a.status))
       .reduce((sum, a) => sum + a.requested_amount, 0);

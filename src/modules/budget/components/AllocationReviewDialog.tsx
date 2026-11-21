@@ -31,19 +31,17 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
-import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
 import {
   Loader2,
-  CheckCircle,
   XCircle,
+  CheckCircle,
   DollarSign,
   Building2,
   Calendar,
   Undo2,
-  ShieldCheck,
 } from "lucide-react";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useAuth } from "@/shared/contexts/AuthContext";
@@ -56,35 +54,31 @@ import {
 import { errorMessage } from "@/shared/lib/errorMessage";
 import type { AllocationRequestWithRelations } from "../types";
 import { getPeriodLabel } from "../types";
-
-const approveFormSchema = z.object({
-  approved_amount: z.coerce.number().positive("Amount must be greater than 0"),
-  admin_notes: z.string().optional(),
-});
+import { SplitDialog } from "./review/SplitDialog";
+import { SplitChips } from "./review/SplitChips";
 
 const notesFormSchema = z.object({
   admin_notes: z.string(),
 });
 
-type ApproveFormValues = z.infer<typeof approveFormSchema>;
 type NotesFormValues = z.infer<typeof notesFormSchema>;
 
 export type ReviewAction = "conditional" | "approve" | "return" | "deny";
 
 /** What each notes-only action is called, and whether it needs a reason. */
 const NOTES_ACTIONS: Record<
-  Exclude<ReviewAction, "approve">,
+  Exclude<ReviewAction, "conditional">,
   { title: string; description: string; label: string; placeholder: string; required: boolean; button: string; done: string }
 > = {
-  conditional: {
-    title: "Conditionally Approve",
+  approve: {
+    title: "Final Approval",
     description:
-      "Approve this request at the Leadership Council level. Nothing is credited yet: it goes to the Board for final approval.",
+      "Approve this request as the local leaders marked it. Green is added to the ministry's budget now; Yellow waits on giving; Red is not approved. To change the marking, return it to the Council instead.",
     label: "Notes (Optional)",
-    placeholder: "Anything the Board or the ministry should know...",
+    placeholder: "Anything the ministry should know...",
     required: false,
-    button: "Conditionally Approve",
-    done: "Conditionally approved. Send it to the Board when the Council is done.",
+    button: "Give Final Approval",
+    done: "Final approval given. Green is now in the ministry's budget.",
   },
   return: {
     title: "Return to the Leadership Council",
@@ -129,14 +123,6 @@ export function AllocationReviewDialog({
   const councilDecision = useCouncilDecision();
   const boardDecision = useBoardDecision();
 
-  const approveForm = useForm<ApproveFormValues>({
-    resolver: zodResolver(approveFormSchema),
-    defaultValues: {
-      approved_amount: request?.requested_amount || 0,
-      admin_notes: "",
-    },
-  });
-
   const denyForm = useForm<NotesFormValues>({
     resolver: zodResolver(notesFormSchema),
     defaultValues: {
@@ -147,52 +133,15 @@ export function AllocationReviewDialog({
   // Reset forms when dialog opens
   useState(() => {
     if (open && request) {
-      approveForm.reset({
-        approved_amount: request.requested_amount,
-        admin_notes: "",
-      });
       denyForm.reset({
         admin_notes: "",
       });
     }
   });
 
-  const handleApprove = async (values: ApproveFormValues) => {
-    if (!request || !user || !profile) return;
-
-    setIsSubmitting(true);
-    try {
-      await boardDecision.mutateAsync({
-        requestId: request.id,
-        decision: "approve",
-        approvedAmount: values.approved_amount,
-        notes: values.admin_notes,
-      });
-
-      toast({
-        title: "Final approval given",
-        description:
-          values.approved_amount === request.requested_amount
-            ? "The budget request has final approval in full."
-            : `The budget request has final approval for $${values.approved_amount.toFixed(2)}.`,
-      });
-
-      onOpenChange(false);
-      onSuccess?.();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: errorMessage(error, "Failed to approve request"),
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   // conditional / return / deny: a decision and some words.
   const handleNotes = async (values: NotesFormValues) => {
-    if (!request || !user || !profile || action === "approve") return;
+    if (!request || !user || !profile || action === "conditional") return;
 
     const words = NOTES_ACTIONS[action];
     const notes = values.admin_notes.trim();
@@ -207,7 +156,7 @@ export function AllocationReviewDialog({
     try {
       // The Board decides at its own step; everything before it is the
       // Council's.
-      if (action === "return" || (action === "deny" && request.status === "board_review")) {
+      if (action === "approve" || action === "return" || (action === "deny" && request.status === "board_review")) {
         await boardDecision.mutateAsync({
           requestId: request.id,
           decision: action,
@@ -216,7 +165,7 @@ export function AllocationReviewDialog({
       } else {
         await councilDecision.mutateAsync({
           requestId: request.id,
-          decision: action === "conditional" ? "conditional" : "deny",
+          decision: "deny",
           notes: notes || null,
         });
       }
@@ -238,6 +187,40 @@ export function AllocationReviewDialog({
 
   if (!request) return null;
 
+  // The local leaders' approval is a Green / Yellow / Red marking, the same
+  // dialog as the by-month review.
+  if (action === "conditional") {
+    return (
+      <SplitDialog
+        request={open ? request : null}
+        ministryName={request.ministry?.name ?? "This ministry"}
+        busy={isSubmitting}
+        onClose={() => onOpenChange(false)}
+        onSubmit={async (mark) => {
+          setIsSubmitting(true);
+          try {
+            await councilDecision.mutateAsync({
+              requestId: request.id,
+              decision: "conditional",
+              cells: mark.cells ?? null,
+              green: mark.green ?? null,
+              yellow: mark.yellow ?? null,
+              yellowReason: mark.yellowReason,
+              notes: mark.notes,
+            });
+            toast({ title: "Conditionally approved", description: "Send it to the Board when the Council is done." });
+            onOpenChange(false);
+            onSuccess?.();
+          } catch (error) {
+            toast({ title: "Error", description: errorMessage(error), variant: "destructive" });
+          } finally {
+            setIsSubmitting(false);
+          }
+        }}
+      />
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
@@ -246,12 +229,7 @@ export function AllocationReviewDialog({
             {action === "approve" ? (
               <>
                 <CheckCircle className="h-5 w-5 text-green-600" />
-                Final Approval
-              </>
-            ) : action === "conditional" ? (
-              <>
-                <ShieldCheck className="h-5 w-5 text-teal-600" />
-                {NOTES_ACTIONS.conditional.title}
+                {NOTES_ACTIONS.approve.title}
               </>
             ) : action === "return" ? (
               <>
@@ -266,9 +244,7 @@ export function AllocationReviewDialog({
             )}
           </DialogTitle>
           <DialogDescription>
-            {action === "approve"
-              ? "The Board's final approval. The approved amount is added to the ministry's budget for the year. You can adjust it if needed."
-              : NOTES_ACTIONS[action].description}
+            {NOTES_ACTIONS[action].description}
           </DialogDescription>
         </DialogHeader>
 
@@ -296,92 +272,12 @@ export function AllocationReviewDialog({
             </span>
             <span className="text-muted-foreground">requested</span>
           </div>
+          {action === "approve" && <SplitChips request={request} showReason />}
         </div>
 
         <Separator />
 
-        {action === "approve" ? (
-          <Form {...approveForm}>
-            <form
-              onSubmit={approveForm.handleSubmit(handleApprove)}
-              className="space-y-4"
-            >
-              <FormField
-                control={approveForm.control}
-                name="approved_amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Approved Amount *</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                          $
-                        </span>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          className="pl-7"
-                          {...field}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormDescription>
-                      {field.value === request.requested_amount
-                        ? "Full amount will be approved"
-                        : field.value < request.requested_amount
-                        ? "Partial approval - less than requested"
-                        : "More than requested amount"}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={approveForm.control}
-                name="admin_notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Notes (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Add any notes for the requester..."
-                        className="resize-none"
-                        rows={3}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                  )}
-                  Give Final Approval
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        ) : (
+        {(
           <Form {...denyForm}>
             <form
               onSubmit={denyForm.handleSubmit(handleNotes)}
@@ -424,16 +320,15 @@ export function AllocationReviewDialog({
                   type="submit"
                   disabled={isSubmitting}
                   variant={action === "deny" ? "destructive" : "default"}
-                  className={action === "conditional" ? "bg-teal-600 hover:bg-teal-700" : undefined}
                 >
                   {isSubmitting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : action === "deny" ? (
                     <XCircle className="mr-2 h-4 w-4" />
-                  ) : action === "return" ? (
-                    <Undo2 className="mr-2 h-4 w-4" />
+                  ) : action === "approve" ? (
+                    <CheckCircle className="mr-2 h-4 w-4" />
                   ) : (
-                    <ShieldCheck className="mr-2 h-4 w-4" />
+                    <Undo2 className="mr-2 h-4 w-4" />
                   )}
                   {NOTES_ACTIONS[action].button}
                 </Button>
@@ -541,7 +436,7 @@ export function RecallAllocationDialog({
                 ${Number(request.requested_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}
               </span>
             </div>
-            {request.approved_amount && (
+            {request.approved_amount != null && (
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Approved</span>
                 <span className="text-sm font-medium text-green-600">

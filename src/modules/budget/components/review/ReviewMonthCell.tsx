@@ -14,6 +14,20 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/shared/componen
 import { cn } from "@/lib/utils";
 import { MONTH_LABELS, formatReviewAmount as formatBudgetAmount } from "../../utils/reviewMatrix";
 import type { ReviewRow } from "../../utils/reviewMatrix";
+import { SPLIT_COLORS } from "../../utils/split";
+
+/** A thin Green / Yellow / Red bar under a marked month, in proportion. */
+function MonthBar({ split, total }: { split?: { green: number; yellow: number; red: number }; total: number }) {
+  if (!split || total <= 0 || split.green + split.yellow + split.red <= 0) return null;
+  const pct = (v: number) => `${(v / total) * 100}%`;
+  return (
+    <span className="mt-0.5 flex h-1 w-full overflow-hidden rounded-full bg-muted" aria-hidden>
+      <span className={SPLIT_COLORS.green.dot} style={{ width: pct(split.green) }} />
+      <span className={SPLIT_COLORS.yellow.dot} style={{ width: pct(split.yellow) }} />
+      <span className={SPLIT_COLORS.red.dot} style={{ width: pct(split.red) }} />
+    </span>
+  );
+}
 
 interface ReviewMonthCellProps {
   row: ReviewRow;
@@ -27,6 +41,8 @@ export function ReviewMonthCell({ row, monthIndex, canEdit, onEdit }: ReviewMont
   const lines = row.lines.filter((l) => l.months[monthIndex] > 0);
   const label = total > 0 ? formatBudgetAmount(total) : "-";
   const month = MONTH_LABELS[monthIndex];
+  const split = row.monthSplit?.[monthIndex];
+  const marked = !!split && split.green + split.yellow + split.red > 0;
 
   // Nothing to show and nothing to change: a plain dash.
   if (total === 0 && !canEdit) {
@@ -49,6 +65,7 @@ export function ReviewMonthCell({ row, monthIndex, canEdit, onEdit }: ReviewMont
       )}
     >
       {label}
+      <MonthBar split={split} total={total} />
     </button>
   );
 
@@ -74,6 +91,14 @@ export function ReviewMonthCell({ row, monthIndex, canEdit, onEdit }: ReviewMont
             </li>
           ))}
         </ul>
+        {marked && (
+          <p className="mt-2 text-xs tabular-nums">
+            <span className={SPLIT_COLORS.green.text}>Green {formatBudgetAmount(split.green)}</span> ·{" "}
+            <span className={SPLIT_COLORS.yellow.text}>Yellow {formatBudgetAmount(split.yellow)}</span> ·{" "}
+            <span className={SPLIT_COLORS.red.text}>Red {formatBudgetAmount(split.red)}</span>
+            {row.splitState === "proposed" && <span className="text-muted-foreground"> (marked by the local leaders)</span>}
+          </p>
+        )}
         {canEdit && <p className="mt-2 text-xs text-muted-foreground">Click the figure to edit this month.</p>}
       </HoverCardContent>
     </HoverCard>

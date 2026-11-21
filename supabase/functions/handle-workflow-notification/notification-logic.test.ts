@@ -15,6 +15,7 @@ import {
   getBoardDigestContent,
   getBoardDecisionDigestContent,
   getExpenseNotificationContent,
+  getYellowReleasedContent,
 } from "./content.ts";
 
 const expense: ExpenseRecord = {
@@ -253,5 +254,53 @@ describe("the Board's steps", () => {
     expect(m.subject).toBe("Board approved 1 budget request");
     expect(m.notes).toBeNull();
     expect(m.fact.tone).toBe("green");
+  });
+});
+
+describe("Green, Yellow and Red", () => {
+  const split: AllocationRecord = {
+    ...allocation,
+    requestedAmount: 1200,
+    approvedAmount: 800,
+    greenAmount: 800,
+    yellowAmount: 400,
+    yellowReason: "Depends on Q1 giving",
+  };
+
+  it("tells the ministry the three amounts and why some is Yellow", () => {
+    const m = getAllocationNotificationContent("board_review", "partially_approved", split).requesterContent!;
+    const body = m.paragraphs.join(" ");
+    expect(m.title).toContain("approved in part");
+    expect(body).toContain("Green (approved) $800");
+    expect(body).toContain("Yellow (justified, waiting on giving) $400");
+    expect(body).toContain("Red (not approved) $0");
+    expect(body).toContain("Depends on Q1 giving");
+    expect(m.fact.note).toContain("Yellow pending funds");
+  });
+
+  it("says 'waiting on giving' when nothing is Green yet", () => {
+    const m = getAllocationNotificationContent("board_review", "partially_approved", {
+      ...split, approvedAmount: 0, greenAmount: 0, yellowAmount: 1200,
+    }).requesterContent!;
+    expect(m.title).toContain("waiting on giving");
+    expect(m.fact.tone).toBe("amber");
+  });
+
+  it("an all-Green approval reads as before", () => {
+    const m = getAllocationNotificationContent("board_review", "approved", {
+      ...split, approvedAmount: 1200, greenAmount: 1200, yellowAmount: 0,
+    }).requesterContent!;
+    expect(m.title).toBe("Your 2027 budget request was approved");
+  });
+
+  it("tells the ministry when Yellow money moves", () => {
+    const m = getYellowReleasedContent({ ...split, greenAmount: 1100, yellowAmount: 100 }, 300, 0, null)!;
+    expect(m.title).toContain("More of your 2027 budget request is approved");
+    expect(m.paragraphs.join(" ")).toContain("moved from Yellow to Green");
+  });
+
+  it("shows the split in the Board's digest", () => {
+    const m = getBoardDigestContent([split])!;
+    expect(m.paragraphs.join(" ")).toContain("(G $800.00 / Y $400.00 / R $0.00)");
   });
 });

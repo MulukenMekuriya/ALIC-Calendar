@@ -165,6 +165,8 @@ export type Database = {
           created_at: string | null
           excluded_from_carry_over: boolean
           fiscal_year_id: string
+          green_amount: number | null
+          split_cells: Json | null
           id: string
           justification: string
           ministry_id: string
@@ -177,6 +179,8 @@ export type Database = {
           reviewed_by: string | null
           status: Database["budget"]["Enums"]["allocation_request_status"]
           updated_at: string | null
+          yellow_amount: number | null
+          yellow_reason: string | null
         }
         Insert: {
           admin_notes?: string | null
@@ -187,6 +191,8 @@ export type Database = {
           created_at?: string | null
           excluded_from_carry_over?: boolean
           fiscal_year_id: string
+          green_amount?: number | null
+          split_cells?: Json | null
           id?: string
           justification: string
           ministry_id: string
@@ -199,6 +205,8 @@ export type Database = {
           reviewed_by?: string | null
           status?: Database["budget"]["Enums"]["allocation_request_status"]
           updated_at?: string | null
+          yellow_amount?: number | null
+          yellow_reason?: string | null
         }
         Update: {
           admin_notes?: string | null
@@ -209,6 +217,8 @@ export type Database = {
           created_at?: string | null
           excluded_from_carry_over?: boolean
           fiscal_year_id?: string
+          green_amount?: number | null
+          split_cells?: Json | null
           id?: string
           justification?: string
           ministry_id?: string
@@ -221,6 +231,8 @@ export type Database = {
           reviewed_by?: string | null
           status?: Database["budget"]["Enums"]["allocation_request_status"]
           updated_at?: string | null
+          yellow_amount?: number | null
+          yellow_reason?: string | null
         }
         Relationships: [
           {
@@ -717,6 +729,8 @@ export type Database = {
           created_at: string | null
           excluded_from_carry_over: boolean
           fiscal_year_id: string
+          green_amount: number | null
+          split_cells: Json | null
           id: string
           justification: string
           ministry_id: string
@@ -729,6 +743,8 @@ export type Database = {
           reviewed_by: string | null
           status: Database["budget"]["Enums"]["allocation_request_status"]
           updated_at: string | null
+          yellow_amount: number | null
+          yellow_reason: string | null
         }
         SetofOptions: {
           from: "*"
@@ -785,7 +801,15 @@ export type Database = {
         Returns: undefined
       }
       council_decide: {
-        Args: { _decision: string; _notes?: string; _request_id: string }
+        Args: {
+          _cells?: Json
+          _decision: string
+          _green?: number
+          _notes?: string
+          _request_id: string
+          _yellow?: number
+          _yellow_reason?: string
+        }
         Returns: {
           admin_notes: string | null
           approved_amount: number | null
@@ -795,6 +819,8 @@ export type Database = {
           created_at: string | null
           excluded_from_carry_over: boolean
           fiscal_year_id: string
+          green_amount: number | null
+          split_cells: Json | null
           id: string
           justification: string
           ministry_id: string
@@ -807,6 +833,8 @@ export type Database = {
           reviewed_by: string | null
           status: Database["budget"]["Enums"]["allocation_request_status"]
           updated_at: string | null
+          yellow_amount: number | null
+          yellow_reason: string | null
         }
         SetofOptions: {
           from: "*"
@@ -832,6 +860,8 @@ export type Database = {
           created_at: string | null
           excluded_from_carry_over: boolean
           fiscal_year_id: string
+          green_amount: number | null
+          split_cells: Json | null
           id: string
           justification: string
           ministry_id: string
@@ -844,6 +874,8 @@ export type Database = {
           reviewed_by: string | null
           status: Database["budget"]["Enums"]["allocation_request_status"]
           updated_at: string | null
+          yellow_amount: number | null
+          yellow_reason: string | null
         }
         SetofOptions: {
           from: "*"
@@ -908,6 +940,20 @@ export type Database = {
       request_carry_over_sweep: { Args: never; Returns: number }
       request_reminder_stage: { Args: { _on: string }; Returns: string }
       request_reminder_sweep: { Args: never; Returns: number }
+      release_yellow: {
+        Args: {
+          _cells?: Json
+          _notes?: string
+          _request_id: string
+          _to_green?: number
+          _to_red?: number
+        }
+        Returns: Database["budget"]["Tables"]["allocation_requests"]["Row"]
+      }
+      release_yellow_many: {
+        Args: { _notes?: string; _request_ids: string[] }
+        Returns: Json
+      }
       request_season: {
         Args: { _organization_id: string }
         Returns: {
