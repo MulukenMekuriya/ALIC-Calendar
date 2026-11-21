@@ -48,6 +48,8 @@ vi.mock("../../hooks/useBoardReview", () => ({
   useBoardDecideMany: () => decideMany,
   useSendToBoard: () => sendToBoard,
   useCouncilDecision: () => council,
+  useReleaseYellow: () => mutation("release", {}),
+  useReleaseYellowMany: () => mutation("releaseMany", { moved: 0, skipped: [] }),
 }));
 
 import { BudgetReviewSection } from "./BudgetReviewSection";

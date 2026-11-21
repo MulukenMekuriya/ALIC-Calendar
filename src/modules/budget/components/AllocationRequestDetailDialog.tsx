@@ -2,6 +2,9 @@
  * AllocationRequestDetailDialog - View allocation request details
  */
 
+import { SplitChips } from "./review/SplitChips";
+import { splitOf } from "../utils/split";
+import { formatReviewAmount } from "../utils/reviewMatrix";
 import {
   Dialog,
   DialogContent,
@@ -182,21 +185,15 @@ export function AllocationRequestDetailDialog({
                       maximumFractionDigits: 2,
                     })}
                   </p>
-                  {request.approved_amount && (
-                    <div className="mt-3 pt-3 border-t">
+                  {splitOf(request).state !== "none" && (
+                    <div className="mt-3 pt-3 border-t space-y-2">
                       <p className="text-xs text-muted-foreground mb-1">
-                        Approved Amount
+                        {splitOf(request).state === "proposed" ? "Proposed split (not yet the Board's decision)" : "Approved (Green)"}
                       </p>
                       <p className="text-xl font-semibold text-green-600">
-                        $
-                        {Number(request.approved_amount).toLocaleString(
-                          "en-US",
-                          {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          }
-                        )}
+                        {formatReviewAmount(splitOf(request).green)}
                       </p>
+                      <SplitChips request={request} showReason />
                     </div>
                   )}
                 </div>

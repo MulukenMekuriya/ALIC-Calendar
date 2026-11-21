@@ -91,3 +91,74 @@ describe("formatReviewAmount", () => {
     expect(formatReviewAmount(0)).toBe("$0");
   });
 });
+
+describe("Green, Yellow and Red totals", () => {
+  const annual = (over: Record<string, unknown>) =>
+    buildReviewRow(request({ period_type: "annual", requested_amount: 1200, ...over }));
+
+  it("counts the local leaders' Green and the Board's in Total, and keeps them apart in the sums", () => {
+    const decided = annual({ id: "a", status: "partially_approved", approved_amount: 800, green_amount: 800, yellow_amount: 400 });
+    const proposed = annual({ id: "b", status: "conditionally_approved", green_amount: 600, yellow_amount: 600 });
+    const denied = annual({ id: "c", status: "denied", green_amount: 0, yellow_amount: 0 });
+    const fresh = annual({ id: "d", status: "pending" });
+
+    expect([decided.approved, proposed.approved, denied.approved, fresh.approved]).toEqual([800, 600, 0, 0]);
+    expect(proposed.splitState).toBe("proposed");
+
+    const t = totalsOf([decided, proposed, denied, fresh]);
+    expect(t.approved).toBe(1400);
+    expect(t.split).toMatchObject({
+      finalGreen: 800, finalYellow: 400, finalRed: 1200,
+      proposedGreen: 600, proposedYellow: 600, proposedRed: 0,
+      undecided: 1200,
+    });
+    expect(t.total).toBe(4800);
+  });
+
+  it("grows Total as Yellow turns Green", () => {
+    const later = annual({ status: "approved", approved_amount: 1200, green_amount: 1200, yellow_amount: 0 });
+    expect(later.approved).toBe(1200);
+    expect(later.red).toBe(0);
+  });
+
+  it("reads a request approved before the split existed as all Green", () => {
+    expect(annual({ status: "approved", approved_amount: 1200 }).approved).toBe(1200);
+  });
+});
+
+describe("month-by-month marking", () => {
+  const monthly = (over: Record<string, unknown>) =>
+    request({
+      requested_amount: 1200,
+      budget_breakdown: [line("Venue", { jan: 500, feb: 500 }), line("Snacks", { mar: 200 })],
+      ...over,
+    });
+
+  it("tints each month by its cells", () => {
+    const row = buildReviewRow(
+      monthly({
+        status: "conditionally_approved",
+        green_amount: 700,
+        yellow_amount: 300,
+        split_cells: [
+          { index: 0, month: "jan", amount: 500, green: 500, yellow: 0 },
+          { index: 0, month: "feb", amount: 500, green: 200, yellow: 300 },
+          { index: 1, month: "mar", amount: 200, green: 0, yellow: 0 },
+        ],
+      }),
+    );
+    expect(row.monthSplit.slice(0, 3)).toEqual([
+      { green: 500, yellow: 0, red: 0 },
+      { green: 200, yellow: 300, red: 0 },
+      { green: 0, yellow: 0, red: 200 },
+    ]);
+    expect([row.green, row.yellow, row.red, row.approved]).toEqual([700, 300, 200, 700]);
+  });
+
+  it("an all-Green request with no stored cells is Green in every month; an unmarked one is not tinted", () => {
+    const green = buildReviewRow(monthly({ status: "conditionally_approved", green_amount: 1200, yellow_amount: 0 }));
+    expect(green.monthSplit[2]).toEqual({ green: 200, yellow: 0, red: 0 });
+    const fresh = buildReviewRow(monthly({ status: "pending" }));
+    expect(fresh.monthSplit.every((m) => m.green + m.yellow + m.red === 0)).toBe(true);
+  });
+});

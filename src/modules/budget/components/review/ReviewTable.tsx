@@ -9,12 +9,20 @@
 
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
-import { Check, ChevronDown, ChevronRight, Pencil, X } from "lucide-react";
+import { ArrowRightLeft, Check, ChevronDown, ChevronRight, Pencil, SplitSquareHorizontal, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { AllocationBoardFeedback } from "../../types";
 import { getReviewStage, getRowPermissions, STAGE_LABEL, type ReviewRole } from "../../utils/reviewStage";
-import { MONTH_LABELS, formatReviewAmount, totalsOf, type ReviewGroup, type ReviewRow } from "../../utils/reviewMatrix";
+import {
+  MONTH_LABELS,
+  formatReviewAmount,
+  totalsOf,
+  type ReviewGroup,
+  type ReviewRow,
+  type SplitTotals,
+} from "../../utils/reviewMatrix";
+import { SPLIT_COLORS, type SplitColor } from "../../utils/split";
 import { ReviewMonthCell } from "./ReviewMonthCell";
 import { BoardRemarks, CommentInput, RecommendedInput } from "./BoardFeedbackCells";
 import type { FeedbackDraft } from "../../utils/feedbackDraft";
@@ -34,6 +42,9 @@ export interface ReviewTableProps {
   onEditMonth: (row: ReviewRow, monthIndex: number) => void;
   onEditRequest: (row: ReviewRow) => void;
   onApproveForBoard: (row: ReviewRow) => void;
+  /** Open Green / Yellow / Red: the Council's proposal, or the Board's own split. "yellow" starts all Yellow. */
+  onSplit: (row: ReviewRow, start: "current" | "yellow") => void;
+  onReleaseYellow: (row: ReviewRow) => void;
   onDeny: (row: ReviewRow) => void;
   busyRequestId?: string | null;
 }
@@ -44,7 +55,8 @@ const td = "px-2 py-2 align-top text-sm";
 function RowActions({ row, props }: { row: ReviewRow; props: ReviewTableProps }) {
   const perms = getRowPermissions(row.request, props.roleFor(row.organizationId));
   const busy = props.busyRequestId === row.request.id;
-  if (!perms.canEdit && !perms.canApproveForBoard && !perms.canDeny) return null;
+  if (!perms.canEdit && !perms.canApproveForBoard && !perms.canSplit && !perms.canDeny && !perms.canReleaseYellow)
+    return null;
   return (
     <div className="flex flex-nowrap items-center justify-end gap-1">
       {perms.canEdit && (
@@ -71,7 +83,35 @@ function RowActions({ row, props }: { row: ReviewRow; props: ReviewTableProps })
           aria-label={`Approve ${row.ministryName} for the Board`}
         >
           <Check className="mr-1 h-4 w-4" />
-          Approve
+          Green
+        </Button>
+      )}
+      {perms.canSplit && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 border-amber-500/70 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
+          disabled={busy}
+          title="Mark each line and month Green, Yellow or Red"
+          onClick={() => props.onSplit(row, "current")}
+          aria-label={`Mark Green, Yellow or Red for ${row.ministryName}`}
+        >
+          <SplitSquareHorizontal className="mr-1 h-4 w-4" />
+          {row.splitState === "proposed" ? "Re-mark" : "Mark"}
+        </Button>
+      )}
+      {perms.canReleaseYellow && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 border-amber-500/70 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
+          disabled={busy}
+          title="Move Yellow money to Green or Red"
+          onClick={() => props.onReleaseYellow(row)}
+          aria-label={`Move Yellow money for ${row.ministryName}`}
+        >
+          <ArrowRightLeft className="mr-1 h-4 w-4" />
+          Move Yellow
         </Button>
       )}
       {perms.canDeny && (
@@ -93,7 +133,7 @@ function RowActions({ row, props }: { row: ReviewRow; props: ReviewTableProps })
 
 function SelectBox({ row, props }: { row: ReviewRow; props: ReviewTableProps }) {
   const perms = getRowPermissions(row.request, props.roleFor(row.organizationId));
-  if (!perms.canSend && !perms.canBoardDecide) return null;
+  if (!perms.canSend && !perms.canBoardDecide && !perms.canReleaseYellow) return null;
   return (
     <Checkbox
       aria-label={`Select ${row.ministryName}`}
@@ -122,6 +162,84 @@ function FeedbackCell({ row, props, part }: { row: ReviewRow; props: ReviewTable
   return part === "amount" ? <BoardRemarks feedback={props.feedback[row.request.id] ?? []} /> : null;
 }
 
+/** One colour cell. A proposal (not yet the Board's) is drawn lighter and dashed. */
+function SplitCell({ color, amount, proposed, note }: { color: SplitColor; amount: number; proposed?: boolean; note?: string | null }) {
+  if (!amount) return <span className="text-muted-foreground">-</span>;
+  const c = SPLIT_COLORS[color];
+  return (
+    <span
+      className={cn(
+        "inline-block rounded px-1.5 py-0.5 tabular-nums",
+        c.text,
+        proposed ? cn("border border-dashed opacity-80", c.border) : c.bg,
+      )}
+      title={[proposed ? "Marked by the local leaders; the Board has not given final approval yet" : "", note ? `Reason: ${note}` : ""].filter(Boolean).join("\n") || undefined}
+    >
+      {formatReviewAmount(amount)}
+    </span>
+  );
+}
+
+function RowSplitCells({ row }: { row: ReviewRow }) {
+  const proposed = row.splitState === "proposed";
+  return (
+    <>
+      <td className={cn(td, "text-right")}><SplitCell color="green" amount={row.green} proposed={proposed} /></td>
+      <td className={cn(td, "text-right")}><SplitCell color="yellow" amount={row.yellow} proposed={proposed} note={row.request.yellow_reason} /></td>
+      <td className={cn(td, "text-right")}><SplitCell color="red" amount={row.red} proposed={proposed} /></td>
+    </>
+  );
+}
+
+/** A ministry's or the grand totals: everything marked, local leaders' and Board's together. */
+function SplitSumCells({ split, bold }: { split: SplitTotals; bold?: boolean }) {
+  const cell = (color: SplitColor, final: number, proposed: number) => (
+    <td className={cn(td, "text-right")}>
+      <div className={cn("tabular-nums", SPLIT_COLORS[color].text, bold && "font-bold")}>
+        {final + proposed ? formatReviewAmount(final + proposed) : "-"}
+      </div>
+    </td>
+  );
+  return (
+    <>
+      {cell("green", split.finalGreen, split.proposedGreen)}
+      {cell("yellow", split.finalYellow, split.proposedYellow)}
+      {cell("red", split.finalRed, split.proposedRed)}
+    </>
+  );
+}
+
+/** The summary above the table: Green (Approved), Yellow (Pending), Red (Rejected). */
+export function SplitSummary({ split }: { split: SplitTotals }) {
+  const tile = (color: SplitColor, label: string, final: number, proposed: number) => (
+    <div className={cn("rounded-md border p-2 sm:p-3", SPLIT_COLORS[color].bg, SPLIT_COLORS[color].border)}>
+      <div className={cn("flex items-center gap-1.5 text-xs font-medium", SPLIT_COLORS[color].text)}>
+        <span className={cn("h-2 w-2 rounded-full", SPLIT_COLORS[color].dot)} aria-hidden />
+        {label}
+      </div>
+      <div className={cn("text-base sm:text-lg font-bold tabular-nums", SPLIT_COLORS[color].text)}>
+        {formatReviewAmount(final + proposed)}
+      </div>
+      {proposed > 0 && (
+        <div className="text-[11px] text-muted-foreground tabular-nums">
+          {formatReviewAmount(final)} with the Board's final approval
+        </div>
+      )}
+    </div>
+  );
+  return (
+    <div className="grid grid-cols-2 gap-2 px-3 pb-3 sm:grid-cols-4 sm:px-6">
+      {tile("green", "Green – Approved", split.finalGreen, split.proposedGreen)}
+      {tile("yellow", "Yellow – Pending funds", split.finalYellow, split.proposedYellow)}
+      {tile("red", "Red – Denied", split.finalRed, split.proposedRed)}
+      <div className="rounded-md border p-2 sm:p-3">
+        <div className="text-xs font-medium text-muted-foreground">Not yet marked</div>
+        <div className="text-base sm:text-lg font-bold tabular-nums">{formatReviewAmount(split.undecided)}</div>
+      </div>
+    </div>
+  );
+}
+
 function branchOf(props: ReviewTableProps, row: ReviewRow) {
   return props.branchNames?.[row.organizationId];
 }
@@ -139,7 +257,7 @@ export function ReviewTable(props: ReviewTableProps) {
     <>
       {/* Desktop and tablet */}
       <div className="hidden md:block overflow-x-auto">
-        <table className="w-full min-w-[960px]">
+        <table className="w-full min-w-[1240px]">
           <thead>
             <tr className="border-b bg-muted/50">
               <th className={cn(th, "w-8")} />
@@ -148,9 +266,15 @@ export function ReviewTable(props: ReviewTableProps) {
                 <th key={m} className={cn(th, "text-right min-w-[64px]")}>{m}</th>
               ))}
               {hasAnnual && <th className={cn(th, "text-right")}>Annual</th>}
-              <th className={cn(th, "text-right")}>Total</th>
+              <th className={cn(th, "text-right")} title="Requested">Requested</th>
+              <th className={cn(th, "text-right")} title="Green approved by the local leaders or the Board, including Yellow later moved to Green">
+                Total (Green)
+              </th>
               {showFeedback && <th className={cn(th, "text-right")}>{anyReadOnlyFeedback ? "Board remarks" : "Recommended"}</th>}
               {showFeedback && !anyReadOnlyFeedback && <th className={cn(th, "text-left")}>Comment</th>}
+              <th className={cn(th, "text-right", SPLIT_COLORS.green.text)}>Green</th>
+              <th className={cn(th, "text-right", SPLIT_COLORS.yellow.text)}>Yellow</th>
+              <th className={cn(th, "text-right", SPLIT_COLORS.red.text)}>Red</th>
               <th className={cn(th, "text-right min-w-[190px]")}>Actions</th>
             </tr>
           </thead>
@@ -165,9 +289,11 @@ export function ReviewTable(props: ReviewTableProps) {
                 <td key={i} className={cn(td, "text-right tabular-nums")}>{v > 0 ? formatReviewAmount(v) : "-"}</td>
               ))}
               {hasAnnual && <td className={cn(td, "text-right tabular-nums")}>{formatReviewAmount(grand.annual)}</td>}
-              <td className={cn(td, "text-right tabular-nums text-primary")}>{formatReviewAmount(grand.total)}</td>
+              <td className={cn(td, "text-right tabular-nums")}>{formatReviewAmount(grand.total)}</td>
+              <td className={cn(td, "text-right tabular-nums", SPLIT_COLORS.green.text)}>{formatReviewAmount(grand.approved)}</td>
               {showFeedback && <td />}
               {showFeedback && !anyReadOnlyFeedback && <td />}
+              <SplitSumCells split={grand.split} bold />
               <td />
             </tr>
           </tbody>
@@ -179,9 +305,15 @@ export function ReviewTable(props: ReviewTableProps) {
         {groups.map((g) => (
           <GroupCards key={g.key} group={g} props={props} />
         ))}
-        <div className="flex justify-between p-3 font-bold">
-          <span>Total</span>
-          <span className="tabular-nums text-primary">{formatReviewAmount(grand.total)}</span>
+        <div className="space-y-1 p-3">
+          <div className="flex justify-between text-sm text-muted-foreground">
+            <span>Requested</span>
+            <span className="tabular-nums">{formatReviewAmount(grand.total)}</span>
+          </div>
+          <div className={cn("flex justify-between font-bold", SPLIT_COLORS.green.text)}>
+            <span>Total (Green)</span>
+            <span className="tabular-nums">{formatReviewAmount(grand.approved)}</span>
+          </div>
         </div>
       </div>
     </>
@@ -232,9 +364,13 @@ function GroupRows({
           <td colSpan={12} className={cn(td, "text-center text-muted-foreground italic")}>Annual only</td>
         )}
         {hasAnnual && <td className={cn(td, "text-right tabular-nums")}>{row.annual > 0 ? formatReviewAmount(row.annual) : "-"}</td>}
-        <td className={cn(td, "text-right tabular-nums font-semibold")}>{formatReviewAmount(row.total)}</td>
+        <td className={cn(td, "text-right tabular-nums text-muted-foreground")}>{formatReviewAmount(row.total)}</td>
+        <td className={cn(td, "text-right tabular-nums font-semibold", row.approved > 0 && SPLIT_COLORS.green.text)}>
+          {row.approved > 0 ? formatReviewAmount(row.approved) : "-"}
+        </td>
         {showFeedback && <td className={cn(td, "text-right")}><FeedbackCell row={row} props={props} part="amount" /></td>}
         {showFeedback && !anyReadOnlyFeedback && <td className={td}><FeedbackCell row={row} props={props} part="comment" /></td>}
+        <RowSplitCells row={row} />
         <td className={td}><RowActions row={row} props={props} /></td>
       </tr>
     );
@@ -244,7 +380,7 @@ function GroupRows({
 
   const selectable = group.rows.filter((r) => {
     const p = getRowPermissions(r.request, props.roleFor(r.organizationId));
-    return p.canSend || p.canBoardDecide;
+    return p.canSend || p.canBoardDecide || p.canReleaseYellow;
   });
   const ticked = selectable.filter((r) => props.selected.has(r.request.id)).length;
   const stages = [...new Set(group.rows.map((r) => STAGE_LABEL[getReviewStage(r.request)]))];
@@ -257,6 +393,16 @@ function GroupRows({
     months: group.months,
     annual: group.annual,
     total: group.total,
+    approved: group.approved,
+    split: group.split,
+    monthSplit: group.rows.reduce(
+      (acc, r) => acc.map((m, i) => ({
+        green: m.green + r.monthSplit[i].green,
+        yellow: m.yellow + r.monthSplit[i].yellow,
+        red: m.red + r.monthSplit[i].red,
+      })),
+      group.rows[0].monthSplit.map(() => ({ green: 0, yellow: 0, red: 0 })),
+    ),
   };
   const toggle = () => setOpen((o) => !o);
 
@@ -295,9 +441,13 @@ function GroupRows({
           </td>
         ))}
         {hasAnnual && <td className={cn(td, "text-right tabular-nums")}>{group.annual > 0 ? formatReviewAmount(group.annual) : "-"}</td>}
-        <td className={cn(td, "text-right tabular-nums font-semibold")}>{formatReviewAmount(group.total)}</td>
+        <td className={cn(td, "text-right tabular-nums text-muted-foreground")}>{formatReviewAmount(group.total)}</td>
+        <td className={cn(td, "text-right tabular-nums font-semibold", group.approved > 0 && SPLIT_COLORS.green.text)}>
+          {group.approved > 0 ? formatReviewAmount(group.approved) : "-"}
+        </td>
         {showFeedback && <td />}
         {showFeedback && !anyReadOnlyFeedback && <td />}
+        <SplitSumCells split={group.split} />
         <td />
       </tr>
       {open && group.rows.map((row) => requestRow(row, true))}
@@ -325,8 +475,25 @@ function ReviewCard({ row, props }: { row: ReviewRow; props: ReviewTableProps })
             {STAGE_LABEL[stage]}
           </div>
         </div>
-        <div className="text-right font-semibold tabular-nums">{formatReviewAmount(row.total)}</div>
+        <div className="text-right">
+          <div className="text-xs text-muted-foreground tabular-nums">{formatReviewAmount(row.total)} asked</div>
+          <div className={cn("font-semibold tabular-nums", row.approved > 0 && SPLIT_COLORS.green.text)}>
+            {formatReviewAmount(row.approved)}
+          </div>
+        </div>
       </div>
+
+      {row.splitState !== "none" && (
+        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+          <SplitCell color="green" amount={row.green} proposed={row.splitState === "proposed"} />
+          <SplitCell color="yellow" amount={row.yellow} proposed={row.splitState === "proposed"} />
+          <SplitCell color="red" amount={row.red} proposed={row.splitState === "proposed"} />
+          {row.splitState === "proposed" && <span className="text-muted-foreground">proposed</span>}
+        </div>
+      )}
+      {row.yellow > 0 && row.request.yellow_reason && (
+        <p className={cn("text-xs", SPLIT_COLORS.yellow.text)}>Yellow: {row.request.yellow_reason}</p>
+      )}
 
       {row.isMonthly ? (
         <div className="flex flex-wrap gap-1.5">
@@ -389,7 +556,9 @@ function GroupCards({ group, props }: { group: ReviewGroup; props: ReviewTablePr
             {branchNames(props, group)}{group.rows.length} requests
           </span>
         </span>
-        <span className="font-semibold tabular-nums">{formatReviewAmount(group.total)}</span>
+        <span className={cn("font-semibold tabular-nums", group.approved > 0 && SPLIT_COLORS.green.text)}>
+          {formatReviewAmount(group.approved)}
+        </span>
       </button>
       {open && (
         <div className="divide-y border-l-4 border-muted">

@@ -47,6 +47,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { format } from "date-fns";
+import { SplitChips } from "./review/SplitChips";
 import { AllocationRequestStatusBadge, CarriedOverBadge } from "./AllocationRequestStatusBadge";
 import { AllocationRequestForm } from "./AllocationRequestForm";
 import { AllocationRequestDetailDialog } from "./AllocationRequestDetailDialog";
@@ -438,15 +439,7 @@ export function AllocationRequestList({
                             maximumFractionDigits: 2,
                           })}
                         </p>
-                        {request.approved_amount &&
-                          request.approved_amount !== request.requested_amount && (
-                            <p className="text-xs text-green-600">
-                              Approved: ${Number(request.approved_amount).toLocaleString("en-US", {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })}
-                            </p>
-                          )}
+                        <SplitChips request={request} showReason className="mt-1" />
                       </div>
                       <p className="text-xs text-muted-foreground">
                         {format(new Date(request.created_at), "MMM d, yyyy")}
@@ -565,20 +558,7 @@ export function AllocationRequestList({
                               maximumFractionDigits: 2,
                             }
                           )}
-                          {request.approved_amount &&
-                            request.approved_amount !==
-                              request.requested_amount && (
-                              <span className="block text-xs text-green-600">
-                                Approved: $
-                                {Number(request.approved_amount).toLocaleString(
-                                  "en-US",
-                                  {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  }
-                                )}
-                              </span>
-                            )}
+                          <SplitChips request={request} showReason className="mt-1 font-normal" />
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap items-center gap-1.5">

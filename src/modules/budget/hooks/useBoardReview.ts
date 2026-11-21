@@ -128,17 +128,32 @@ export function useCouncilDecision() {
       requestId,
       decision,
       notes,
+      green,
+      yellow,
+      yellowReason,
+      cells,
     }: {
       requestId: string;
       decision: "review" | "conditional" | "deny";
       notes?: string | null;
+      /** 'conditional', an annual request: Green and Yellow in dollars. Nothing given is all Green. */
+      green?: number | null;
+      yellow?: number | null;
+      /** Required by the database whenever any money is Yellow. */
+      yellowReason?: string | null;
+      /** 'conditional', a monthly request: the marking, line by line and month by month. */
+      cells?: { index: number; month: string; green: number; yellow: number }[] | null;
     }) => {
       const { data, error } = await supabase
         .schema("budget")
         .rpc("council_decide", {
           _request_id: requestId,
           _decision: decision,
-          _notes: notes ?? null,
+          _notes: notes ?? undefined,
+          _green: green ?? undefined,
+          _yellow: yellow ?? undefined,
+          _yellow_reason: yellowReason ?? undefined,
+          _cells: cells ?? undefined,
         });
 
       if (error) throw error;
@@ -188,12 +203,11 @@ export function useBoardDecision() {
     mutationFn: async ({
       requestId,
       decision,
-      approvedAmount,
       notes,
     }: {
       requestId: string;
+      /** 'approve' gives final approval to the local leaders' marking as it stands. */
       decision: "approve" | "return" | "deny";
-      approvedAmount?: number | null;
       notes?: string | null;
     }) => {
       const { data, error } = await supabase
@@ -201,8 +215,7 @@ export function useBoardDecision() {
         .rpc("board_decide", {
           _request_id: requestId,
           _decision: decision,
-          _approved_amount: approvedAmount ?? null,
-          _notes: notes ?? null,
+          _notes: notes ?? undefined,
         });
 
       if (error) throw error;
@@ -411,5 +424,69 @@ export function useMinistryTotals(year?: number) {
       }));
     },
     enabled: !!year,
+  });
+}
+
+const invalidateAfterRelease = (queryClient: ReturnType<typeof useQueryClient>) => {
+  queryClient.invalidateQueries({ queryKey: [ALLOCATION_REQUESTS_KEY] });
+  queryClient.invalidateQueries({ queryKey: ["budget-allocations"] });
+  queryClient.invalidateQueries({ queryKey: ["budget-summary"] });
+  queryClient.invalidateQueries({ queryKey: ["ministry-budget-summary"] });
+};
+
+/**
+ * Move some or all of a decided request's Yellow money to Green (the
+ * ministry's budget is credited) or to Red. The local leaders only.
+ * A monthly request moves cell by cell; an annual one in dollars; nothing
+ * given moves all its Yellow to Green.
+ */
+export function useReleaseYellow() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      requestId,
+      cells,
+      toGreen,
+      toRed,
+      notes,
+    }: {
+      requestId: string;
+      cells?: { index: number; month: string; to_green: number; to_red: number }[] | null;
+      toGreen?: number | null;
+      toRed?: number | null;
+      notes?: string | null;
+    }) => {
+      const { data, error } = await supabase
+        .schema("budget")
+        .rpc("release_yellow", {
+          _request_id: requestId,
+          _cells: cells ?? undefined,
+          _to_green: toGreen ?? undefined,
+          _to_red: toRed ?? undefined,
+          _notes: notes ?? undefined,
+        });
+
+      if (error) throw error;
+      return data as unknown as AllocationRequest;
+    },
+    onSuccess: () => invalidateAfterRelease(queryClient),
+  });
+}
+
+/** Several requests' Yellow, all to Green, in one step. Returns what moved and what was skipped. */
+export function useReleaseYellowMany() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ requestIds, notes }: { requestIds: string[]; notes?: string | null }) => {
+      const { data, error } = await supabase
+        .schema("budget")
+        .rpc("release_yellow_many", { _request_ids: requestIds, _notes: notes ?? undefined });
+
+      if (error) throw error;
+      return data as unknown as { moved: number; skipped: { id: string; reason: string }[] };
+    },
+    onSuccess: () => invalidateAfterRelease(queryClient),
   });
 }

@@ -35,6 +35,8 @@ import {
   useBoardDecideMany,
   useBoardFeedback,
   useCouncilDecision,
+  useReleaseYellow,
+  useReleaseYellowMany,
   useSaveBoardFeedback,
   useSendToBoard,
 } from "../../hooks/useBoardReview";
@@ -43,6 +45,7 @@ import {
   buildReviewRow,
   groupByMinistry,
   isReviewable,
+  totalsOf,
   type ReviewRow,
 } from "../../utils/reviewMatrix";
 import { getRowPermissions, isVisibleToBoard, type ReviewRole } from "../../utils/reviewStage";
@@ -50,7 +53,8 @@ import type { AllocationBoardFeedback } from "../../types";
 import { draftFrom, parseDraft, type FeedbackDraft } from "../../utils/feedbackDraft";
 import { MonthEditorDialog } from "./MonthEditorDialog";
 import { ReviewActionBar, type BulkAction } from "./ReviewActionBar";
-import { ReviewTable } from "./ReviewTable";
+import { ReviewTable, SplitSummary } from "./ReviewTable";
+import { ReleaseYellowDialog, SplitDialog, type MarkResult, type ReleaseResult } from "./SplitDialog";
 
 interface BudgetReviewSectionProps {
   /** The budget year under review (2027), a number: each branch has its own fiscal year row. */
@@ -113,6 +117,7 @@ export function BudgetReviewSection({
     [requests, roleFor],
   );
   const groups = useMemo(() => groupByMinistry(rows), [rows]);
+  const grand = useMemo(() => totalsOf(rows), [rows]);
 
   const hasAdmin = organizationIds.some((id) => roleFor(id) === "admin");
   const hasBoard = organizationIds.some((id) => roleFor(id) === "board");
@@ -155,6 +160,7 @@ export function BudgetReviewSection({
   const permsOf = (row: ReviewRow) => getRowPermissions(row.request, roleFor(row.organizationId));
   const sendRows = rows.filter((r) => selected.has(r.request.id) && permsOf(r).canSend);
   const boardRows = rows.filter((r) => selected.has(r.request.id) && permsOf(r).canBoardDecide);
+  const releaseRows = rows.filter((r) => selected.has(r.request.id) && permsOf(r).canReleaseYellow);
 
   // Recommended amount and Comment, kept as typed and saved when the field is left.
   const [drafts, setDrafts] = useState<Record<string, FeedbackDraft>>({});
@@ -225,6 +231,50 @@ export function BudgetReviewSection({
   const council = useCouncilDecision();
   const sendToBoard = useSendToBoard();
   const decideMany = useBoardDecideMany();
+  const releaseYellow = useReleaseYellow();
+  const releaseMany = useReleaseYellowMany();
+
+  const [splitting, setSplitting] = useState<{ row: ReviewRow; start: "current" | "yellow" } | null>(null);
+  const [releasing, setReleasing] = useState<ReviewRow | null>(null);
+
+  const submitSplit = async (result: MarkResult) => {
+    if (!splitting) return;
+    const { row } = splitting;
+    try {
+      await council.mutateAsync({
+        requestId: row.request.id,
+        decision: "conditional",
+        cells: result.cells ?? null,
+        green: result.green ?? null,
+        yellow: result.yellow ?? null,
+        yellowReason: result.yellowReason,
+        notes: result.notes,
+      });
+      toast({ title: "Marked and approved for the Board", description: row.ministryName });
+      setSplitting(null);
+      onRefresh?.();
+    } catch (error) {
+      toast({ title: "That did not go through", description: errorMessage(error), variant: "destructive" });
+    }
+  };
+
+  const submitRelease = async (r: ReleaseResult) => {
+    if (!releasing) return;
+    try {
+      await releaseYellow.mutateAsync({
+        requestId: releasing.request.id,
+        cells: r.cells ?? null,
+        toGreen: r.toGreen ?? null,
+        toRed: r.toRed ?? null,
+        notes: r.notes,
+      });
+      toast({ title: "Yellow money moved", description: releasing.ministryName });
+      setReleasing(null);
+      onRefresh?.();
+    } catch (error) {
+      toast({ title: "That did not go through", description: errorMessage(error), variant: "destructive" });
+    }
+  };
 
   const [editMonth, setEditMonth] = useState<{ row: ReviewRow; month: number } | null>(null);
   const [editing, setEditing] = useState<ReviewRow | null>(null);
@@ -234,7 +284,7 @@ export function BudgetReviewSection({
   const approveForBoard = async (row: ReviewRow) => {
     try {
       await council.mutateAsync({ requestId: row.request.id, decision: "conditional" });
-      toast({ title: "Approved for the Board", description: row.ministryName });
+      toast({ title: "All Green, ready for the Board", description: row.ministryName });
     } catch (error) {
       toast({ title: "Could not approve", description: errorMessage(error), variant: "destructive" });
     }
@@ -254,7 +304,15 @@ export function BudgetReviewSection({
 
   const confirmBulk = async (action: BulkAction, note: string | null) => {
     try {
-      if (action === "send") {
+      if (action === "release") {
+        const result = await releaseMany.mutateAsync({ requestIds: releaseRows.map((r) => r.request.id), notes: note });
+        const skipped = result.skipped.length;
+        toast({
+          title: `Yellow moved to Green for ${result.moved}`,
+          description: skipped ? `${skipped} skipped: ${result.skipped[0].reason}` : "The ministries have been told.",
+          variant: skipped ? "destructive" : "default",
+        });
+      } else if (action === "send") {
         const moved = await sendToBoard.mutateAsync(sendRows.map((r) => r.request.id));
         toast({ title: `${moved} sent to the Board`, description: "The Board has been told." });
       } else {
@@ -278,7 +336,7 @@ export function BudgetReviewSection({
     }
   };
 
-  const busy = sendToBoard.isPending || decideMany.isPending || saveFeedback.isPending;
+  const busy = sendToBoard.isPending || decideMany.isPending || saveFeedback.isPending || releaseMany.isPending;
 
   return (
     <Card>
@@ -324,6 +382,7 @@ export function BudgetReviewSection({
           </p>
         ) : (
           <>
+            <SplitSummary split={grand.split} />
             <ReviewTable
               groups={groups}
               roleFor={roleFor}
@@ -338,6 +397,8 @@ export function BudgetReviewSection({
               onEditMonth={(row, month) => setEditMonth({ row, month })}
               onEditRequest={setEditing}
               onApproveForBoard={approveForBoard}
+              onSplit={(row, start) => setSplitting({ row, start })}
+              onReleaseYellow={setReleasing}
               onDeny={setDenying}
               busyRequestId={council.isPending ? council.variables?.requestId : null}
             />
@@ -345,12 +406,30 @@ export function BudgetReviewSection({
               mode={mode}
               sendRows={sendRows}
               boardRows={boardRows}
+              releaseRows={releaseRows}
               busy={busy}
               onConfirm={confirmBulk}
             />
           </>
         )}
       </CardContent>
+
+      <SplitDialog
+        request={splitting?.row.request ?? null}
+        ministryName={splitting?.row.ministryName ?? ""}
+        start={splitting?.start}
+        busy={council.isPending}
+        onClose={() => setSplitting(null)}
+        onSubmit={submitSplit}
+      />
+
+      <ReleaseYellowDialog
+        request={releasing?.request ?? null}
+        ministryName={releasing?.ministryName ?? ""}
+        busy={releaseYellow.isPending}
+        onClose={() => setReleasing(null)}
+        onSubmit={submitRelease}
+      />
 
       <MonthEditorDialog
         row={editMonth ? rowById.get(editMonth.row.request.id) ?? editMonth.row : null}

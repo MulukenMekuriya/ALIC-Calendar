@@ -360,6 +360,15 @@ export const isAwaitingDecision = (status: AllocationRequestStatus | string) =>
   status === "conditionally_approved" ||
   status === "board_review";
 
+/** One line-and-month of a request's Green / Yellow / Red marking, as stored. */
+export interface SplitCellRecord {
+  index: number;
+  month: string;
+  amount: number;
+  green: number;
+  yellow: number;
+}
+
 export interface AllocationRequest {
   id: string;
   organization_id: string;
@@ -380,6 +389,21 @@ export interface AllocationRequest {
   carried_over_from?: string | null;
   /** How many times the branch's admins have sent it to the Board. */
   board_round?: number;
+  /**
+   * Green / Yellow / Red (20260322441700). Green is approved, Yellow is
+   * justified but waiting on giving, Red is the rest of requested_amount.
+   * Proposed by the Council, confirmed by the Board; null until proposed.
+   */
+  green_amount?: number | null;
+  yellow_amount?: number | null;
+  /** Why money is Yellow. The ministry reads it. */
+  yellow_reason?: string | null;
+  /**
+   * The marking, line by line and month by month: [{ index, month, amount,
+   * green, yellow }]. green_amount / yellow_amount are its sums. Null for an
+   * annual request or one not marked (all Green).
+   */
+  split_cells?: SplitCellRecord[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -640,10 +664,11 @@ export const ALLOCATION_REQUEST_STATUS_CONFIG: Record<
     description: "Not yet submitted",
   },
   pending: {
+    // Not yellow: Yellow now means "justified, waiting on giving".
     label: "Submitted",
-    color: "text-yellow-600",
-    bgColor: "bg-yellow-50",
-    borderColor: "border-yellow-200",
+    color: "text-sky-700",
+    bgColor: "bg-sky-50",
+    borderColor: "border-sky-200",
     icon: "Clock",
     description: "Waiting for the Leadership Council",
   },
@@ -680,12 +705,12 @@ export const ALLOCATION_REQUEST_STATUS_CONFIG: Record<
     description: "Approved in full by the Board",
   },
   partially_approved: {
-    label: "Final Approval (Partial)",
+    label: "Final Approval (Split)",
     color: "text-blue-600",
     bgColor: "bg-blue-50",
     borderColor: "border-blue-200",
     icon: "CheckCircle",
-    description: "Approved for a different amount",
+    description: "Part Green; the rest Yellow (waiting on giving) or Red",
   },
   denied: {
     label: "Denied",

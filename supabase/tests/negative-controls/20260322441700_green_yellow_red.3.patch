@@ -1,0 +1,11 @@
+--- supabase/migrations/20260322441700_green_yellow_red.sql	2026-11-21 17:47:57
++++ /var/folders/g0/9jmx0m5s5dz88yp30btrfcjc0000gn/T//nc2/b3.sql	2026-11-21 17:48:53
+@@ -681,7 +681,7 @@
+   END IF;
+   _old := _r.status;
+ 
+-  IF NOT public.is_org_admin(_r.organization_id) THEN
++  IF NOT (public.is_org_admin(_r.organization_id) OR public.is_board(_r.organization_id)) THEN
+     RAISE EXCEPTION 'Only the local leaders (an admin of this branch) can move Yellow money.'
+       USING ERRCODE = 'insufficient_privilege';
+   END IF;

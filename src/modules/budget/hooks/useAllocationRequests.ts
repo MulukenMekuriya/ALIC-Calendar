@@ -409,6 +409,10 @@ export function useRecallAllocationApproval() {
         .update({
           status: "pending",
           approved_amount: null,
+          // The Green / Yellow / Red split goes with the approval it belonged to.
+          green_amount: null,
+          yellow_amount: null,
+          yellow_reason: null,
           admin_notes: null,
           reviewed_by: null,
           reviewed_at: null,

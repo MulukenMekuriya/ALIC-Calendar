@@ -3,6 +3,7 @@
  * Handles both expenses and allocations with a single, reusable component
  */
 
+import { confirmedGreen } from "../utils/split";
 import {
   Card,
   CardContent,
@@ -45,6 +46,8 @@ interface SectionConfig {
   icon: typeof DollarSign;
   statusColors: Record<string, string>;
   getAmount: (item: BudgetItem) => number;
+  /** The approved part of an approved item, when it can be less than the amount. */
+  getApprovedAmount?: (item: BudgetItem) => number;
   getStatus: (item: BudgetItem) => string;
   getMinistry: (item: BudgetItem) => string;
   getDate: (item: BudgetItem) => string;
@@ -121,12 +124,14 @@ const SECTION_CONFIGS: Record<SectionType, SectionConfig> = {
       cancelled: COLORS.danger,
     },
     getAmount: (item: AllocationRequestWithRelations) => item.requested_amount,
+    // Green only: Yellow waits on giving and Red was denied.
+    getApprovedAmount: (item: AllocationRequestWithRelations) => confirmedGreen(item),
     getStatus: (item: AllocationRequestWithRelations) => item.status,
     getMinistry: (item: AllocationRequestWithRelations) =>
       item.ministry?.name || "Unknown",
     getDate: (item: AllocationRequestWithRelations) => item.created_at,
     approvedStatuses: ["approved", "partially_approved"],
-    pendingStatuses: ["pending"],
+    pendingStatuses: ["pending", "under_review", "conditionally_approved", "board_review"],
     deniedStatuses: ["denied"],
   },
 };
@@ -152,7 +157,7 @@ const BudgetSection = ({
   );
   const approvedAmount = data
     .filter((item) => config.approvedStatuses.includes(config.getStatus(item)))
-    .reduce((sum, item) => sum + config.getAmount(item), 0);
+    .reduce((sum, item) => sum + (config.getApprovedAmount ?? config.getAmount)(item), 0);
   const pendingAmount = data
     .filter((item) => config.pendingStatuses.includes(config.getStatus(item)))
     .reduce((sum, item) => sum + config.getAmount(item), 0);
